@@ -101,6 +101,33 @@ test("full version hints are requested only after an explicit action", async ({
   );
 });
 
+test("refused version hints preserve entered metadata and report the failure", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "userAgentData", {
+      configurable: true,
+      value: {
+        async getHighEntropyValues() {
+          throw new Error("Version details denied");
+        },
+      },
+    });
+  });
+  await page.reload();
+  await page.getByLabel("Browser and version").fill("Verified browser");
+  await page
+    .getByRole("button", { name: "Fill available full versions" })
+    .click();
+  await expect(page.locator("#error")).toContainText("Version details denied");
+  await expect(page.getByLabel("Browser and version")).toHaveValue(
+    "Verified browser",
+  );
+  await expect(
+    page.getByRole("button", { name: "Fill available full versions" }),
+  ).toBeEnabled();
+});
+
 test("live page samples every keyword, captures both modes, and exports portable data", async ({
   page,
 }) => {
@@ -345,4 +372,30 @@ test("invalid published data fails visibly without pretending the dataset is emp
   await expect(page.locator("#status")).toContainText("failed");
   await expect(page.locator("#empty")).toBeHidden();
   await expect(page.getByLabel("Display mode")).toBeDisabled();
+});
+
+test("the built homepage renders every actual committed capture", async ({
+  page,
+}) => {
+  await page.unroute("**/published.json");
+  const response = await page.request.get(
+    new URL("./published.json", page.url()).href,
+  );
+  expect(response.ok()).toBe(true);
+  const data = await response.json();
+  await page.goto("./");
+  await expect(page.locator("#status")).toContainText(
+    `Loaded ${data.captures.length} published captures`,
+  );
+  await expect(page.locator("#individual-table thead th")).toHaveCount(
+    data.captures.length + 1,
+  );
+  await expect(page.locator("#pair-table tbody td[rowspan='2']")).toHaveCount(
+    data.captures.length * 10,
+  );
+  for (const capture of data.captures) {
+    await expect(page.locator("#individual-table thead")).toContainText(
+      capture.environment.browser,
+    );
+  }
 });

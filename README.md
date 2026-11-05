@@ -134,7 +134,10 @@ build. Captures appear in date/ID order. The existing limit is 100 unique captur
 per comparison, with a combined input and generated dataset limit of 5 MB each.
 Nothing is silently truncated; curate a comparison subset if the archive outgrows
 those bounds. Keep private archival exports in the ignored `captures/` directory.
-There are no invented results: the initial published collection is empty.
+There are no invented results. The first committed observations are headed
+Playwright Chromium 158.0.8127.18, Firefox 159.0, and WebKit 27.2 runs on
+macOS 27.0.1 arm64, collected November 5, 2026. Their Notes identify automation
+and source provenance; they aren’t claims about installed Chrome or Safari.
 
 The results page reads the generated same-origin JSON asset. A loading or
 validation failure produces a visible error, not substitute browser results.
