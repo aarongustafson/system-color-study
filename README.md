@@ -38,15 +38,28 @@ allowlist, not your workspace or capture files. Stop the server afterward.
 
 1. Read [the protocol](./PLAN.md), including the environment and privacy checks.
    Open [the test page](./test.html); it starts with an empty local collection.
-2. Enter browser and OS names **with versions from their About screens**.
+2. Verify the prefilled browser and OS names **against their About screens**.
+   Prefills come from the user agent and may be reduced, frozen, or spoofed.
+   Where supported, **Fill available full versions** explicitly requests
+   additional browser-provided version details. These are still reports, not
+   proof of the installed versions; Windows platform versions aren’t Windows
+   release names. All fields remain editable.
    Record relevant device, accent, contrast-theme, and experimental settings
    in Notes. Don’t include personal information.
 3. Choose a backdrop: the mode’s resolved opaque `Canvas`, white, or black.
    The displayed mode affects the live grid and comparison tables.
 4. Select **Capture light and dark**. One capture contains both requested CSS
    modes and all 42 keywords, even when deprecated keywords aren’t displayed.
+   The **Latest capture: both modes** section shows both saved grids side by
+   side on wide screens and stacked on narrow ones. Each comes from a fresh,
+   independent scheme probe—not a copied grid or a change to your OS preference.
+   Switching live settings never changes these saved measurements.
 5. Select **Export JSON**. Save the download; a text area also exposes the JSON
    for manual copying.
+   Filenames include browser/OS labels, versions, and the export timestamp.
+   Mixed collections identify the first environment and the number of others;
+   that count uses full browser/OS pairs before shortening filename labels.
+   The complete metadata remains in the JSON.
 6. Change OS settings, browser, device, context, or backdrop and repeat.
 7. Import capture files into any copy of the page to build comparison columns.
    Repeated runs remain separate. Identical duplicate IDs are reported and
@@ -122,11 +135,81 @@ build. Captures appear in date/ID order. The existing limit is 100 unique captur
 per comparison, with a combined input and generated dataset limit of 5 MB each.
 Nothing is silently truncated; curate a comparison subset if the archive outgrows
 those bounds. Keep private archival exports in the ignored `captures/` directory.
-There are no invented results: the initial published collection is empty.
+There are no invented results. The first committed observations are headed
+Playwright Chromium 158.0.8127.18, Firefox 159.0, and WebKit 27.2 runs on
+macOS 27.0.1 arm64, collected November 5, 2026. Their Notes identify automation
+and source provenance; they aren’t claims about installed Chrome or Safari.
 
 The results page reads the generated same-origin JSON asset. A loading or
 validation failure produces a visible error, not substitute browser results.
 Local imports and measurements never modify the published collection.
+
+## Open a results PR automatically
+
+A static Pages site can’t create authenticated pull requests on its own. Don’t
+put an access token in the page, its URL, or exported data. The test page links
+to GitHub’s upload screen for a browser-only submission; GitHub handles sign-in,
+forks, branches, and proposing the change.
+
+For a one-command submission from a local checkout, install
+[GitHub CLI](https://cli.github.com/) and authenticate with `gh auth login`.
+The helper currently requires write access to this repository:
+
+```sh
+npm run submit -- /path/to/capture.json --dry-run
+npm run submit -- /path/to/capture.json
+```
+
+The dry run validates the file and reports its destination without contacting
+GitHub. The real command uses your existing `gh` credentials to create a fresh
+data branch, commit the reviewed JSON under `data/submissions/`, and open a PR
+against `main`. It doesn’t change your checkout, merge the PR, or write directly
+to `main`. Submission filenames include a SHA-256 hash of the supplied file so
+distinct collections don’t target an existing submission just because their
+environment labels and newest capture timestamp match. A dry run and real
+submission use the same destination for the same unchanged file.
+Review Notes and version labels **before** running the real command:
+it sends the supplied file, including its metadata, to the public repository.
+Invalid/empty data and files over 5 MB are rejected before network requests.
+
+If upload or PR creation fails after branch creation, the command reports the
+remaining branch for inspection. It doesn’t claim success or delete remote work.
+Without write access, use the test page’s GitHub upload link and propose a change
+from your fork.
+
+## Repeat a local Playwright baseline
+
+```sh
+npm exec -- playwright install
+npm run capture:local
+```
+
+This opens bundled Chromium, Firefox, and WebKit on the current host, captures
+both requested CSS modes through the test page, and exports one JSON file per
+engine into the ignored `captures/playwright-local/` directory. It uses an
+ephemeral loopback-only server and closes each browser and server when finished.
+No media preference is emulated: the capture records what each engine reports
+from that host. It doesn’t change OS settings, accent colors, or contrast themes.
+
+On macOS, OS version comes from `sw_vers`; other hosts use their kernel version.
+Architecture, Playwright/browser versions, headed/headless mode, source commit,
+and modified-worktree status are recorded in Notes. OS accent and contrast-theme
+names still need manual verification. Use a clean committed source tree for
+repeatable provenance.
+
+Optional arguments:
+
+```sh
+npm run capture:local -- --output /path/to/review-directory
+npm run capture:local -- --headless
+```
+
+Headed is the default. Headless results are labeled separately; don’t present
+them as normal interactive-browser observations. Likewise, bundled WebKit is
+**not Safari**, bundled Chromium is **not installed Chrome**, and a local
+Playwright Firefox build isn’t evidence for a different shipping Firefox build.
+These are real measurements on the host, with explicit automation provenance.
+Review them before copying/submitting them into `data/`.
 
 ## Enable GitHub Pages
 
@@ -195,8 +278,10 @@ Exports contain `schemaVersion`, `protocolVersion`, `catalogVersion`,
 
 Each capture has:
 
-- A unique `id`, UTC `capturedAt`, and manually identified `environment`.
-- The user agent as supporting evidence; no high-entropy client-hint requests.
+- A unique `id`, UTC `capturedAt`, and editable browser/system `environment`.
+- The user agent as supporting evidence. Additional client-hint version details
+  are requested only after selecting **Fill available full versions**, never
+  automatically. No details are uploaded by detection or capture.
 - `media`: preferred scheme, forced-colors state, contrast preference, and
   detected display mode. Unsupported/unmatched media features are `unknown`
   (or `null` for forced colors), not guessed preferences.

@@ -21,6 +21,7 @@ const files = new Map([
     "app.js",
     "model.js",
     "sampler.js",
+    "environment.js",
     "styles.css",
     "published.json",
     "README.md",
@@ -43,9 +44,9 @@ const files = new Map([
 ]);
 const port = Number(process.env.PORT || 4189);
 const host = process.env.HOST || "127.0.0.1";
-if (!Number.isInteger(port) || port < 1 || port > 65535)
-  throw new Error("PORT must be 1-65535.");
-createServer(async (request, response) => {
+if (!Number.isInteger(port) || port < 0 || port > 65535)
+  throw new Error("PORT must be 0-65535 (0 selects an available port).");
+const server = createServer(async (request, response) => {
   if (!["GET", "HEAD"].includes(request.method)) {
     response
       .writeHead(405, { Allow: "GET, HEAD" })
@@ -90,6 +91,7 @@ createServer(async (request, response) => {
       .writeHead(500)
       .end("Study file unavailable. Check the server terminal.");
   }
-}).listen(port, host, () =>
-  console.log(`Study: http://${host}:${port}${base}/`),
+});
+server.listen(port, host, () =>
+  console.log(`Study: http://${host}:${server.address().port}${base}/`),
 );

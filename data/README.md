@@ -2,7 +2,15 @@
 
 Add reviewed JSON exports from the test page here, including in subdirectories
 if useful. The build validates and combines every `.json` file with the legacy
-root `published.json` collection. No real captures have been submitted yet.
+root `published.json` collection.
+
+The first observations are under `automated-local/2026-11-05/`: three headed
+Playwright bundled engines on macOS 27.0.1 arm64, with media emulation disabled.
+Each file records both requested schemes and all 42 keywords. These are actual
+local observations, not synthetic fixtures or installed-browser measurements.
+Source revision and unverified accent/theme-name limitations are in Notes.
+Chromium and WebKit reported a dark native preference; Firefox reported light.
+Keep those reports rather than normalizing them to agree.
 
 Use descriptive filenames, such as `2026-11-05/android-chrome-canvas.json`.
 Keep capture IDs and original measurements unchanged. Verify browser/OS versions,

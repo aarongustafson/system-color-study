@@ -94,6 +94,14 @@ an actual installed context and suitable HTTPS hosting/installation setup.
 Settings can change while a capture runs. Don’t change them mid-capture.
 The tool performs bounded synchronous measurements in isolated scheme probes;
 both modes share one environment snapshot, not two separately verified OS states.
+The capture review displays both saved modes together. The live display selector
+doesn’t determine which modes are captured.
+
+Browser/OS prefills are unverified browser reports. Confirm About-screen versions
+before submitting; optional full-version hints are requested only by an explicit
+button action. For local automated baselines, `npm run capture:local` records the
+host OS and bundled engine versions with headed/headless and source provenance.
+Keep those observations distinct from installed-browser and actual-device runs.
 
 For Windows Contrast themes, follow the [Windows procedure](./README.md#windows-contrast-themes).
 Confirm `forced-colors: active` instead of inferring it from a theme’s appearance.

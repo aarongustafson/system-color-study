@@ -68,16 +68,22 @@
         <form id="capture-form">
           <fieldset>
             <legend>Identify this browser/system combination</legend>
-            <p>
-              Enter versions from the browser and OS “About” screens. The user
-              agent is recorded as supporting evidence, not used to guess exact
-              versions.
+            <p id="metadata-help">
+              Prefilled values are browser-reported estimates. They can be
+              reduced, frozen, or spoofed: verify browser and OS versions in
+              their “About” screens and edit these fields before capturing. The
+              optional button requests additional version details locally; it
+              doesn’t upload them.
             </p>
+            <button id="detect-versions" type="button" hidden>
+              Fill available full versions
+            </button>
             <div class="settings">
               <label
                 >Browser and version
                 <input
                   id="browser"
+                  aria-describedby="metadata-help"
                   required
                   maxlength="160"
                   placeholder="Chrome 156.0…"
@@ -86,6 +92,7 @@
                 >OS and version
                 <input
                   id="os"
+                  aria-describedby="metadata-help"
                   required
                   maxlength="160"
                   placeholder="Android 16"
@@ -114,6 +121,18 @@
             </button>
           </fieldset>
         </form>
+      </section>
+
+      <section id="captured-preview" aria-labelledby="captured-heading" hidden>
+        <h2 id="captured-heading">Latest capture: both modes</h2>
+        <p id="capture-summary"></p>
+        <p>
+          Both grids come from independent probes run when you captured, not
+          from your selected display mode. All 42 keywords are saved; use
+          “Include deprecated keywords” to display the historical ones. Light
+          and dark may legitimately match in forced-color modes.
+        </p>
+        <div id="captured-modes" class="captured-modes"></div>
       </section>
 
       <section aria-labelledby="palette-heading">
@@ -160,6 +179,25 @@
           <label
             >Exported JSON <textarea id="json" readonly rows="8"></textarea>
           </label>
+        </details>
+        <details>
+          <summary>Submit reviewed results to the study</summary>
+          <p>
+            Export JSON and review its metadata and Notes first.
+            <a
+              href="https://github.com/aarongustafson/system-color-study/upload/main/data"
+              >Upload the JSON to GitHub</a
+            >, choose a new branch, and open a pull request. GitHub may ask you
+            to sign in or create a fork.
+          </p>
+          <p>
+            With a local checkout, write access, and an authenticated GitHub
+            CLI,
+            <code>npm run submit -- /path/to/capture.json</code> validates the
+            file and opens a PR automatically. Use <code>--dry-run</code> to
+            check it without sending anything. Never enter access tokens on this
+            page.
+          </p>
         </details>
         <ul id="captures"></ul>
         <p id="empty">
