@@ -88,7 +88,7 @@ an actual installed context and suitable HTTPS hosting/installation setup.
 9. Where a finding is surprising, reload and repeat under the same settings.
    Preserve both timestamps. Save a screenshot as corroboration, not as the
    numeric color measurement.
-10. Import runs into the comparison page. Use the mode selector to compare
+10. Import runs into the test page’s local comparison. Use the mode selector to compare
     equivalent requested schemes and read context/backdrop labels.
 
 Settings can change while a capture runs. Don’t change them mid-capture.
@@ -160,10 +160,17 @@ results; separate platform behavior from measurement/conversion changes.
 The 100-capture view limit bounds DOM work on phones. Keep the full archive and
 choose comparison subsets rather than flattening historical runs.
 
-For a published comparison, curate an export and use it as `published.json`.
+For a published comparison, submit reviewed exports under `data/` by pull request.
+The build merges all submitted JSON and the root `published.json` seed; the
+results homepage loads that generated dataset, while `test.html` keeps local
+measurements separate. The combined build input and generated collection must
+each stay within 5 MB, with at most 100 unique captures. Exceeding those bounds
+fails validation rather than hiding observations.
+
 Review notes and provenance first. Local capture data is not automatically sent
 to the host; ordinary static-file requests and the host’s access-log policy are
-separate from this tool’s collection behavior.
+separate from this tool’s collection behavior. Merging a validated PR triggers
+GitHub Pages publication once the repository’s Pages source is GitHub Actions.
 
 ## Turning findings into component changes
 

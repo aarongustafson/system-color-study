@@ -11,6 +11,7 @@ import {
 import { measureScheme, mediaSnapshot } from "./sampler.js";
 
 const byId = (id) => document.getElementById(id);
+const isTestPage = document.body.dataset.studyPage === "test";
 let captures = [];
 let live;
 const element = (tag, text) => {
@@ -30,6 +31,7 @@ const label = (capture) =>
 
 function report(error) {
   console.error("System color study:", error);
+  byId("status").textContent = "The operation failed. See the error message.";
   byId("error").textContent =
     error instanceof Error ? error.message : String(error);
   byId("error").hidden = false;
@@ -221,6 +223,7 @@ function renderTables() {
   table.tBodies[0].replaceChildren(pairRows);
   individual.hidden = table.hidden = captures.length === 0;
   byId("empty").hidden = captures.length !== 0;
+  if (!isTestPage) return;
   byId("export").disabled = captures.length === 0;
   const list = document.createDocumentFragment();
   captures.forEach((capture) => {
@@ -245,143 +248,153 @@ function renderTables() {
 }
 
 function refresh() {
-  live = measureScheme(byId("scheme").value, byId("backdrop").value);
-  const media = mediaSnapshot();
-  byId("environment").textContent =
-    `OS preference: ${media.prefersColorScheme}; forced colors: ${forcedLabel(media.forcedColors)}; contrast preference: ${media.prefersContrast}. Requested scheme: ${byId("scheme").value}; computed scheme: ${live.schemeSupported ? live.computedColorScheme : "unsupported"}.`;
-  renderPalette();
+  if (isTestPage) {
+    live = measureScheme(byId("scheme").value, byId("backdrop").value);
+    const media = mediaSnapshot();
+    byId("environment").textContent =
+      `OS preference: ${media.prefersColorScheme}; forced colors: ${forcedLabel(media.forcedColors)}; contrast preference: ${media.prefersContrast}. Requested scheme: ${byId("scheme").value}; computed scheme: ${live.schemeSupported ? live.computedColorScheme : "unsupported"}.`;
+    renderPalette();
+  }
   renderTables();
 }
 
-for (const id of ["scheme", "backdrop", "deprecated", "refresh"]) {
+for (const id of [
+  "scheme",
+  "deprecated",
+  ...(isTestPage ? ["backdrop", "refresh"] : []),
+]) {
   byId(id).addEventListener(id === "refresh" ? "click" : "change", () => {
     clearError();
     try {
       refresh();
-      byId("status").textContent =
-        "Live values resampled. Saved captures are unchanged.";
+      byId("status").textContent = isTestPage
+        ? "Live values resampled. Saved captures are unchanged."
+        : `Showing ${captures.length} published captures in ${byId("scheme").value} mode.`;
     } catch (error) {
       report(error);
     }
   });
 }
 
-byId("capture-form").addEventListener("submit", (event) => {
-  event.preventDefault();
-  clearError();
-  try {
-    const capturedAt = new Date().toISOString();
-    const capture = {
-      id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
-      capturedAt,
-      environment: {
-        browser: byId("browser").value.trim(),
-        os: byId("os").value.trim(),
-        context: byId("context").value,
-        notes: byId("notes").value,
-        userAgent: navigator.userAgent,
-      },
-      media: mediaSnapshot(),
-      schemes: Object.fromEntries(
-        ["light", "dark"].map((scheme) => [
-          scheme,
-          measureScheme(scheme, byId("backdrop").value),
-        ]),
-      ),
-    };
-    validateCollection({ ...versions, captures: [capture] });
-    captures = mergeCaptures(captures, [capture]).captures;
-    byId("export-text").hidden = true;
-    renderTables();
-    byId("status").textContent =
-      "Captured both modes and all 42 keywords. Export JSON before leaving.";
-  } catch (error) {
-    report(error);
-  }
-});
-
-byId("export").addEventListener("click", () => {
-  clearError();
-  try {
-    const text = JSON.stringify(
-      { ...versions, exportedAt: new Date().toISOString(), captures },
-      null,
-      2,
-    );
-    byId("json").value = text;
-    byId("export-text").hidden = false;
-    const url = URL.createObjectURL(
-      new Blob([text], { type: "application/json" }),
-    );
-    const link = element("a");
-    link.href = url;
-    link.download = `system-colors-${new Date().toISOString().replaceAll(":", "-")}.json`;
-    document.body.append(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
-    byId("status").textContent =
-      "JSON prepared. Save the download or copy it from the text area.";
-  } catch (error) {
-    report(error);
-  }
-});
-
-byId("import").addEventListener("change", async (event) => {
-  clearError();
-  const input = event.currentTarget;
-  const files = [...input.files];
-  if (!files.length) return;
-  input.disabled = true;
-  byId("capture").disabled = true;
-  byId("export").disabled = true;
-  byId("status").textContent = "Reading capture files.";
-  try {
-    if (files.reduce((size, file) => size + file.size, 0) > 5_000_000) {
-      throw new Error("Import at most 5 MB at a time.");
+if (isTestPage) {
+  byId("capture-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    clearError();
+    try {
+      const capturedAt = new Date().toISOString();
+      const capture = {
+        id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
+        capturedAt,
+        environment: {
+          browser: byId("browser").value.trim(),
+          os: byId("os").value.trim(),
+          context: byId("context").value,
+          notes: byId("notes").value,
+          userAgent: navigator.userAgent,
+        },
+        media: mediaSnapshot(),
+        schemes: Object.fromEntries(
+          ["light", "dark"].map((scheme) => [
+            scheme,
+            measureScheme(scheme, byId("backdrop").value),
+          ]),
+        ),
+      };
+      validateCollection({ ...versions, captures: [capture] });
+      captures = mergeCaptures(captures, [capture]).captures;
+      byId("export-text").hidden = true;
+      renderTables();
+      byId("status").textContent =
+        "Captured both modes and all 42 keywords. Export JSON before leaving.";
+    } catch (error) {
+      report(error);
     }
-    const incoming = [];
-    for (const file of files) {
-      const collection = JSON.parse(await file.text());
-      incoming.push(...validateCollection(collection));
+  });
+
+  byId("export").addEventListener("click", () => {
+    clearError();
+    try {
+      const text = JSON.stringify(
+        { ...versions, exportedAt: new Date().toISOString(), captures },
+        null,
+        2,
+      );
+      byId("json").value = text;
+      byId("export-text").hidden = false;
+      const url = URL.createObjectURL(
+        new Blob([text], { type: "application/json" }),
+      );
+      const link = element("a");
+      link.href = url;
+      link.download = `system-colors-${new Date().toISOString().replaceAll(":", "-")}.json`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      byId("status").textContent =
+        "JSON prepared. Save the download or copy it from the text area.";
+    } catch (error) {
+      report(error);
     }
-    const result = mergeCaptures(captures, incoming);
-    const added = result.captures.length - captures.length;
-    captures = result.captures;
-    byId("export-text").hidden = true;
-    renderTables();
-    byId("status").textContent =
-      `Imported ${added} captures; skipped ${result.duplicates} duplicate captures.`;
-  } catch (error) {
-    report(error);
-  } finally {
-    input.disabled = false;
-    input.value = "";
-    byId("capture").disabled = false;
-    byId("export").disabled = captures.length === 0;
-  }
-});
+  });
+
+  byId("import").addEventListener("change", async (event) => {
+    clearError();
+    const input = event.currentTarget;
+    const files = [...input.files];
+    if (!files.length) return;
+    input.disabled = true;
+    byId("capture").disabled = true;
+    byId("export").disabled = true;
+    byId("status").textContent = "Reading capture files.";
+    try {
+      if (files.reduce((size, file) => size + file.size, 0) > 5_000_000) {
+        throw new Error("Import at most 5 MB at a time.");
+      }
+      const incoming = [];
+      for (const file of files) {
+        const collection = JSON.parse(await file.text());
+        incoming.push(...validateCollection(collection));
+      }
+      const result = mergeCaptures(captures, incoming);
+      const added = result.captures.length - captures.length;
+      captures = result.captures;
+      byId("export-text").hidden = true;
+      renderTables();
+      byId("status").textContent =
+        `Imported ${added} captures; skipped ${result.duplicates} duplicate captures.`;
+    } catch (error) {
+      report(error);
+    } finally {
+      input.disabled = false;
+      input.value = "";
+      byId("capture").disabled = false;
+      byId("export").disabled = captures.length === 0;
+    }
+  });
+}
 
 async function initialize() {
-  const response = await fetch("./published.json", { cache: "no-store" });
-  if (!response.ok)
-    throw new Error(
-      `Published collection could not load (HTTP ${response.status}).`,
-    );
-  const text = await response.text();
-  if (new Blob([text]).size > 5_000_000)
-    throw new Error("Published collection exceeds 5 MB.");
-  captures = mergeCaptures([], validateCollection(JSON.parse(text))).captures;
+  if (!isTestPage) {
+    const response = await fetch("./published.json", { cache: "no-store" });
+    if (!response.ok)
+      throw new Error(
+        `Published collection could not load (HTTP ${response.status}).`,
+      );
+    const text = await response.text();
+    if (new Blob([text]).size > 5_000_000)
+      throw new Error("Published collection exceeds 5 MB.");
+    captures = mergeCaptures([], validateCollection(JSON.parse(text))).captures;
+  }
   refresh();
   for (const id of [
     "scheme",
-    "backdrop",
     "deprecated",
-    "refresh",
-    "capture",
-    "import",
+    ...(isTestPage ? ["backdrop", "refresh", "capture", "import"] : []),
   ])
     byId(id).disabled = false;
-  byId("status").textContent = "Ready. Set metadata, then capture both modes.";
+  byId("status").textContent = isTestPage
+    ? "Ready. Set metadata, then capture both modes."
+    : `Loaded ${captures.length} published captures. Choose a mode to compare.`;
 }
 initialize().catch(report);
