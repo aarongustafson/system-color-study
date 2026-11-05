@@ -9,6 +9,11 @@ import {
   mergeCaptures,
 } from "./model.js";
 import { measureScheme, mediaSnapshot } from "./sampler.js";
+import {
+  detectEnvironment,
+  environmentFromHints,
+  exportFilename,
+} from "./environment.js";
 
 const byId = (id) => document.getElementById(id);
 const isTestPage = document.body.dataset.studyPage === "test";
@@ -63,14 +68,19 @@ function colorCell(color, snapshot) {
   return cell;
 }
 
-function renderPalette() {
+function renderPalette(
+  snapshot = live,
+  colorTarget = byId("palette"),
+  pairTarget = byId("live-pairs"),
+  headingLevel = 3,
+) {
   const grid = document.createDocumentFragment();
-  const backdrop = backdropRGB(live);
+  const backdrop = backdropRGB(snapshot);
   for (const { name, deprecated } of visibleKeywords()) {
-    const color = live.colors[name];
+    const color = snapshot.colors[name];
     const card = element("article");
     card.className = "color-card";
-    card.append(element("h3", name));
+    card.append(element(`h${headingLevel}`, name));
     if (color.supported) {
       const swatch = element("div");
       swatch.className = "swatch";
@@ -94,20 +104,25 @@ function renderPalette() {
       );
     grid.append(card);
   }
-  byId("palette").replaceChildren(grid);
+  colorTarget.replaceChildren(grid);
   const cards = document.createDocumentFragment();
   for (const pair of visiblePairs()) {
-    const result = pairResult(pair, live);
+    const result = pairResult(pair, snapshot);
     const card = element("article");
     card.className = "pair-card";
-    card.append(element("h4", `${pair.background} / ${pair.foreground}`));
+    card.append(
+      element(
+        `h${headingLevel + 1}`,
+        `${pair.background} / ${pair.foreground}`,
+      ),
+    );
     if (result.ratio !== null) {
       const sample = element("div");
       sample.className = "pair-sample";
       sample.style.backgroundColor = hex([...backdrop, 255]);
       const text = element("span", "Sample text: Aa 0123456789");
-      text.style.backgroundColor = live.colors[pair.background].hex;
-      text.style.color = live.colors[pair.foreground].hex;
+      text.style.backgroundColor = snapshot.colors[pair.background].hex;
+      text.style.color = snapshot.colors[pair.foreground].hex;
       sample.append(text);
       card.append(
         sample,
@@ -117,7 +132,36 @@ function renderPalette() {
     } else card.append(element("p", "Not measured: " + result.reason));
     cards.append(card);
   }
-  byId("live-pairs").replaceChildren(cards);
+  pairTarget.replaceChildren(cards);
+}
+
+function renderCapturedModes() {
+  const capture = captures.at(-1);
+  byId("captured-preview").hidden = !capture;
+  byId("captured-modes").replaceChildren();
+  if (!capture) return;
+  byId("capture-summary").textContent = label(capture);
+  for (const scheme of ["light", "dark"]) {
+    const snapshot = capture.schemes[scheme];
+    const group = element("section");
+    group.className = "captured-mode";
+    group.setAttribute("aria-label", `Captured ${scheme} mode`);
+    group.style.colorScheme = scheme;
+    group.append(
+      element("h3", `Captured ${scheme} mode`),
+      element(
+        "p",
+        `Requested CSS scheme: ${scheme}. Computed: ${snapshot.computedColorScheme || "unsupported"}. These are saved values, not a resample.`,
+      ),
+    );
+    const colors = element("div");
+    colors.className = "palette";
+    const pairs = element("div");
+    pairs.className = "palette pairs";
+    group.append(colors, element("h4", "Color pairs"), pairs);
+    renderPalette(snapshot, colors, pairs, 4);
+    byId("captured-modes").append(group);
+  }
 }
 
 function renderTables() {
@@ -224,6 +268,7 @@ function renderTables() {
   individual.hidden = table.hidden = captures.length === 0;
   byId("empty").hidden = captures.length !== 0;
   if (!isTestPage) return;
+  renderCapturedModes();
   byId("export").disabled = captures.length === 0;
   const list = document.createDocumentFragment();
   captures.forEach((capture) => {
@@ -277,6 +322,30 @@ for (const id of [
 }
 
 if (isTestPage) {
+  byId("detect-versions").addEventListener("click", async () => {
+    clearError();
+    const button = byId("detect-versions");
+    button.disabled = true;
+    try {
+      const hints = await navigator.userAgentData.getHighEntropyValues([
+        "fullVersionList",
+        "platformVersion",
+      ]);
+      const detected = environmentFromHints(hints);
+      if (!detected.browser && !detected.os)
+        throw new Error(
+          "The browser did not disclose full version details. Enter verified versions manually.",
+        );
+      for (const field of ["browser", "os"])
+        if (detected[field]) byId(field).value = detected[field];
+      byId("status").textContent =
+        "Available reported versions filled. Verify them in the About screens before capturing.";
+    } catch (error) {
+      report(error);
+    } finally {
+      button.disabled = false;
+    }
+  });
   byId("capture-form").addEventListener("submit", (event) => {
     event.preventDefault();
     clearError();
@@ -305,7 +374,7 @@ if (isTestPage) {
       byId("export-text").hidden = true;
       renderTables();
       byId("status").textContent =
-        "Captured both modes and all 42 keywords. Export JSON before leaving.";
+        "Captured both modes and all 42 keywords. Review the saved light and dark grids below; export JSON before leaving.";
     } catch (error) {
       report(error);
     }
@@ -314,8 +383,9 @@ if (isTestPage) {
   byId("export").addEventListener("click", () => {
     clearError();
     try {
+      const exportedAt = new Date().toISOString();
       const text = JSON.stringify(
-        { ...versions, exportedAt: new Date().toISOString(), captures },
+        { ...versions, exportedAt, captures },
         null,
         2,
       );
@@ -326,7 +396,7 @@ if (isTestPage) {
       );
       const link = element("a");
       link.href = url;
-      link.download = `system-colors-${new Date().toISOString().replaceAll(":", "-")}.json`;
+      link.download = exportFilename(captures, exportedAt);
       document.body.append(link);
       link.click();
       link.remove();
@@ -375,6 +445,13 @@ if (isTestPage) {
 }
 
 async function initialize() {
+  if (isTestPage) {
+    const detected = detectEnvironment(navigator.userAgent);
+    for (const field of ["browser", "os"])
+      if (!byId(field).value) byId(field).value = detected[field];
+    byId("detect-versions").hidden =
+      !navigator.userAgentData?.getHighEntropyValues;
+  }
   if (!isTestPage) {
     const response = await fetch("./published.json", { cache: "no-store" });
     if (!response.ok)

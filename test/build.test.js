@@ -10,51 +10,9 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { keywords, versions } from "../model.js";
+import { versions } from "../model.js";
 import { buildSite, publicFiles } from "../scripts/build.js";
-
-function fixture(id) {
-  const colors = Object.fromEntries(
-    keywords.map(({ name }) => [
-      name,
-      {
-        supported: true,
-        computed: "rgb(0, 0, 0)",
-        rgba: [0, 0, 0, 255],
-        hex: "#000000",
-        conversion: "rgb-serialization",
-      },
-    ]),
-  );
-  return {
-    id,
-    capturedAt: "2000-01-01T00:00:00.000Z",
-    environment: {
-      browser: "Unit fixture",
-      os: "Fixture",
-      notes: "",
-      userAgent: "",
-      context: "normal",
-    },
-    media: {
-      forcedColors: false,
-      prefersColorScheme: "light",
-      prefersContrast: "no-preference",
-      displayMode: "browser",
-    },
-    schemes: Object.fromEntries(
-      ["light", "dark"].map((scheme) => [
-        scheme,
-        {
-          colors,
-          backdrop: "white",
-          schemeSupported: true,
-          computedColorScheme: scheme,
-        },
-      ]),
-    ),
-  };
-}
+import { fixture } from "./fixtures.js";
 
 async function setup(t) {
   const root = await mkdtemp(join(tmpdir(), "system-color-build-"));
@@ -106,6 +64,7 @@ test("build merges every committed JSON collection and publishes only allowed st
       "app.js",
       "model.js",
       "sampler.js",
+      "environment.js",
       "styles.css",
       "published.json",
       "README.md",

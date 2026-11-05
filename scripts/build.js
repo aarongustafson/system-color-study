@@ -9,6 +9,7 @@ export const publicFiles = [
   "app.js",
   "model.js",
   "sampler.js",
+  "environment.js",
   "styles.css",
   "README.md",
   "PLAN.md",

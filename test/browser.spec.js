@@ -1,7 +1,104 @@
 import { test, expect } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
+  await page.route("**/published.json", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        schemaVersion: 1,
+        protocolVersion: 1,
+        catalogVersion: 1,
+        captures: [],
+      }),
+    }),
+  );
   await page.goto("./test.html");
+});
+
+test("one capture measures both schemes independently and shows both recorded grids", async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    window.schemeProbes = [];
+    const original = window.getComputedStyle;
+    window.getComputedStyle = function (node, ...args) {
+      const style = original.call(this, node, ...args);
+      if (
+        node.parentElement?.classList.contains("probe-zone") &&
+        node.style.color.toLowerCase() === "canvas"
+      ) {
+        window.schemeProbes.push({
+          scheme: node.parentElement.style.colorScheme,
+          color: style.color,
+        });
+      }
+      return style;
+    };
+  });
+  await page.getByLabel("Browser and version").fill("Independent probes");
+  await page.getByLabel("OS and version").fill("Test OS");
+  await page.getByRole("button", { name: "Capture light and dark" }).click();
+  const probes = await page.evaluate(() => window.schemeProbes);
+  expect(probes.map((probe) => probe.scheme)).toEqual(["light", "dark"]);
+  for (const { scheme, color } of probes) {
+    const group = page.getByRole("region", {
+      name: `Captured ${scheme} mode`,
+      exact: true,
+    });
+    await expect(group.locator(".color-card")).toHaveCount(19);
+    await expect(
+      group.locator(".color-card").filter({
+        has: page.getByRole("heading", { name: "Canvas", exact: true }),
+      }),
+    ).toContainText(color);
+  }
+});
+
+test("metadata is prefilled but editable, and exports identify browser and OS versions", async ({
+  page,
+}) => {
+  await expect(page.getByLabel("Browser and version")).not.toHaveValue("");
+  await expect(page.getByLabel("OS and version")).not.toHaveValue("");
+  await page.getByLabel("Browser and version").fill("Chrome 156.1.2.3");
+  await page.getByLabel("OS and version").fill("macOS 27.0.1");
+  await page.getByRole("button", { name: "Capture light and dark" }).click();
+  const waiting = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export JSON" }).click();
+  expect((await waiting).suggestedFilename()).toMatch(
+    /chrome-156\.1\.2\.3-macos-27\.0\.1/,
+  );
+});
+
+test("full version hints are requested only after an explicit action", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    window.hintRequests = 0;
+    Object.defineProperty(navigator, "userAgentData", {
+      configurable: true,
+      value: {
+        async getHighEntropyValues() {
+          window.hintRequests++;
+          return {
+            fullVersionList: [{ brand: "Chromium", version: "156.1.2.3" }],
+            platform: "macOS",
+            platformVersion: "27.0.1",
+          };
+        },
+      },
+    });
+  });
+  await page.reload();
+  expect(await page.evaluate(() => window.hintRequests)).toBe(0);
+  await page
+    .getByRole("button", { name: "Fill available full versions" })
+    .click();
+  await expect(page.getByLabel("Browser and version")).toHaveValue(
+    "Chromium 156.1.2.3",
+  );
+  await expect(page.getByLabel("OS and version")).toHaveValue(
+    "macOS 27.0.1 (reported; verify)",
+  );
 });
 
 test("live page samples every keyword, captures both modes, and exports portable data", async ({
