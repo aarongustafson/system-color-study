@@ -54,16 +54,14 @@ export function exportFilename(captures, timestamp) {
       .replace(/[^a-z0-9.]+/g, "-")
       .replace(/^[.-]+|[.-]+$/g, "")
       .slice(0, 55) || "unknown";
-  const environments = [
-    ...new Set(
-      captures.map(
-        (capture) =>
-          `${slug(capture.environment.browser)}-${slug(capture.environment.os)}`,
-      ),
+  const environments = new Set(
+    captures.map(({ environment: { browser, os } }) =>
+      JSON.stringify([browser, os]),
     ),
-  ];
-  const label = environments[0] || "empty";
+  );
+  const first = captures[0]?.environment;
+  const label = first ? `${slug(first.browser)}-${slug(first.os)}` : "empty";
   const more =
-    environments.length > 1 ? `-and-${environments.length - 1}-more` : "";
+    environments.size > 1 ? `-and-${environments.size - 1}-more` : "";
   return `system-colors-${label}${more}-${timestamp.replaceAll(":", "-")}.json`;
 }

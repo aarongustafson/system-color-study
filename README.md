@@ -58,7 +58,8 @@ allowlist, not your workspace or capture files. Stop the server afterward.
    for manual copying.
    Filenames include browser/OS labels, versions, and the export timestamp.
    Mixed collections identify the first environment and the number of others;
-   the complete metadata remains in the JSON.
+   that count uses full browser/OS pairs before shortening filename labels.
+   The complete metadata remains in the JSON.
 6. Change OS settings, browser, device, context, or backdrop and repeat.
 7. Import capture files into any copy of the page to build comparison columns.
    Repeated runs remain separate. Identical duplicate IDs are reported and
@@ -163,7 +164,11 @@ The dry run validates the file and reports its destination without contacting
 GitHub. The real command uses your existing `gh` credentials to create a fresh
 data branch, commit the reviewed JSON under `data/submissions/`, and open a PR
 against `main`. It doesn’t change your checkout, merge the PR, or write directly
-to `main`. Review Notes and version labels **before** running the real command:
+to `main`. Submission filenames include a SHA-256 hash of the supplied file so
+distinct collections don’t target an existing submission just because their
+environment labels and newest capture timestamp match. A dry run and real
+submission use the same destination for the same unchanged file.
+Review Notes and version labels **before** running the real command:
 it sends the supplied file, including its metadata, to the public repository.
 Invalid/empty data and files over 5 MB are rejected before network requests.
 

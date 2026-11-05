@@ -95,3 +95,46 @@ test("a failed upload reports its created branch instead of claiming a PR exists
     /Upload refused.*data\/capture-/s,
   );
 });
+
+test("different collections sharing labels and newest timestamp never overwrite a submitted file", async (t) => {
+  const newer = fixture("newer");
+  const older = fixture("older");
+  older.capturedAt = "1999-01-01T00:00:00.000Z";
+  const first = await setup(t, { ...versions, captures: [newer] });
+  const second = await setup(t, { ...versions, captures: [newer, older] });
+  const uploads = new Map();
+  const api = async (path, method, input) => {
+    if (path.endsWith("/git/ref/heads/main"))
+      return { object: { sha: "base-sha" } };
+    if (path.includes("/contents/")) {
+      if (uploads.has(path))
+        throw new Error("Existing file requires sha to replace");
+      uploads.set(path, input);
+      return {};
+    }
+    if (path.endsWith("/pulls"))
+      return {
+        html_url:
+          "https://github.com/aarongustafson/system-color-study/pull/42",
+      };
+    return { permissions: { push: true } };
+  };
+  const firstResult = await submitCapture(first, { api });
+  const secondResult = await submitCapture(second, { api });
+  assert.notEqual(firstResult.path, secondResult.path);
+  assert.equal(uploads.size, 2);
+  for (const [path, input] of uploads) {
+    assert.match(path, /-[a-f0-9]{64}\.json$/);
+    assert.equal("sha" in input, false);
+    assert.ok(path.split("/").at(-1).length < 255);
+  }
+  const dryRun = await submitCapture(first, { dryRun: true });
+  assert.equal(dryRun.path, firstResult.path);
+  const long = fixture("long-labels");
+  long.environment.browser = "b".repeat(160);
+  long.environment.os = "o".repeat(160);
+  const longFile = await setup(t, { ...versions, captures: [long, newer] });
+  const longResult = await submitCapture(longFile, { dryRun: true });
+  assert.ok(longResult.path.split("/").at(-1).length < 255);
+  assert.match(longResult.path, /-and-1-more-/);
+});

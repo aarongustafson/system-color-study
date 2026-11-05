@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { readFile, stat } from "node:fs/promises";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
@@ -39,7 +39,12 @@ export async function submitCapture(
     .map((capture) => capture.capturedAt)
     .sort()
     .at(-1);
-  const path = `data/submissions/${exportFilename(captures, timestamp)}`;
+  const hash = createHash("sha256").update(source).digest("hex");
+  const filename = exportFilename(captures, timestamp).replace(
+    /\.json$/,
+    `-${hash}.json`,
+  );
+  const path = `data/submissions/${filename}`;
   if (dryRun)
     return { repository, path, captures: captures.length, dryRun: true };
   const repo = await api(endpoint, "GET");

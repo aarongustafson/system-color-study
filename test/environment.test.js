@@ -75,3 +75,26 @@ test("filenames include environment versions and time, stay path-safe, and flag 
   assert.ok(!unsafe.includes("/") && !unsafe.includes("\\"));
   assert.ok(unsafe.length < 255);
 });
+
+test("mixed environment counts use complete pairs before truncation or slug normalization", () => {
+  const browser =
+    "Google Chrome for Testing (Official Build) (arm64) 158.0.8127.";
+  const time = "2026-11-05T22:00:00.000Z";
+  for (const environments of [
+    [
+      { browser: browser + "18", os: "macOS 27" },
+      { browser: browser + "19", os: "macOS 27" },
+    ],
+    [
+      { browser: "a-b", os: "c" },
+      { browser: "a", os: "b-c" },
+    ],
+  ]) {
+    const captures = environments.map((environment) => ({ environment }));
+    assert.match(exportFilename(captures, time), /-and-1-more-/);
+    assert.doesNotMatch(
+      exportFilename([captures[0], captures[0]], time),
+      /-and-/,
+    );
+  }
+});
