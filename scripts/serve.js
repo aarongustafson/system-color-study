@@ -1,10 +1,23 @@
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
+import { parseArgs } from "node:util";
+
+const { values } = parseArgs({
+  options: {
+    dist: { type: "boolean", default: false },
+    base: { type: "string", default: "" },
+  },
+});
+const base = values.base.replace(/\/$/, "");
+if (base && !/^\/[\w.-]+(?:\/[\w.-]+)*$/.test(base))
+  throw new Error("Invalid base path.");
+const publicRoot = new URL(values.dist ? "../dist/" : "../", import.meta.url);
 
 const files = new Map([
   ["/", ["index.html", "text/html"]],
   ...[
     "index.html",
+    "test.html",
     "app.js",
     "model.js",
     "sampler.js",
@@ -50,13 +63,19 @@ createServer(async (request, response) => {
     response.writeHead(400).end("Invalid URL.");
     return;
   }
-  const file = files.get(pathname);
+  if (base && pathname === base) {
+    response.writeHead(308, { Location: base + "/" }).end();
+    return;
+  }
+  const file = pathname.startsWith(base + "/")
+    ? files.get(pathname.slice(base.length))
+    : undefined;
   if (!file) {
     response.writeHead(404).end("Not found.");
     return;
   }
   try {
-    const body = await readFile(new URL("../" + file[0], import.meta.url));
+    const body = await readFile(new URL(file[0], publicRoot));
     response
       .writeHead(200, {
         "Content-Type": file[1] + "; charset=utf-8",
@@ -71,4 +90,6 @@ createServer(async (request, response) => {
       .writeHead(500)
       .end("Study file unavailable. Check the server terminal.");
   }
-}).listen(port, host, () => console.log(`Study: http://${host}:${port}`));
+}).listen(port, host, () =>
+  console.log(`Study: http://${host}:${port}${base}/`),
+);

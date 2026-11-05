@@ -17,9 +17,11 @@ npm ci
 npm start
 ```
 
-Open <http://127.0.0.1:4189>. You can also put the public files on an HTTP/HTTPS
-static host. Don’t open the HTML through `file://`: browsers restrict module
-loading there. Use HTTPS for public hosting and installed-web-app experiments.
+Open <http://127.0.0.1:4189> for published results, or
+<http://127.0.0.1:4189/test.html> to gather and compare local captures.
+`npm start` builds the site before serving it; restart after source/data changes.
+Don’t open the HTML through `file://`: browsers restrict module loading there.
+Use HTTPS for public hosting and installed-web-app experiments.
 
 For a phone on the same trusted network:
 
@@ -27,7 +29,7 @@ For a phone on the same trusted network:
 HOST=0.0.0.0 npm start
 ```
 
-Open `http://<your computer's LAN IP>:4189` on the phone. Allow the port through
+Open `http://<your computer's LAN IP>:4189/test.html` on the phone. Allow the port through
 your firewall if needed. This exposes only the server’s explicit public-file
 allowlist, not your workspace or capture files. Stop the server afterward.
 `PORT` can override the default; the automated browser tests use port 4189.
@@ -35,6 +37,7 @@ allowlist, not your workspace or capture files. Stop the server afterward.
 ## Gather a capture
 
 1. Read [the protocol](./PLAN.md), including the environment and privacy checks.
+   Open [the test page](./test.html); it starts with an empty local collection.
 2. Enter browser and OS names **with versions from their About screens**.
    Record relevant device, accent, contrast-theme, and experimental settings
    in Notes. Don’t include personal information.
@@ -100,20 +103,62 @@ observation of a named Windows theme.
 
 ## Publish a comparison dataset
 
-Replace [published.json](./published.json) with an approved export to populate
-the comparison tables automatically for visitors. The supplied file is empty:
-there are no invented browser results. Private captures and imports are never
-written back to this file or uploaded.
+The [results homepage](./index.html) loads the committed dataset, without sampling
+the visitor’s browser. The [test page](./test.html) measures and imports data in
+tab memory only. Neither page uploads captures.
 
-The page reads this one same-origin static asset on startup. Review metadata and
-Notes before publishing. Visitors can still capture their own environment or
-import other runs locally. An invalid published file produces a visible startup
-error; fix the file and reload rather than silently displaying misleading data.
+1. Export JSON from the test page.
+2. Review versions, environment labels, Notes, and provenance. Remove personal
+   information before publishing.
+3. Add the export under [`data/`](./data/README.md), optionally in a dated
+   subdirectory, and open a pull request.
+4. Merge after validation passes. The Pages workflow builds and publishes the
+   updated results automatically.
 
-For static hosting, copy `index.html`, `styles.css`, `app.js`, `model.js`,
-`sampler.js`, `published.json`, and the documentation files. No build step is
-required. The page requires current browser APIs: ES modules, `CSS.supports`,
+The build merges every JSON collection under `data/` and the root
+[`published.json`](./published.json) seed into `dist/published.json`. Identical
+duplicates are skipped; conflicting IDs or invalid/incompatible data fail the
+build. Captures appear in date/ID order. The existing limit is 100 unique captures
+per comparison, with a combined input and generated dataset limit of 5 MB each.
+Nothing is silently truncated; curate a comparison subset if the archive outgrows
+those bounds. Keep private archival exports in the ignored `captures/` directory.
+There are no invented results: the initial published collection is empty.
+
+The results page reads the generated same-origin JSON asset. A loading or
+validation failure produces a visible error, not substitute browser results.
+Local imports and measurements never modify the published collection.
+
+## Enable GitHub Pages
+
+The repository is
+[`aarongustafson/system-color-study`](https://github.com/aarongustafson/system-color-study).
+
+1. Open **Settings > Pages > Build and deployment**.
+2. Set **Source** to **GitHub Actions**.
+3. Merge the publication PR. If it was already merged before enabling Pages,
+   open **Actions > Validate and publish study > Run workflow** on `main`.
+
+The workflow validates pull requests but doesn’t deploy them. Each successful
+push to `main`, including a merged PR, publishes the validated `dist/` artifact.
+Manual runs on `main` can republish without changing captures. Deployment uses
+the `github-pages` environment; only the deployment job gets Pages/OIDC write
+permissions.
+
+After the first successful deployment:
+
+- Results: <https://aarongustafson.github.io/system-color-study/>
+- Test: <https://aarongustafson.github.io/system-color-study/test.html>
+
+The build copies an explicit public-file allowlist, not the repository:
+dependencies, tests, scripts, private captures, and raw submission directories
+aren’t uploaded. For another static host, run `npm run build` and upload the
+contents of `dist/`. Relative asset/data URLs support project subdirectories.
+The browser suite tests this layout at `/system-color-study/`.
+
+The test page requires current browser APIs: ES modules, `CSS.supports`,
 file/blob text reads, and a 2D canvas. It isn’t a legacy-browser harness.
+Without JavaScript, the results page still links to the raw dataset and protocol;
+measurement controls on the test page remain disabled.
 
 ## Color and contrast method
 

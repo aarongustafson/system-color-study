@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/");
+  await page.goto("./test.html");
 });
 
 test("live page samples every keyword, captures both modes, and exports portable data", async ({
@@ -139,10 +139,14 @@ test("table swatches use each capture backdrop, not the viewing page background"
 
 test("without JavaScript, instructions remain and measurement controls are disabled", async ({
   browser,
+  baseURL,
 }) => {
-  const context = await browser.newContext({ javaScriptEnabled: false });
+  const context = await browser.newContext({
+    javaScriptEnabled: false,
+    baseURL,
+  });
   const page = await context.newPage();
-  await page.goto("http://127.0.0.1:4189/");
+  await page.goto("./test.html");
   await expect(page.locator("noscript p")).toContainText(
     "JavaScript is required",
   );
@@ -190,11 +194,58 @@ test("a published collection populates comparison tables without uploading local
       body,
     }),
   );
-  await page.reload();
+  await page.goto("./");
   await expect(page.locator("#individual-table thead")).toContainText(
     "Published fixture",
   );
   await expect(page.locator("#pair-table tbody td[rowspan='2']")).toHaveCount(
     10,
   );
+  await page.getByLabel("Display mode").selectOption("dark");
+  const capture = JSON.parse(body).captures[0];
+  await expect(page.locator("#individual-table tbody")).toContainText(
+    capture.schemes.dark.colors.Canvas.hex,
+  );
+  await page.goto("./test.html");
+  await expect(page.locator("#captures li")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Export JSON" }),
+  ).toBeDisabled();
+});
+
+test("homepage shows published results without sampling or capture controls", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    window.systemColorProbeCalls = 0;
+    const supports = CSS.supports.bind(CSS);
+    CSS.supports = (...args) => {
+      if (args[0] === "color") window.systemColorProbeCalls++;
+      return supports(...args);
+    };
+  });
+  await page.goto("./");
+  await expect(page.locator("#capture-form")).toHaveCount(0);
+  await expect(page.locator("#palette")).toHaveCount(0);
+  await expect(
+    page.getByRole("navigation").getByRole("link", { name: "Run the test" }),
+  ).toHaveAttribute("href", "./test.html");
+  await expect(page.locator("#status")).toContainText("0 published captures");
+  expect(await page.evaluate(() => window.systemColorProbeCalls)).toBe(0);
+});
+
+test("invalid published data fails visibly without pretending the dataset is empty", async ({
+  page,
+}) => {
+  await page.route("**/published.json", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ schemaVersion: 99 }),
+    }),
+  );
+  await page.goto("./");
+  await expect(page.locator("#error")).toBeVisible();
+  await expect(page.locator("#status")).toContainText("failed");
+  await expect(page.locator("#empty")).toBeHidden();
+  await expect(page.getByLabel("Display mode")).toBeDisabled();
 });

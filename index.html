@@ -3,170 +3,65 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>System color study</title>
+    <title>System color study results</title>
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="./styles.css" />
     <script type="module" src="./app.js"></script>
   </head>
-  <body>
+  <body data-study-page="results">
     <header>
-      <h1>System color study</h1>
+      <h1>System color study results</h1>
       <p>
-        Measure CSS system colors here, then compare captures from real browsers
-        and operating systems.
+        Recorded CSS system colors and pair contrast from browser/system
+        captures.
       </p>
-      <p>
-        <a href="./README.md">Running the study</a> ·
-        <a href="./PLAN.md">Research and testing protocol</a>
-      </p>
+      <nav aria-label="Study">
+        <a href="./test.html">Run the test</a> ·
+        <a href="./published.json" download>Download the dataset</a> ·
+        <a href="./PLAN.md">Study protocol</a> ·
+        <a href="https://github.com/aarongustafson/system-color-study"
+          >Repository</a
+        >
+      </nav>
     </header>
     <main>
-      <section aria-labelledby="controls-heading">
-        <h2 id="controls-heading">Set up a measurement</h2>
-        <p>
-          Light and dark are requested CSS color schemes, not changes to your OS
-          settings. Change OS preferences separately and capture again. Recorded
-          colors may include alpha.
-        </p>
-        <div class="settings">
-          <label
-            >Display mode
-            <select id="scheme" disabled>
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-            </select>
-          </label>
-          <label
-            >Opaque backdrop for contrast
-            <select id="backdrop" disabled>
-              <option value="canvas">Resolved Canvas</option>
-              <option value="white">White (#ffffff)</option>
-              <option value="black">Black (#000000)</option>
-            </select>
-          </label>
-          <label class="check"
-            ><input id="deprecated" type="checkbox" disabled /> Include
-            deprecated keywords</label
-          >
-          <button id="refresh" type="button" disabled>
-            Resample current mode
-          </button>
-        </div>
-        <p id="environment"></p>
-        <p id="status" role="status">
-          Loading measurement tools. If the controls stay disabled, check
-          JavaScript and reload.
-        </p>
-        <p id="error" role="alert" hidden></p>
-        <noscript
-          ><p>
-            JavaScript is required to resolve colors and export measurements.
-            The research protocol remains available through the links above.
-          </p></noscript
+      <p>
+        These are recorded observations, not measurements of your current
+        browser. Each column preserves its browser, OS, date, backdrop, and
+        user-preference metadata. Local test data is never uploaded.
+      </p>
+      <div class="settings">
+        <label
+          >Display mode
+          <select id="scheme" disabled>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </label>
+        <label class="check"
+          ><input id="deprecated" type="checkbox" disabled /> Include deprecated
+          keywords</label
         >
-        <form id="capture-form">
-          <fieldset>
-            <legend>Identify this browser/system combination</legend>
-            <p>
-              Enter versions from the browser and OS “About” screens. The user
-              agent is recorded as supporting evidence, not used to guess exact
-              versions.
-            </p>
-            <div class="settings">
-              <label
-                >Browser and version
-                <input
-                  id="browser"
-                  required
-                  maxlength="160"
-                  placeholder="Chrome 156.0…"
-              /></label>
-              <label
-                >OS and version
-                <input
-                  id="os"
-                  required
-                  maxlength="160"
-                  placeholder="Android 16"
-              /></label>
-              <label
-                >Context
-                <select id="context">
-                  <option value="normal">Normal browsing</option>
-                  <option value="private">Private browsing</option>
-                  <option value="installed-app">Installed web app</option>
-                  <option value="webview">Embedded WebView</option>
-                </select>
-              </label>
-            </div>
-            <label
-              >Notes: device, OS accent, contrast theme, experimental flags, or
-              other relevant settings
-              <textarea id="notes" rows="2" maxlength="2000"></textarea>
-            </label>
-            <p>
-              Don’t include names or other personal information. Data stays in
-              this tab’s memory: export before closing or reloading.
-            </p>
-            <button id="capture" type="submit" disabled>
-              Capture light and dark
-            </button>
-          </fieldset>
-        </form>
-      </section>
-
-      <section aria-labelledby="palette-heading">
-        <h2 id="palette-heading">Live color grid</h2>
+      </div>
+      <p id="status" role="status">Loading the published dataset.</p>
+      <p id="error" role="alert" hidden></p>
+      <noscript
+        ><p>
+          JavaScript builds the comparison tables. You can still
+          <a href="./published.json">download the raw dataset</a> and read the
+          study protocol.
+        </p></noscript
+      >
+      <p id="empty" hidden>
+        No captures have been published yet.
+        <a href="./test.html">Run the test</a>, export your results, and submit
+        the JSON in a pull request.
+      </p>
+      <section aria-labelledby="individual-heading">
+        <h2 id="individual-heading">Individual system colors</h2>
         <p>
-          Every current keyword is measured, plus the deprecated catalog when
-          displayed. N/A means the browser rejected the keyword in the CSS
-          <code>color</code> property. Eight-digit hex includes alpha:
-          <code>#rrggbbaa</code>.
-        </p>
-        <div id="palette" class="palette"></div>
-        <h3>Live foreground/background pairs</h3>
-        <p>
-          Samples composite over the selected backdrop. Only these reference
-          samples bypass forced-color paint adjustments; the rest of this page
-          keeps the user’s color preferences.
-        </p>
-        <div id="live-pairs" class="palette pairs"></div>
-      </section>
-
-      <section aria-labelledby="collection-heading">
-        <h2 id="collection-heading">Collect and compare</h2>
-        <p>
-          Each capture records both modes, all 42 keywords, environment
-          metadata, and calculated pair results. Import exports from other
-          devices to add columns. Existing runs are never replaced.
-        </p>
-        <div class="settings">
-          <button id="export" type="button" disabled>Export JSON</button>
-          <label
-            >Import capture JSON files
-            <input
-              id="import"
-              type="file"
-              accept=".json,application/json"
-              multiple
-              disabled
-          /></label>
-        </div>
-        <details id="export-text" hidden>
-          <summary>Copy JSON manually if the download isn’t available</summary>
-          <label
-            >Exported JSON <textarea id="json" readonly rows="8"></textarea>
-          </label>
-        </details>
-        <ul id="captures"></ul>
-        <p id="empty">
-          Capture this device or import files to populate the tables.
-        </p>
-
-        <h3 id="individual-heading">Individual system colors</h3>
-        <p>
-          Includes individual values for paired keywords too. Columns follow the
-          Display mode setting above.
+          Values are resolved sRGB hex; eight digits preserve alpha. N/A means
+          the keyword was rejected, not that an inherited color was measured.
         </p>
         <div
           class="table-scroll"
@@ -174,7 +69,7 @@
           role="region"
           aria-labelledby="individual-heading"
         >
-          <table id="individual-table">
+          <table id="individual-table" hidden>
             <caption>
               Resolved sRGB hex by browser/system capture
             </caption>
@@ -182,14 +77,15 @@
             <tbody></tbody>
           </table>
         </div>
-
-        <h3 id="pair-heading">Color pairs</h3>
+      </section>
+      <section aria-labelledby="pair-heading">
+        <h2 id="pair-heading">Color pairs</h2>
         <p>
-          Each capture has a color column and a contrast column spanning its
-          background/foreground rows. Normal text: AA ≥ 4.5:1, AAA ≥ 7:1. Large
-          text: AA ≥ 3:1, AAA ≥ 4.5:1. Grades use unrounded ratios; displayed
-          ratios are rounded. Threshold results are not a WCAG conformance
-          verdict.
+          Background and foreground occupy two rows; each capture’s contrast
+          cell spans both. Contrast includes alpha over that capture’s recorded
+          backdrop. Normal text: AA ≥ 4.5:1, AAA ≥ 7:1. Large text: AA ≥ 3:1,
+          AAA ≥ 4.5:1. Grades use unrounded ratios. These are threshold results,
+          not WCAG conformance verdicts.
         </p>
         <div
           class="table-scroll"
@@ -197,7 +93,7 @@
           role="region"
           aria-labelledby="pair-heading"
         >
-          <table id="pair-table">
+          <table id="pair-table" hidden>
             <caption>
               Pair values and alpha-aware contrast by browser/system capture
             </caption>
@@ -206,9 +102,8 @@
           </table>
         </div>
         <p>
-          <code>GrayText</code> and <code>ButtonBorder</code> have no universal
-          two-color text pair. Evaluate disabled text and borders separately
-          against their actual adjacent surfaces.
+          GrayText and ButtonBorder have no universal text pair; check them
+          against the actual surrounding surfaces.
         </p>
       </section>
     </main>
@@ -216,7 +111,7 @@
       <p>
         Research by
         <a href="https://www.aaron-gustafson.com/">Aaron Gustafson</a>. No
-        telemetry, uploads, or automatic local storage.
+        telemetry or automatic capture uploads.
       </p>
     </footer>
   </body>
