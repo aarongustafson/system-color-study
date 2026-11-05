@@ -1,0 +1,220 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+  background: Canvas;
+  color: CanvasText;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+header,
+main,
+footer {
+  max-inline-size: 90rem;
+  margin-inline: auto;
+  padding: 1rem;
+}
+section {
+  margin-block-end: 3rem;
+}
+h1,
+h2,
+h3 {
+  line-height: 1.25;
+}
+a {
+  color: LinkText;
+}
+label {
+  display: block;
+  min-inline-size: 0;
+}
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+input:not([type="checkbox"]),
+select,
+textarea {
+  display: block;
+  max-inline-size: 100%;
+  inline-size: 100%;
+  min-block-size: 2.75rem;
+  padding: 0.5rem;
+  color: FieldText;
+  background: Field;
+  border: 1px solid currentColor;
+}
+textarea {
+  resize: vertical;
+}
+button {
+  min-block-size: 2.75rem;
+  padding: 0.5rem 0.8rem;
+  color: ButtonText;
+  background: ButtonFace;
+  border: 2px solid currentColor;
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+}
+:focus-visible {
+  outline: 3px solid CanvasText;
+  outline-offset: 3px;
+}
+fieldset {
+  min-inline-size: 0;
+  border: 1px solid currentColor;
+}
+legend {
+  font-weight: 600;
+}
+.settings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: end;
+  margin-block: 1rem;
+}
+.settings > label {
+  flex: 1 1 15rem;
+}
+.settings .check {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  min-block-size: 2.75rem;
+}
+.palette {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 1rem;
+}
+.color-card,
+.pair-card {
+  min-inline-size: 0;
+  border: 1px solid currentColor;
+  padding: 1rem;
+}
+.color-card h3,
+.pair-card h4 {
+  margin-block-start: 0;
+  overflow-wrap: anywhere;
+}
+code,
+.raw {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.raw {
+  font-size: 0.875rem;
+}
+.swatch {
+  position: relative;
+  block-size: 3rem;
+  border: 1px solid CanvasText;
+}
+.swatch-color {
+  position: absolute;
+  inset: 0;
+}
+.swatch,
+.pair-sample {
+  forced-color-adjust: none;
+}
+.pair-sample {
+  padding: 0.75rem;
+  margin-block: 0.5rem;
+}
+.pair-sample span {
+  display: block;
+  padding: 0.75rem;
+}
+.table-scroll {
+  max-inline-size: 100%;
+  overflow: auto;
+  margin-block: 1rem;
+}
+table {
+  border-collapse: collapse;
+  inline-size: 100%;
+}
+caption {
+  text-align: start;
+  font-weight: 600;
+  margin-block-end: 0.5rem;
+}
+th,
+td {
+  border: 1px solid CanvasText;
+  padding: 0.75rem;
+  text-align: start;
+  vertical-align: top;
+  min-inline-size: 12rem;
+}
+th {
+  font-weight: 600;
+}
+td p {
+  margin-block: 0.25rem;
+}
+.table-swatch {
+  position: relative;
+  display: inline-block;
+  inline-size: 1rem;
+  block-size: 1rem;
+  border: 1px solid CanvasText;
+  margin-inline-end: 0.5rem;
+  vertical-align: middle;
+  forced-color-adjust: none;
+}
+.table-swatch-fill {
+  position: absolute;
+  inset: 0;
+}
+#error {
+  padding: 1rem;
+  border: 3px solid currentColor;
+  font-weight: 600;
+}
+#captures li {
+  margin-block: 0.5rem;
+  overflow-wrap: anywhere;
+}
+#captures button {
+  margin-inline-start: 0.75rem;
+}
+.probe-zone {
+  position: absolute;
+  inset-inline-start: -10000px;
+  visibility: hidden;
+  forced-color-adjust: none;
+}
+[hidden] {
+  display: none !important;
+}
+@media print {
+  form,
+  .settings,
+  #captures button,
+  #export-text {
+    display: none;
+  }
+  .table-scroll {
+    overflow: visible;
+  }
+  table {
+    font-size: 0.75rem;
+  }
+  th,
+  td {
+    min-inline-size: 0;
+  }
+}

@@ -1,0 +1,200 @@
+import { test, expect } from "@playwright/test";
+
+test.beforeEach(async ({ page }) => {
+  await page.goto("/");
+});
+
+test("live page samples every keyword, captures both modes, and exports portable data", async ({
+  page,
+}) => {
+  await expect(page.locator("#palette .color-card")).toHaveCount(19);
+  await page.getByLabel("Include deprecated keywords").check();
+  await expect(page.locator("#palette .color-card")).toHaveCount(42);
+  await page.getByLabel("Browser and version").fill("Test browser 1");
+  await page.getByLabel("OS and version").fill("Test OS 1");
+  await page.getByRole("button", { name: "Capture light and dark" }).click();
+  await expect(page.locator("#individual-table thead")).toContainText(
+    "Test browser 1",
+  );
+  await expect(page.locator('#pair-table tbody td[rowspan="2"]')).toHaveCount(
+    15,
+  );
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export JSON" }).click();
+  const file = await download;
+  const data = JSON.parse(
+    await (
+      await import("node:fs/promises")
+    ).readFile(await file.path(), "utf8"),
+  );
+  expect(data.schemaVersion).toBe(1);
+  expect(data.captures).toHaveLength(1);
+  expect(Object.keys(data.captures[0].schemes)).toEqual(["light", "dark"]);
+  expect(Object.keys(data.captures[0].schemes.light.colors)).toHaveLength(42);
+  expect(data.captures[0].schemes.dark.colors.Canvas.computed).toBeTruthy();
+});
+
+test("JSON import builds independent columns and round-trips original captures", async ({
+  page,
+}) => {
+  await page
+    .getByLabel("Browser and version")
+    .fill("<img src=x onerror=alert(1)>");
+  await page.getByLabel("OS and version").fill("OS");
+  await page.getByRole("button", { name: "Capture light and dark" }).click();
+  const waiting = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export JSON" }).click();
+  const exported = await waiting;
+  const path = await exported.path();
+  await page.reload();
+  await page.getByLabel("Import capture JSON files").setInputFiles(path);
+  await expect(page.locator("#individual-table thead")).toContainText(
+    "<img src=x",
+  );
+  await expect(page.locator("#individual-table thead img")).toHaveCount(0);
+  await page.getByLabel("Import capture JSON files").setInputFiles(path);
+  await expect(page.locator("#status")).toContainText("duplicate");
+  await expect(page.locator("#individual-table thead tr th")).toHaveCount(2);
+  await page.getByLabel("Browser and version").fill("Second browser");
+  await page.getByLabel("OS and version").fill("Second OS");
+  await page.getByRole("button", { name: "Capture light and dark" }).click();
+  await expect(page.locator("#individual-table thead tr th")).toHaveCount(3);
+  await expect(page.locator('#pair-table thead th[colspan="2"]')).toHaveCount(
+    2,
+  );
+  await expect(page.locator('#pair-table tbody td[rowspan="2"]')).toHaveCount(
+    20,
+  );
+  await page.getByLabel("Display mode").selectOption("dark");
+  await expect(page.locator("#individual-table thead tr th")).toHaveCount(3);
+  await page.getByLabel("Opaque backdrop for contrast").selectOption("white");
+  await expect(page.locator("#individual-table thead tr th")).toHaveCount(3);
+});
+
+test("invalid import is visible and does not replace existing results", async ({
+  page,
+}) => {
+  await page.getByLabel("Import capture JSON files").setInputFiles({
+    name: "bad.json",
+    mimeType: "application/json",
+    buffer: Buffer.from('{"schemaVersion":99}'),
+  });
+  await expect(page.locator("#error")).toContainText("version");
+  await expect(page.locator("#individual-table thead tr th")).toHaveCount(1);
+});
+
+test("unsupported keywords are N/A, never inherited-looking successful measurements", async ({
+  page,
+}) => {
+  await page.route("**/sampler.js", async (route) => {
+    const response = await route.fetch();
+    const source = await response.text();
+    await route.fulfill({
+      response,
+      body: source.replace(
+        'CSS.supports("color", name)',
+        '(name !== "AccentColor" && CSS.supports("color", name))',
+      ),
+    });
+  });
+  await page.reload();
+  await expect(
+    page.locator(".color-card").filter({
+      has: page.getByRole("heading", { name: "AccentColor", exact: true }),
+    }),
+  ).toContainText("N/A");
+});
+
+test("narrow screens retain keyboard operation and contained table scrolling", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  await page.getByLabel("Browser and version").fill("Mobile test");
+  await page.getByLabel("OS and version").fill("Mobile OS");
+  await page.getByRole("button", { name: "Capture light and dark" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#status")).toContainText("Captured");
+  const widths = await page.evaluate(() => ({
+    body: document.documentElement.scrollWidth,
+    viewport: innerWidth,
+  }));
+  expect(widths.body).toBeLessThanOrEqual(widths.viewport);
+});
+
+test("table swatches use each capture backdrop, not the viewing page background", async ({
+  page,
+}) => {
+  await page.getByLabel("Opaque backdrop for contrast").selectOption("black");
+  await page.getByLabel("Browser and version").fill("Backdrop test");
+  await page.getByLabel("OS and version").fill("OS");
+  await page.getByRole("button", { name: "Capture light and dark" }).click();
+  const row = page.locator("#individual-table tbody tr").filter({
+    has: page.getByRole("rowheader", { name: "Highlight", exact: true }),
+  });
+  await expect(row.locator(".table-swatch")).toHaveCSS(
+    "background-color",
+    "rgb(0, 0, 0)",
+  );
+});
+
+test("without JavaScript, instructions remain and measurement controls are disabled", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  await page.goto("http://127.0.0.1:4189/");
+  await expect(page.locator("noscript p")).toContainText(
+    "JavaScript is required",
+  );
+  await expect(
+    page.getByRole("button", { name: "Capture light and dark" }),
+  ).toBeDisabled();
+  await context.close();
+});
+
+test("forced-color emulation is recorded as a distinct environment, not normal mode", async ({
+  page,
+  browserName,
+}) => {
+  test.skip(
+    browserName !== "chromium",
+    "This media emulation check uses Chromium; real OS palettes are separate study runs.",
+  );
+  await page.emulateMedia({ forcedColors: "active", colorScheme: "dark" });
+  await page.getByLabel("Browser and version").fill("Emulation fixture");
+  await page
+    .getByLabel("OS and version")
+    .fill("Fixture, not a real Windows run");
+  await page.getByRole("button", { name: "Capture light and dark" }).click();
+  await page.getByRole("button", { name: "Export JSON" }).click();
+  const data = JSON.parse(await page.getByLabel("Exported JSON").inputValue());
+  expect(data.captures[0].media.forcedColors).toBe(true);
+  expect(data.captures[0].media.prefersColorScheme).toBe("dark");
+  expect(data.captures[0].schemes.light.computedColorScheme).toBeTruthy();
+  await expect(page.locator("#individual-table thead")).toContainText(
+    "forced colors: active",
+  );
+});
+
+test("a published collection populates comparison tables without uploading local data", async ({
+  page,
+}) => {
+  await page.getByLabel("Browser and version").fill("Published fixture");
+  await page.getByLabel("OS and version").fill("Fixture OS");
+  await page.getByRole("button", { name: "Capture light and dark" }).click();
+  await page.getByRole("button", { name: "Export JSON" }).click();
+  const body = await page.getByLabel("Exported JSON").inputValue();
+  await page.route("**/published.json", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body,
+    }),
+  );
+  await page.reload();
+  await expect(page.locator("#individual-table thead")).toContainText(
+    "Published fixture",
+  );
+  await expect(page.locator("#pair-table tbody td[rowspan='2']")).toHaveCount(
+    10,
+  );
+});
