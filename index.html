@@ -6,7 +6,7 @@
     <title>System colors, in practice</title>
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="./styles.css" />
-    <script type="module" src="./app.js"></script>
+    <script type="module" src="./results.js"></script>
   </head>
   <body data-study-page="results">
     <header>
@@ -42,9 +42,12 @@
         </p>
         <p>
           While working on some web components, I ran into poor contrast between
-          system colors on Android. I’d expected the foreground and background
-          colors to work together. That left me wondering how much their values
-          vary elsewhere, and which pairings we can rely on.
+          system colors on Android. A user also
+          <a href="https://github.com/aarongustafson/tabbed-interface/issues/8"
+            >reported similar issues with forced-color modes on Windows</a
+          >. I’d expected the foreground and background colors to work together.
+          That left me wondering how much their values vary elsewhere, and which
+          pairings we can rely on.
         </p>
         <p>
           This study brings together observations from real browsers so we can
@@ -53,26 +56,36 @@
           readable in every setting.
         </p>
         <p>
-          The comparisons below are saved snapshots, not measurements of your
-          current browser.
-          <a href="./test.html">Add a snapshot from your browser</a> if we’re
-          missing it—or if you have a different version or set of preferences to
+          The <span id="capture-count">0</span> snapshots below are saved
+          observations, not measurements of your current browser. They compare
+          light, dark, forced-color, and high-contrast settings side by side.
+          <a href="./test.html">Add a snapshot from your browser</a> if it’s
+          missing—or if you have a different version or set of preferences to
           contribute.
         </p>
       </section>
+      <p id="deprecated-note">
+        Note: By default I’m only showing current-generation system color
+        keywords, but you can turn on the deprecated ones too, if you want:
+      </p>
       <div class="settings">
         <label class="check"
-          ><input id="deprecated" type="checkbox" disabled /> Include deprecated
-          keywords</label
+          ><input
+            id="deprecated"
+            type="checkbox"
+            aria-describedby="deprecated-note"
+            disabled
+          />
+          Include deprecated keywords</label
         >
       </div>
-      <p id="status" role="status">Loading the published dataset.</p>
+      <p id="status" role="status" class="visually-hidden"></p>
       <p id="error" role="alert" hidden></p>
       <noscript
         ><p>
-          JavaScript builds the comparison tables. You can still
-          <a href="./published.json">download the raw dataset</a> and read the
-          study protocol.
+          The tables show current CSS names without JavaScript. Enable it to
+          include deprecated names. You can also
+          <a href="./published.json">download the complete dataset</a>.
         </p></noscript
       >
       <p id="empty" hidden>
@@ -94,12 +107,6 @@
           over it is chosen for readability here; it isn’t that color’s intended
           partner. Eight-digit values include transparency, so the surface
           behind them matters. N/A means the browser didn’t accept the keyword.
-        </p>
-        <p>
-          The default view uses current CSS names. “Include deprecated keywords”
-          adds older names for comparison, not as a recommendation for new
-          designs. You can scroll each comparison; focus its scroll region and
-          use the arrow keys if you prefer the keyboard.
         </p>
         <div
           class="table-scroll"
@@ -175,7 +182,7 @@
         </p>
       </section>
       <section id="forced-colors-guide" aria-labelledby="forced-guide-heading">
-        <h2 id="forced-guide-heading">What are forced colors?</h2>
+        <h2 id="forced-guide-heading">Forced colors</h2>
         <p>
           In a forced-color mode, the browser replaces many of a site’s colors
           with a limited palette chosen by the user or browser. People may rely
@@ -197,69 +204,62 @@
           >
           and how it differs from a preference for more contrast.
         </p>
-        <p>
-          We need observations from those other settings too. Take a normal
-          snapshot first, then change one preference and take another. Record
-          what you changed; let the browser report whether forced colors are
-          active. A dark theme, a contrast preference, and a forced palette
-          aren’t interchangeable.
-        </p>
-      </section>
-      <section id="forced-section" aria-labelledby="forced-heading" hidden>
-        <h2 id="forced-heading">Forced colors</h2>
-        <p>
-          Look for the relationships your design depends on: text against its
-          surface, a selected option against its neighbors, and a control
-          against the page. A limited palette may make colors you treated as
-          distinct look the same. Don’t make color the only way to tell them
-          apart.
-        </p>
-        <p>
-          Light and dark can resolve to the same forced palette. “Light &amp;
-          Dark” means we measured both and found no difference, not that one was
-          skipped.
-        </p>
-        <h3 id="forced-individual-heading">Individual system colors</h3>
-        <p>
-          Compare each color’s role across themes, including light-background
-          palettes. These cells preserve the recorded colors even if your own
-          preferences differ.
-        </p>
-        <div
-          class="table-scroll"
-          tabindex="0"
-          role="region"
-          aria-labelledby="forced-individual-heading"
-        >
-          <table id="forced-individual-table" hidden>
-            <caption>
-              Forced-color values by theme, browser, and mode
-            </caption>
-            <thead></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <h3 id="forced-pair-heading">Color pairs</h3>
-        <p>
-          Check whether a pairing remains readable in each palette, then test
-          the actual interface in that mode. These samples don’t reproduce all
-          the browser’s adjustments to borders, images, and other parts of a
-          page.
-        </p>
-        <div
-          class="table-scroll"
-          tabindex="0"
-          role="region"
-          aria-labelledby="forced-pair-heading"
-        >
-          <table id="forced-pair-table" hidden>
-            <caption>
-              Forced-color pairs and contrast by theme, browser, and mode
-            </caption>
-            <thead></thead>
-            <tbody></tbody>
-          </table>
-        </div>
+        <section id="forced-section" aria-labelledby="forced-heading" hidden>
+          <h3 id="forced-heading">Evaluating forced colors</h3>
+          <p>
+            Look for the relationships your design depends on: text against its
+            surface, a selected option against its neighbors, and a control
+            against the page. A limited palette may make colors you treated as
+            distinct look the same. Don’t make color the only way to tell them
+            apart.
+          </p>
+          <p>
+            Light and dark can resolve to the same forced palette. “Light &amp;
+            Dark” means we measured both and found no difference, not that one
+            was skipped.
+          </p>
+          <h4 id="forced-individual-heading">Individual system colors</h4>
+          <p>
+            Compare each color’s role across themes, including light-background
+            palettes. These cells preserve the recorded colors even if your own
+            preferences differ.
+          </p>
+          <div
+            class="table-scroll"
+            tabindex="0"
+            role="region"
+            aria-labelledby="forced-individual-heading"
+          >
+            <table id="forced-individual-table" hidden>
+              <caption>
+                Forced-color values by theme, browser, and mode
+              </caption>
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <h4 id="forced-pair-heading">Color pairs</h4>
+          <p>
+            Check whether a pairing remains readable in each palette, then test
+            the actual interface in that mode. These samples don’t reproduce all
+            the browser’s adjustments to borders, images, and other parts of a
+            page.
+          </p>
+          <div
+            class="table-scroll"
+            tabindex="0"
+            role="region"
+            aria-labelledby="forced-pair-heading"
+          >
+            <table id="forced-pair-table" hidden>
+              <caption>
+                Forced-color pairs and contrast by theme, browser, and mode
+              </caption>
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
       </section>
       <section aria-labelledby="contribute-heading">
         <h2 id="contribute-heading">Don’t see your browser?</h2>

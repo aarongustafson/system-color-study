@@ -1,4 +1,6 @@
 import { test, expect } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+import { renderIndex } from "../scripts/build.js";
 import { fixture } from "./fixtures.js";
 import {
   versions,
@@ -8,26 +10,21 @@ import {
   composite,
 } from "../model.js";
 
+const indexSource = await readFile(
+  new URL("../index.html", import.meta.url),
+  "utf8",
+);
+
 test.beforeEach(async ({ page }) => {
-  await page.route("**/published.json", (route) =>
-    route.fulfill({
-      contentType: "application/json",
-      body: JSON.stringify({
-        schemaVersion: 1,
-        protocolVersion: 1,
-        catalogVersion: 1,
-        captures: [],
-      }),
-    }),
-  );
   await page.goto("./test.html");
 });
 
 async function publish(page, captures) {
-  await page.route("**/published.json", (route) =>
+  const body = renderIndex(indexSource, captures);
+  await page.route("**/system-color-study/", (route) =>
     route.fulfill({
-      contentType: "application/json",
-      body: JSON.stringify({ ...versions, captures }),
+      contentType: "text/html",
+      body,
     }),
   );
   await page.goto("./");
@@ -554,7 +551,7 @@ test("forced tables organize theme, browser, and mode without leaking into ordin
     ]);
   }
   await expect(page.locator("#forced-heading")).toHaveText(
-    "Windows 11 forced colors",
+    "Evaluating forced colors",
   );
   for (const width of [320, 1400]) {
     await page.setViewportSize({ width, height: 900 });
@@ -604,16 +601,7 @@ test("comparison tables group environments, show both modes, and retain split fo
     computed: "rgb(1, 2, 3)",
     conversion: "rgb-serialization",
   };
-  await page.route("**/published.json", (route) =>
-    route.fulfill({
-      contentType: "application/json",
-      body: JSON.stringify({
-        ...versions,
-        captures: [normal, forced, repeat, split],
-      }),
-    }),
-  );
-  await page.goto("./");
+  await publish(page, [normal, forced, repeat, split]);
   await expect(page.getByLabel("Display mode")).toHaveCount(0);
   await expect(page.locator("#individual-table .capture-heading")).toHaveCount(
     2,
@@ -688,13 +676,7 @@ test("verdict cells distinguish all, some, no, and unavailable thresholds with r
       hex: null,
     };
   }
-  await page.route("**/published.json", (route) =>
-    route.fulfill({
-      contentType: "application/json",
-      body: JSON.stringify({ ...versions, captures: [capture] }),
-    }),
-  );
-  await page.goto("./");
+  await publish(page, [capture]);
   const verdict = (name) =>
     page
       .locator("#pair-table tbody tr")
@@ -784,13 +766,7 @@ test("compact headers keep full provenance in keyboard-accessible details and pr
   }
   captures[3].media.forcedColors = null;
   captures[4].environment.forcedColorTheme = "Desert";
-  await page.route("**/published.json", (route) =>
-    route.fulfill({
-      contentType: "application/json",
-      body: JSON.stringify({ ...versions, captures }),
-    }),
-  );
-  await page.goto("./");
+  await publish(page, captures);
   const headings = page.locator("#individual-table .capture-heading");
   await expect(page.locator("#individual-table .mode-label")).toHaveText([
     "Desert (forced colors inactive) · Light",
@@ -903,7 +879,7 @@ test("full version hints are requested only after an explicit action", async ({
           return {
             fullVersionList: [{ brand: "Chromium", version: "156.1.2.3" }],
             platform: "macOS",
-            platformVersion: "27.0.1",
+            platformVersion: "26.4.2",
           };
         },
       },
@@ -918,7 +894,7 @@ test("full version hints are requested only after an explicit action", async ({
     "Chromium 156.1.2.3",
   );
   await expect(page.getByLabel("OS and version")).toHaveValue(
-    "macOS 27.0.1 (reported; verify)",
+    "macOS 26.4.2 (reported; verify)",
   );
 });
 
@@ -961,9 +937,9 @@ test("live page samples every keyword, captures both modes, and exports portable
   await expect(page.locator("#individual-table thead")).toContainText(
     "Test browser 1",
   );
-  await expect(page.locator('#pair-table tbody td[rowspan="2"]')).toHaveCount(
-    30,
-  );
+  await expect(
+    page.locator('#pair-table tbody:not([hidden]) td[rowspan="2"]'),
+  ).toHaveCount(30);
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export JSON" }).click();
   const file = await download;
@@ -1005,9 +981,9 @@ test("JSON import builds independent columns and round-trips original captures",
   await page.getByRole("button", { name: "Capture light and dark" }).click();
   await expect(page.locator("#individual-table .mode-heading")).toHaveCount(4);
   await expect(page.locator("#pair-table .mode-heading")).toHaveCount(4);
-  await expect(page.locator('#pair-table tbody td[rowspan="2"]')).toHaveCount(
-    40,
-  );
+  await expect(
+    page.locator('#pair-table tbody:not([hidden]) td[rowspan="2"]'),
+  ).toHaveCount(40);
   await page.getByLabel("Display mode").selectOption("dark");
   await expect(page.locator("#individual-table .mode-heading")).toHaveCount(4);
   await page
@@ -1117,12 +1093,65 @@ test("without JavaScript, instructions remain and measurement controls are disab
   await page.goto("./");
   await expect(page.locator("#study-intro")).toBeVisible();
   await expect(page.locator("#forced-colors-guide")).toBeVisible();
+  await expect(page.locator("#individual-table")).toBeVisible();
+  await expect(page.locator("#pair-table")).toBeVisible();
+  await expect(
+    page.locator("#individual-table tbody:not([hidden]) tr"),
+  ).toHaveCount(19);
+  await expect(page.locator("#pair-table tbody:not([hidden]) tr")).toHaveCount(
+    20,
+  );
+  await expect(
+    page.locator("#individual-table tbody:not([hidden]) td code").first(),
+  ).toHaveText(/^#[\da-f]{6}(?:[\da-f]{2})?$/);
+  await expect(page.locator("#forced-section")).toBeVisible();
+  await expect(page.locator("tbody[data-deprecated][hidden]")).toHaveCount(4);
+  await expect(page.getByLabel("Include deprecated keywords")).toBeDisabled();
   await expect(
     page
       .getByRole("navigation")
       .getByRole("link", { name: "Take a snapshot", exact: true }),
   ).toHaveAttribute("href", "./test.html");
   await context.close();
+});
+
+test("deprecated controls only toggle the prebuilt row groups without replacing tables or dialogs", async ({
+  page,
+}) => {
+  const forced = fixture("forced-toggle");
+  forced.media.forcedColors = true;
+  await publish(page, [fixture("normal-toggle"), forced]);
+  await page.evaluate(() => {
+    window.comparisonNodes = [
+      ...document.querySelectorAll("table *, #capture-dialogs *"),
+    ];
+  });
+  const toggle = page.getByLabel("Include deprecated keywords");
+  await toggle.focus();
+  for (const checked of [true, false, true]) {
+    await toggle.press("Space");
+    if (checked) await expect(toggle).toBeChecked();
+    else await expect(toggle).not.toBeChecked();
+    for (const id of [
+      "individual-table",
+      "forced-individual-table",
+      "pair-table",
+      "forced-pair-table",
+    ]) {
+      const body = page.locator(`#${id} tbody[data-deprecated]`);
+      await expect(body.locator("tr")).toHaveCount(
+        id.endsWith("pair-table") ? 10 : 23,
+      );
+      if (checked) await expect(body).toBeVisible();
+      else await expect(body).toBeHidden();
+    }
+    await expect(toggle).toBeFocused();
+    expect(
+      await page.evaluate(() =>
+        window.comparisonNodes.every((node) => node.isConnected),
+      ),
+    ).toBe(true);
+  }
 });
 
 test("forced-color emulation is recorded as a distinct environment, not normal mode", async ({
@@ -1167,24 +1196,18 @@ test("a published collection populates comparison tables without uploading local
   await page.getByRole("button", { name: "Capture light and dark" }).click();
   await page.getByRole("button", { name: "Export JSON" }).click();
   const body = await page.getByLabel("Exported JSON").inputValue();
-  await page.route("**/published.json", (route) =>
-    route.fulfill({
-      contentType: "application/json",
-      body,
-    }),
-  );
-  await page.goto("./");
+  await publish(page, JSON.parse(body).captures);
   await expect(page.locator("#individual-table thead")).toContainText(
     "Published fixture",
   );
-  await expect(page.locator("#pair-table tbody td[rowspan='2']")).toHaveCount(
-    20,
-  );
+  await expect(
+    page.locator("#pair-table tbody:not([hidden]) td[rowspan='2']"),
+  ).toHaveCount(20);
   await expect(page.getByLabel("Display mode")).toHaveCount(0);
   const capture = JSON.parse(body).captures[0];
-  await expect(page.locator("#individual-table tbody")).toContainText(
-    capture.schemes.dark.colors.Canvas.hex,
-  );
+  await expect(
+    page.locator("#individual-table tbody:not([hidden])"),
+  ).toContainText(capture.schemes.dark.colors.Canvas.hex);
   await page.goto("./test.html");
   await expect(page.locator("#captures li")).toHaveCount(0);
   await expect(
@@ -1195,7 +1218,60 @@ test("a published collection populates comparison tables without uploading local
 test("study pages explain color preferences and invite designers to contribute snapshots", async ({
   page,
 }) => {
-  await page.goto("./");
+  await publish(page, []);
+  await expect(page.locator("#capture-count")).toHaveText("0");
+  await expect(page.locator("#status")).toBeEmpty();
+  await expect(
+    page.locator(
+      "#study-intro a[href='https://github.com/aarongustafson/tabbed-interface/issues/8']",
+    ),
+  ).toBeVisible();
+  await expect(page.locator("#study-intro")).toContainText("if it’s missing");
+  await expect(page.locator("#study-intro")).toContainText(
+    "light, dark, forced-color, and high-contrast",
+  );
+  await expect(page.locator("#deprecated-note")).toContainText(
+    "current-generation system color keywords",
+  );
+  await expect(page.locator("#forced-guide-heading")).toHaveText(
+    "Forced colors",
+  );
+  await expect(page.locator("#forced-guide-heading")).toHaveJSProperty(
+    "tagName",
+    "H2",
+  );
+  await expect(
+    page.locator("#forced-colors-guide > #forced-section"),
+  ).toHaveCount(1);
+  await expect(page.locator("#forced-heading")).toHaveJSProperty(
+    "tagName",
+    "H3",
+  );
+  await expect(
+    page.getByText("We need observations from those other settings too.", {
+      exact: false,
+    }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText("The default view uses current CSS names.", {
+      exact: false,
+    }),
+  ).toHaveCount(0);
+  expect(
+    await page.evaluate(() => {
+      const root = parseFloat(
+        getComputedStyle(document.documentElement).fontSize,
+      );
+      const heading = parseFloat(
+        getComputedStyle(document.getElementById("individual-heading"))
+          .fontSize,
+      );
+      return [...document.querySelectorAll("caption")].every((caption) => {
+        const size = parseFloat(getComputedStyle(caption).fontSize);
+        return size >= root * 1.2 && size < heading;
+      });
+    }),
+  ).toBe(true);
   await expect(
     page.getByRole("heading", { name: "Why this study?", exact: true }),
   ).toBeVisible();
@@ -1275,44 +1351,47 @@ test("homepage shows published results without sampling or capture controls", as
       return supports(...args);
     };
   });
-  await page.goto("./");
+  await publish(page, []);
   await expect(page.locator("#capture-form")).toHaveCount(0);
   await expect(page.locator("#palette")).toHaveCount(0);
   await expect(
     page.getByRole("navigation").getByRole("link", { name: "Take a snapshot" }),
   ).toHaveAttribute("href", "./test.html");
-  await expect(page.locator("#status")).toContainText("0 published captures");
+  await expect(page.locator("#capture-count")).toHaveText("0");
   expect(await page.evaluate(() => window.systemColorProbeCalls)).toBe(0);
 });
 
-test("invalid published data fails visibly without pretending the dataset is empty", async ({
+test("the built homepage needs no runtime dataset or rendering modules", async ({
   page,
 }) => {
-  await page.route("**/published.json", (route) =>
-    route.fulfill({
-      contentType: "application/json",
-      body: JSON.stringify({ schemaVersion: 99 }),
-    }),
+  const forbidden = [];
+  await page.route(
+    /\/(?:published\.json|app\.js|model\.js|sampler\.js|comparison-renderer\.js)$/,
+    (route) => {
+      forbidden.push(route.request().url());
+      return route.abort();
+    },
   );
   await page.goto("./");
-  await expect(page.locator("#error")).toBeVisible();
-  await expect(page.locator("#status")).toContainText("failed");
+  await expect(page.locator("#error")).toBeHidden();
+  await expect(page.locator("#capture-count")).toHaveText(/^\d+$/);
+  await expect(page.locator("#individual-table")).toBeVisible();
   await expect(page.locator("#empty")).toBeHidden();
-  await expect(page.getByLabel("Include deprecated keywords")).toBeDisabled();
+  await expect(page.getByLabel("Include deprecated keywords")).toBeEnabled();
+  expect(forbidden).toEqual([]);
 });
 
 test("the built homepage renders every actual committed capture", async ({
   page,
 }) => {
-  await page.unroute("**/published.json");
   const response = await page.request.get(
     new URL("./published.json", page.url()).href,
   );
   expect(response.ok()).toBe(true);
   const data = await response.json();
   await page.goto("./");
-  await expect(page.locator("#status")).toContainText(
-    `Loaded ${data.captures.length} published captures`,
+  await expect(page.locator("#capture-count")).toHaveText(
+    String(data.captures.length),
   );
   const sections = comparisonSections(
     data.captures.filter((capture) => capture.media.forcedColors !== true),
@@ -1334,6 +1413,24 @@ test("the built homepage renders every actual committed capture", async ({
     sections.map((section) => section.os),
   );
   const ipad = sections.find((section) => section.os === "iPadOS 26");
+  for (const [browser, forcedColors] of [
+    ["Firefox 160.0", true],
+    ["Safari 27.0.1", false],
+    ["Google Chrome 157.0.8103.39", false],
+    ["Microsoft Edge 155.0.4283.62", false],
+  ]) {
+    expect(data.captures).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          environment: expect.objectContaining({ browser }),
+          media: expect.objectContaining({
+            prefersContrast: "more",
+            forcedColors,
+          }),
+        }),
+      ]),
+    );
+  }
   const windows = sections.find((section) => section.os === "Windows 11");
   expect(windows.themes.map((theme) => theme.name)).toEqual(["Light", "Dark"]);
   for (const theme of windows.themes)
@@ -1351,9 +1448,9 @@ test("the built homepage renders every actual committed capture", async ({
         ["Safari 26.5", "normal"],
       ]),
     );
-  await expect(page.locator("#pair-table tbody td[rowspan='2']")).toHaveCount(
-    columns * 10,
-  );
+  await expect(
+    page.locator("#pair-table tbody:not([hidden]) td[rowspan='2']"),
+  ).toHaveCount(columns * 10);
   for (const capture of data.captures) {
     await expect(page.locator("#capture-dialogs")).toContainText(
       capture.environment.browser,

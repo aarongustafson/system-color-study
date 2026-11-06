@@ -178,9 +178,10 @@ The 100-capture view limit bounds DOM work on phones. Keep the full archive and
 choose comparison subsets rather than flattening historical runs.
 
 For a published comparison, submit reviewed exports under `data/` by pull request.
-The build merges all submitted JSON and the root `published.json` seed; the
-results homepage loads that generated dataset, while `test.html` keeps local
-measurements separate. The combined build input and generated collection must
+The build merges all submitted JSON and the root `published.json` seed, then
+writes the tables and run details into the results HTML. The homepage doesn’t
+fetch or render the dataset in the browser; `test.html` keeps local measurements
+separate. The combined build input and generated collection must
 each stay within 5 MB, with at most 100 unique captures. Exceeding those bounds
 fails validation rather than hiding observations.
 

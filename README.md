@@ -216,9 +216,9 @@ macOS, Linux, and mobile accessibility preferences are useful even when
 
 ## Publish a comparison dataset
 
-The [results homepage](./index.html) loads the committed dataset, without sampling
-the visitor’s browser. The [test page](./test.html) measures and imports data in
-tab memory only. Neither page uploads captures.
+The [results homepage](./index.html) contains tables and run details generated at
+build time, without sampling the visitor’s browser. The [test page](./test.html)
+measures and imports data in tab memory only. Neither page uploads captures.
 
 1. Export JSON from the test page.
 2. Review versions, environment labels, Notes, and provenance. Remove personal
@@ -245,9 +245,16 @@ The supplied Windows observations were confirmed as Windows 11. Their Chrome
 identifier is consistently `Chrome 157.0.8103.39`; file names and metadata
 reflect those corrections without changing measurements.
 
-The results page reads the generated same-origin JSON asset. A loading or
-validation failure produces a visible error, not substitute browser results.
-Local imports and measurements never modify the published collection.
+The build writes the comparison tables, contrast verdicts, and Details dialogs
+into `dist/index.html`, using the same DOM renderer as the test page. The browser
+doesn’t fetch the dataset or construct the comparisons. Invalid data stops the
+build before it replaces the previous output.
+
+“Include deprecated keywords” only toggles `hidden` on the existing
+`tbody[data-deprecated]` groups. Headers, cells, and dialogs stay in place.
+JavaScript also adds sticky-header safeguards, keyboard scrolling, and a
+fallback for browsers without native dialog commands. Local imports and
+measurements never modify the published collection.
 
 ## Open a results PR automatically
 
@@ -351,8 +358,10 @@ The browser suite tests this layout at `/system-color-study/`.
 
 The test page requires current browser APIs: ES modules, `CSS.supports`,
 file/blob text reads, and a 2D canvas. It isn’t a legacy-browser harness.
-Without JavaScript, the results page still links to the raw dataset and protocol;
-measurement controls on the test page remain disabled.
+Without JavaScript, the results page still shows the current keyword and pair
+comparisons, including forced-color observations. Deprecated rows remain hidden;
+the complete dataset is available to download. Measurement controls on the test
+page remain disabled.
 
 ## Color and contrast method
 
