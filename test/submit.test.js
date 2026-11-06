@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, writeFile, readFile, rm } from "node:fs/promises";
+import { check } from "prettier";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { versions } from "../model.js";
@@ -58,6 +59,13 @@ test("submission creates only a data branch, file commit, and PR with authentica
     JSON.parse(Buffer.from(commit.content, "base64").toString()).captures[0].id,
     "submission",
   );
+  const text = Buffer.from(commit.content, "base64").toString("utf8");
+  assert.equal(
+    await check(text, { parser: "json" }),
+    true,
+    "Committed snapshots must pass CI formatting.",
+  );
+  assert.deepEqual(JSON.parse(text), JSON.parse(await readFile(path, "utf8")));
   const pr = requests.at(-1).input;
   assert.equal(pr.base, "main");
   assert.equal(pr.head, commit.branch);
@@ -77,6 +85,39 @@ test("invalid or empty data is rejected before contacting GitHub", async (t) => 
       submitCapture(path, {
         api: () => assert.fail("Invalid data sent to GitHub"),
       }),
+    );
+  }
+});
+
+test("formatted submissions cannot exceed the size limit before any GitHub request", async (t) => {
+  const collection = {
+    ...versions,
+    captures: [fixture("format-limit")],
+    padding: "",
+  };
+  collection.padding = "x".repeat(
+    5_000_000 - Buffer.byteLength(JSON.stringify(collection)),
+  );
+  const path = await setup(t, collection);
+  assert.equal(Buffer.byteLength(await readFile(path, "utf8")), 5_000_000);
+  await assert.rejects(
+    submitCapture(path, {
+      api: () => assert.fail("Oversized formatted data sent to GitHub"),
+    }),
+    /Formatted submissions.*5 MB/,
+  );
+});
+
+test("unconfirmed metadata is rejected before any submission request", async (t) => {
+  for (const field of ["browser", "os", "notes", "forcedColorTheme"]) {
+    const capture = fixture("unconfirmed");
+    capture.environment[field] = "Reported value; VERIFY";
+    const path = await setup(t, { ...versions, captures: [capture] });
+    await assert.rejects(
+      submitCapture(path, {
+        api: () => assert.fail("Unconfirmed data sent to GitHub"),
+      }),
+      /verify/i,
     );
   }
 });

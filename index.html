@@ -3,55 +3,89 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>System color study results</title>
+    <title>System colors, in practice</title>
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="./styles.css" />
-    <script type="module" src="./app.js"></script>
+    <script type="module" src="./results.js"></script>
   </head>
   <body data-study-page="results">
     <header>
-      <h1>System color study results</h1>
+      <h1>System colors, in practice</h1>
       <p>
-        Recorded CSS system colors and pair contrast from browser/system
-        captures.
+        System colors let us work with people’s color preferences instead of
+        imposing a palette of our own. To use them well, we need to understand
+        what they give us.
       </p>
       <nav aria-label="Study">
-        <a href="./test.html">Run the test</a> ·
-        <a href="./published.json" download>Download the dataset</a> ·
-        <a href="./PLAN.md">Study protocol</a> ·
+        <a href="./test.html">Take a snapshot</a> ·
+        <a href="./published.json" download>Download the dataset (JSON)</a> ·
+        <a href="./protocol.html">Study protocol</a> ·
         <a href="https://github.com/aarongustafson/system-color-study"
           >Repository</a
         >
       </nav>
     </header>
     <main>
-      <p>
-        These are recorded observations, not measurements of your current
-        browser. Each column preserves its browser, OS, date, backdrop, and
-        user-preference metadata. Local test data is never uploaded. Headers
-        show browser, OS, and forced-color theme; expand “Run details” for the
-        date, backdrop, preferences, and provenance.
+      <section id="study-intro" aria-labelledby="study-heading">
+        <h2 id="study-heading">Why this study?</h2>
+        <p>
+          CSS has names for colors with particular jobs: <code>Canvas</code> for
+          a page’s background, <code>CanvasText</code> for its text,
+          <code>ButtonText</code> for text on a button, and so on. The browser
+          supplies their values. Those values can change with the browser,
+          operating system, and someone’s preferences. MDN’s
+          <a
+            href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/system-color"
+            >system color keywords</a
+          >
+          reference explains each name.
+        </p>
+        <p>
+          While working on some web components, I ran into poor contrast between
+          system colors on Android. A user also
+          <a href="https://github.com/aarongustafson/tabbed-interface/issues/8"
+            >reported similar issues with forced-color modes on Windows</a
+          >. I’d expected the foreground and background colors to work together.
+          That left me wondering how much their values vary elsewhere, and which
+          pairings we can rely on.
+        </p>
+        <p>
+          This study brings together observations from real browsers so we can
+          make more informed decisions about using these colors. A keyword’s
+          name tells us its purpose; it doesn’t guarantee the result will be
+          readable in every setting.
+        </p>
+        <p>
+          The <span id="capture-count">0</span> snapshots below are saved
+          observations, not measurements of your current browser. They compare
+          light, dark, forced-color, and high-contrast settings side by side.
+          <a href="./test.html">Add a snapshot from your browser</a> if it’s
+          missing—or if you have a different version or set of preferences to
+          contribute.
+        </p>
+      </section>
+      <p id="deprecated-note">
+        Note: By default I’m only showing current-generation system color
+        keywords, but you can turn on the deprecated ones too, if you want:
       </p>
       <div class="settings">
-        <label
-          >Display mode
-          <select id="scheme" disabled>
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-          </select>
-        </label>
         <label class="check"
-          ><input id="deprecated" type="checkbox" disabled /> Include deprecated
-          keywords</label
+          ><input
+            id="deprecated"
+            type="checkbox"
+            aria-describedby="deprecated-note"
+            disabled
+          />
+          Include deprecated keywords</label
         >
       </div>
-      <p id="status" role="status">Loading the published dataset.</p>
+      <p id="status" role="status" class="visually-hidden"></p>
       <p id="error" role="alert" hidden></p>
       <noscript
         ><p>
-          JavaScript builds the comparison tables. You can still
-          <a href="./published.json">download the raw dataset</a> and read the
-          study protocol.
+          The tables show current CSS names without JavaScript. Enable it to
+          include deprecated names. You can also
+          <a href="./published.json">download the complete dataset</a>.
         </p></noscript
       >
       <p id="empty" hidden>
@@ -62,8 +96,17 @@
       <section aria-labelledby="individual-heading">
         <h2 id="individual-heading">Individual system colors</h2>
         <p>
-          Values are resolved sRGB hex; eight digits preserve alpha. N/A means
-          the keyword was rejected, not that an inherited color was measured.
+          Start by comparing the same color across browsers on one operating
+          system, then look at what changes between light and dark. Does a
+          selection color still stand apart from the page? Are colors with
+          different jobs actually different? Select “Details” to check the
+          conditions behind an observation.
+        </p>
+        <p>
+          Each cell shows a color and its hex value. The black or white text
+          over it is chosen for readability here; it isn’t that color’s intended
+          partner. Eight-digit values include transparency, so the surface
+          behind them matters. N/A means the browser didn’t accept the keyword.
         </p>
         <div
           class="table-scroll"
@@ -83,17 +126,52 @@
       <section aria-labelledby="pair-heading">
         <h2 id="pair-heading">Color pairs</h2>
         <p>
-          Background and foreground occupy two rows; each capture’s contrast
-          cell spans both. Contrast includes alpha over that capture’s recorded
-          backdrop. Normal text: AA ≥ 4.5:1, AAA ≥ 7:1. Large text: AA ≥ 3:1,
-          AAA ≥ 4.5:1. Grades use unrounded ratios. These are threshold results,
-          not WCAG conformance verdicts.
+          A color that looks useful on its own may not work with the color
+          behind it. These pairings put text and surfaces together:
+          <code>CanvasText</code> on <code>Canvas</code>, for example, or
+          <code>ButtonText</code> on <code>ButtonFace</code>. Compare
+          <code>HighlightText</code> on <code>Highlight</code> with
+          <code>SelectedItemText</code> on <code>SelectedItem</code> before
+          choosing a selection treatment, keeping each pair’s intended role in
+          mind.
         </p>
         <p>
-          Verdict fills: green means all five thresholds pass; amber means some
-          pass; red means none pass; neutral means unavailable. These are UI
-          indicators, not recorded system colors. Every result also says pass or
-          fail in text; forced-color modes retain your chosen palette.
+          The “Normal” and “Large” lines let you compare the same pairing at
+          different reading sizes. Both use the saved colors, not your browser’s
+          palette. The larger example may look readable when the smaller one
+          doesn’t; check the threshold for the text you’re designing.
+        </p>
+        <p>
+          The faces use the same foreground color, giving you an icon to compare
+          too. A smile means all five thresholds pass, a neutral face means some
+          pass, and a frown means none pass. Check the non-text threshold when
+          choosing colors for an icon; the text verdicts are there when the
+          example is hard to see.
+        </p>
+        <p>
+          For ordinary text, WCAG’s
+          <a
+            href="https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html"
+            >AA contrast requirement</a
+          >
+          is at least 4.5:1; large text needs 3:1.
+          <a
+            href="https://www.w3.org/WAI/WCAG22/Understanding/contrast-enhanced.html"
+            >AAA asks for more</a
+          >: 7:1 and 4.5:1, respectively. The
+          <a
+            href="https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html"
+            >non-text contrast requirement</a
+          >
+          uses 3:1 where it applies to controls and meaningful graphics. Choose
+          the threshold that fits what you’re designing.
+        </p>
+        <p>
+          Green meets every listed threshold; amber meets some; red meets none.
+          The labels tell you which. Amber isn’t necessarily a problem for your
+          use, and green isn’t a complete accessibility review. Translucent
+          colors are evaluated over the recorded backdrop; try your actual
+          surface and check the result in your interface.
         </p>
         <div
           class="table-scroll"
@@ -103,17 +181,103 @@
         >
           <table id="pair-table" hidden>
             <caption>
-              Pair values and alpha-aware contrast by browser/system capture
+              Paired text examples and contrast by browser/system capture
             </caption>
             <thead></thead>
             <tbody></tbody>
           </table>
         </div>
         <p>
-          GrayText and ButtonBorder have no universal text pair; check them
-          against the actual surrounding surfaces.
+          <code>GrayText</code> describes disabled text, while
+          <code>ButtonBorder</code> describes a boundary. Neither has a single
+          background that makes sense everywhere. Evaluate them in context,
+          rather than treating every low-contrast swatch as a text failure.
         </p>
       </section>
+      <section id="forced-colors-guide" aria-labelledby="forced-guide-heading">
+        <h2 id="forced-guide-heading">Forced colors</h2>
+        <p>
+          In a forced-color mode, the browser replaces many of a site’s colors
+          with a limited palette chosen by the user or browser. People may rely
+          on that palette to read and use the web. System color keywords give
+          our CSS a way to work with it. MDN explains
+          <a
+            href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@media/forced-colors"
+            >forced colors and their effect on a page</a
+          >.
+        </p>
+        <p>
+          Windows Contrast themes are a familiar example, but forced colors
+          aren’t limited to Windows. Firefox’s own color overrides can also
+          activate them on macOS and Linux. A setting such as macOS Increase
+          Contrast isn’t, by itself, the same thing. Mozilla documents
+          <a
+            href="https://firefox-source-docs.mozilla.org/accessible/HCMMediaQueries.html"
+            >Firefox’s forced-color behavior</a
+          >
+          and how it differs from a preference for more contrast.
+        </p>
+        <section id="forced-section" aria-labelledby="forced-heading" hidden>
+          <h3 id="forced-heading">Evaluating forced colors</h3>
+          <p>
+            Look for the relationships your design depends on: text against its
+            surface, a selected option against its neighbors, and a control
+            against the page. A limited palette may make colors you treated as
+            distinct look the same. Don’t make color the only way to tell them
+            apart.
+          </p>
+          <p>
+            Light and dark can resolve to the same forced palette. “Light &amp;
+            Dark” means we measured both and found no difference, not that one
+            was skipped.
+          </p>
+          <div
+            class="table-scroll"
+            tabindex="0"
+            role="region"
+            aria-labelledby="forced-individual-heading"
+          >
+            <table id="forced-individual-table" hidden>
+              <caption id="forced-individual-heading">
+                Forced-color values by theme, browser, and mode
+              </caption>
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div
+            class="table-scroll"
+            tabindex="0"
+            role="region"
+            aria-labelledby="forced-pair-heading"
+          >
+            <table id="forced-pair-table" hidden>
+              <caption id="forced-pair-heading">
+                Forced-color pairs and contrast by theme, browser, and mode
+              </caption>
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+      <section aria-labelledby="contribute-heading">
+        <h2 id="contribute-heading">Don’t see your browser?</h2>
+        <p>
+          We’ll get a more useful picture with more browsers, devices, and
+          preferences represented.
+          <a href="./test.html">Take a snapshot</a> and contribute what your
+          browser gives you. The page measures both light and dark; you can
+          review the results before choosing to share them.
+        </p>
+        <p>
+          Already see your browser? A different version, operating system,
+          contrast setting, or custom palette is useful too. These are
+          observations from particular setups, not promises about every person
+          using that browser.
+        </p>
+      </section>
+      <div id="capture-dialogs"></div>
     </main>
     <footer>
       <p>

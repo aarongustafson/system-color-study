@@ -1,0 +1,99 @@
+name: Validate snapshot issues
+on:
+  issues:
+    types: [opened, edited]
+  issue_comment:
+    types: [created]
+permissions:
+  contents: read
+jobs:
+  validate:
+    if: >-
+      !github.event.issue.pull_request &&
+      github.event.issue.state == 'open' &&
+      contains(github.event.issue.labels.*.name, 'color-snapshot') &&
+      (github.event_name == 'issues' ||
+       (github.event_name == 'issue_comment' &&
+        github.actor == 'aarongustafson' &&
+        github.event.comment.user.login == 'aarongustafson' &&
+        github.event.comment.author_association == 'OWNER' &&
+        github.event.comment.body == '/approve-snapshot'))
+    concurrency:
+      group: snapshot-validate-${{ github.event.issue.number }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - id: validate
+        run: node scripts/issue-submission.js validate
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: validated-snapshot
+          path: .submission/collection.json
+          include-hidden-files: true
+          retention-days: 1
+      - name: Report setup or artifact failures
+        if: failure() && steps.validate.outcome != 'failure'
+        run: gh issue comment "$ISSUE_NUMBER" --repo aarongustafson/system-color-study --body "The snapshot validation workflow could not finish. See $RUN_URL and edit the issue to retry."
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+  publish:
+    needs: validate
+    if: >-
+      github.event_name == 'issue_comment' &&
+      github.actor == 'aarongustafson' &&
+      github.event.comment.user.login == 'aarongustafson' &&
+      github.event.comment.author_association == 'OWNER' &&
+      github.event.comment.body == '/approve-snapshot' &&
+      !github.event.issue.pull_request
+    concurrency:
+      group: snapshot-publish-${{ github.event.issue.number }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: validated-snapshot
+          path: .submission
+      - id: publish
+        run: node scripts/issue-submission.js publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Report setup or artifact failures
+        if: failure() && steps.publish.outcome != 'failure'
+        run: gh issue comment "$ISSUE_NUMBER" --repo aarongustafson/system-color-study --body "The snapshot publishing workflow could not finish. See $RUN_URL. Correct any data errors; the owner can post a new /approve-snapshot comment to retry."
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

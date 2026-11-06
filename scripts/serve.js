@@ -19,13 +19,16 @@ const files = new Map([
     "index.html",
     "test.html",
     "app.js",
+    "results.js",
+    "comparison-renderer.js",
+    "comparison-ui.js",
     "model.js",
     "sampler.js",
     "environment.js",
     "styles.css",
     "published.json",
     "README.md",
-    "PLAN.md",
+    "protocol.html",
   ].map((file) => [
     "/" + file,
     [

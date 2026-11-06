@@ -2,18 +2,37 @@ import { readdir, readFile, mkdir, writeFile, rm } from "node:fs/promises";
 import { resolve, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { versions, validateCollection, mergeCaptures } from "../model.js";
+import { JSDOM } from "jsdom";
+import { createComparisonRenderer } from "../comparison-renderer.js";
 
 export const publicFiles = [
   "index.html",
   "test.html",
   "app.js",
+  "results.js",
+  "comparison-renderer.js",
+  "comparison-ui.js",
   "model.js",
   "sampler.js",
   "environment.js",
   "styles.css",
   "README.md",
-  "PLAN.md",
+  "protocol.html",
 ];
+
+export function renderIndex(source, captures) {
+  const dom = new JSDOM(source);
+  try {
+    const document = dom.window.document;
+    createComparisonRenderer(document).renderTables(captures);
+    document.getElementById("capture-count").textContent = String(
+      captures.length,
+    );
+    return dom.serialize();
+  } finally {
+    dom.window.close();
+  }
+}
 
 async function collections(directory) {
   const found = [];
@@ -60,12 +79,16 @@ export async function buildSite(root = resolve(import.meta.dirname, "..")) {
   );
   const collection = JSON.stringify({ ...versions, captures }, null, 2) + "\n";
   if (Buffer.byteLength(collection) > 5_000_000) {
-    throw new Error(
-      "Generated collection exceeds the page's 5 MB loading limit.",
-    );
+    throw new Error("Generated collection exceeds the 5 MB import limit.");
   }
   const sources = await Promise.all(
-    publicFiles.map(async (file) => [file, await readFile(join(root, file))]),
+    publicFiles.map(async (file) => {
+      const source = await readFile(join(root, file), "utf8");
+      return [
+        file,
+        file === "index.html" ? renderIndex(source, captures) : source,
+      ];
+    }),
   );
   const output = join(root, "dist");
   await rm(output, { recursive: true, force: true });

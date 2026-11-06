@@ -39,11 +39,11 @@ test("explicit client hints supply full versions without mistaking Windows platf
         { brand: "Google Chrome", version: "156.1.2.3" },
       ],
       platform: "macOS",
-      platformVersion: "27.0.1",
+      platformVersion: "26.4.2",
     }),
     {
       browser: "Google Chrome 156.1.2.3",
-      os: "macOS 27.0.1 (reported; verify)",
+      os: "macOS 26.4.2 (reported; verify)",
     },
   );
   assert.equal(

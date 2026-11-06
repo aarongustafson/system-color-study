@@ -4,6 +4,8 @@ export const versions = {
   catalogVersion: 1,
 };
 export const maxCaptures = 100;
+export const forcedLabel = (value) =>
+  value === null ? "unknown" : value ? "active" : "inactive";
 
 const modern = [
   "AccentColor",
@@ -317,6 +319,43 @@ export function validateCollection(data) {
   return data.captures;
 }
 
+export function validateSubmission(data) {
+  const captures = validateCollection(data);
+  if (!captures.length)
+    throw new TypeError("The submission contains no captures.");
+  for (const capture of captures) {
+    for (const field of [
+      "browser",
+      "os",
+      "context",
+      "notes",
+      "forcedColorTheme",
+    ])
+      if (/verify/i.test(capture.environment[field] || ""))
+        throw new TypeError(
+          `Confirm ${field} and remove “verify” before submitting.`,
+        );
+    if (
+      capture.media.forcedColors === true &&
+      !capture.environment.forcedColorTheme?.trim()
+    )
+      throw new TypeError(
+        "Name the active forced-color theme before submitting.",
+      );
+  }
+  return captures;
+}
+
+export function comparisonThemeName(capture) {
+  return (
+    capture.environment.forcedColorTheme?.trim() ||
+    (capture.media.forcedColors === false &&
+    ["more", "less"].includes(capture.media.prefersContrast)
+      ? `${capture.media.prefersContrast} contrast`
+      : undefined)
+  );
+}
+
 export function mergeCaptures(existing, incoming) {
   const byId = new Map(existing.map((capture) => [capture.id, capture]));
   let duplicates = 0;
@@ -342,4 +381,114 @@ export function mergeCaptures(existing, incoming) {
   if (byId.size > maxCaptures)
     throw new TypeError(`Import at most ${maxCaptures} captures at a time.`);
   return { captures: [...byId.values()], duplicates };
+}
+
+function snapshotKey(snapshot, includeScheme = false) {
+  return JSON.stringify([
+    snapshot.backdrop,
+    snapshot.schemeSupported,
+    ...(includeScheme ? [snapshot.computedColorScheme] : []),
+    keywords.map(({ name }) => {
+      const color = snapshot.colors[name];
+      return [color.supported, color.rgba, color.computed, color.conversion];
+    }),
+  ]);
+}
+
+export function comparisonGroups(captures) {
+  const groups = new Map();
+  captures.forEach((capture, index) => {
+    const { browser, os, context } = capture.environment;
+    const key = JSON.stringify([browser, os, context]);
+    if (!groups.has(key))
+      groups.set(key, {
+        group: { browser, os, context, runs: [], columns: [] },
+        observations: new Map(),
+      });
+    const { group, observations } = groups.get(key);
+    const run = { capture, number: index + 1 };
+    group.runs.push(run);
+    const signature = JSON.stringify([
+      capture.environment.forcedColorTheme?.trim() || "",
+      capture.media.forcedColors,
+      capture.media.prefersColorScheme,
+      capture.media.prefersContrast,
+      capture.media.displayMode,
+      snapshotKey(capture.schemes.light, true),
+      snapshotKey(capture.schemes.dark, true),
+    ]);
+    if (observations.has(signature)) {
+      observations.get(signature).push(run);
+      return;
+    }
+    const runs = [run];
+    observations.set(signature, runs);
+    const same =
+      capture.media.forcedColors === true &&
+      snapshotKey(capture.schemes.light) === snapshotKey(capture.schemes.dark);
+    for (const schemes of same ? [["light", "dark"]] : [["light"], ["dark"]])
+      group.columns.push({
+        runs,
+        schemes,
+        snapshot: capture.schemes[schemes[0]],
+      });
+  });
+  return [...groups.values()].map(({ group }) => group);
+}
+
+export function compactEnvironmentLabel(value) {
+  const match = value.match(
+    /^(.+?)\s+(\d+)(?:\.\d+)*(?:\s+(?:arm64|x86_64|x64|ia32|aarch64))?$/,
+  );
+  return match ? `${match[1]} ${match[2]}` : value;
+}
+
+export function comparisonSections(captures) {
+  const sections = new Map();
+  for (const group of comparisonGroups(captures)) {
+    const os = compactEnvironmentLabel(group.os);
+    if (!sections.has(os)) sections.set(os, { os, themes: new Map() });
+    const section = sections.get(os);
+    for (const column of group.columns) {
+      const capture = column.runs[0].capture;
+      const forced = capture.media.forcedColors;
+      const name = comparisonThemeName(capture);
+      const mode = column.schemes[0] === "light" ? "Light" : "Dark";
+      const theme =
+        forced === true
+          ? name || "Unnamed theme"
+          : forced === null
+            ? `${name ? name + " (forced colors unknown)" : "Forced colors unknown"} · ${mode}`
+            : name
+              ? `${name} (forced colors inactive) · ${mode}`
+              : mode;
+      if (!section.themes.has(theme))
+        section.themes.set(theme, {
+          name: theme,
+          order: forced === true ? 2 : column.schemes[0] === "light" ? 0 : 1,
+          groups: new Map(),
+        });
+      const entry = section.themes.get(theme);
+      const key = JSON.stringify([group.browser, group.os, group.context]);
+      if (!entry.groups.has(key))
+        entry.groups.set(key, { ...group, columns: [] });
+      entry.groups.get(key).columns.push(column);
+    }
+  }
+  return [...sections.values()]
+    .sort((a, b) => a.os.localeCompare(b.os))
+    .map((section) => ({
+      os: section.os,
+      themes: [...section.themes.values()]
+        .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name))
+        .map((theme) => ({
+          name: theme.name,
+          groups: [...theme.groups.values()].sort(
+            (a, b) =>
+              a.browser.localeCompare(b.browser) ||
+              a.os.localeCompare(b.os) ||
+              a.context.localeCompare(b.context),
+          ),
+        })),
+    }));
 }

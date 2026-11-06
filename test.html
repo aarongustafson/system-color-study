@@ -3,125 +3,70 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Run the system color test</title>
+    <title>Take a system color snapshot</title>
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="./styles.css" />
     <script type="module" src="./app.js"></script>
   </head>
   <body data-study-page="test">
     <header>
-      <h1>Run the system color test</h1>
+      <h1>Take a system color snapshot</h1>
       <p>
-        Measure CSS system colors here, then compare captures from real browsers
-        and operating systems.
+        Check your browser and OS details, then capture their system colors to
+        help fill a gap in the study.
       </p>
       <p>
         <a href="./">Published results</a> ·
-        <a href="./README.md">Running the study</a> ·
-        <a href="./PLAN.md">Research and testing protocol</a>
+        <a href="./protocol.html">Research protocol</a>
       </p>
     </header>
     <main>
-      <section aria-labelledby="controls-heading">
-        <h2 id="controls-heading">Automatic measurements</h2>
-        <p>
-          Colors are measured automatically when this page loads. No setup is
-          needed for the default Canvas backdrop. Verify the browser/system
-          details below, then select “Capture light and dark” to rerun all 42
-          keywords in both schemes and save a repeatable snapshot.
+      <section aria-labelledby="capture-heading">
+        <h2 id="capture-heading">Capture this browser</h2>
+        <p id="metadata-help">
+          Check the versions against your browser and OS “About” screens.
+          Correct any inference that still says “verify.”
         </p>
-        <p>
-          Light and dark are requested CSS color schemes, not changes to your OS
-          settings. Change OS preferences separately and capture again. Recorded
-          colors may include alpha.
-        </p>
-        <div class="settings">
-          <label
-            >Display mode
-            <select id="scheme" disabled>
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-            </select>
-          </label>
-          <label class="check"
-            ><input id="deprecated" type="checkbox" disabled /> Include
-            deprecated keywords</label
-          >
-          <button id="refresh" type="button" disabled>
-            Resample current mode
-          </button>
-        </div>
-        <details>
-          <summary>Optional: change the contrast backdrop</summary>
-          <p>
-            Translucent colors need an opaque surface behind them to calculate
-            contrast. By default, each mode uses its own resolved Canvas color.
-            White and black let you test other surfaces; opaque pairs keep the
-            same ratio on known backdrops. This changes compositing, not keyword
-            resolution. Raw colors and alpha are always preserved in the export.
-          </p>
-          <label
-            >Opaque backdrop for contrast
-            <select id="backdrop" disabled>
-              <option value="canvas">Resolved Canvas</option>
-              <option value="white">White (#ffffff)</option>
-              <option value="black">Black (#000000)</option>
-            </select>
-          </label>
-        </details>
-        <p id="environment"></p>
         <p id="status" role="status">
-          Loading measurement tools. If the controls stay disabled, check
+          Loading measurement tools. If the button stays disabled, check
           JavaScript and reload.
         </p>
         <p id="error" role="alert" hidden></p>
         <noscript
           ><p>
-            JavaScript is required to resolve colors and export measurements.
-            The research protocol remains available through the links above.
+            JavaScript is required to measure and download system colors. You
+            can still read the <a href="./">published results</a>.
           </p></noscript
         >
-        <form id="capture-form">
+        <form id="capture-form" novalidate>
           <fieldset>
-            <legend>Identify this browser/system combination</legend>
-            <p id="metadata-help">
-              Prefilled values are browser-reported estimates. They can be
-              reduced, frozen, or spoofed: verify browser and OS versions in
-              their “About” screens and edit these fields before capturing. The
-              optional button requests additional version details locally; it
-              doesn’t upload them.
-            </p>
-            <button id="detect-versions" type="button" hidden>
-              Fill available full versions
-            </button>
+            <legend>Browser and operating system</legend>
             <div class="settings">
               <label
                 >Browser and version
                 <input
                   id="browser"
-                  aria-describedby="metadata-help"
+                  aria-describedby="metadata-help metadata-source"
                   required
                   maxlength="160"
-                  placeholder="Chrome 156.0…"
               /></label>
               <label
                 >OS and version
                 <input
                   id="os"
-                  aria-describedby="metadata-help"
+                  aria-describedby="metadata-help metadata-source"
                   required
                   maxlength="160"
-                  placeholder="Android 16"
               /></label>
-              <label
-                >Context
-                <select id="context">
-                  <option value="normal">Normal browsing</option>
-                  <option value="private">Private browsing</option>
-                  <option value="installed-app">Installed web app</option>
-                  <option value="webview">Embedded WebView</option>
-                </select>
-              </label>
+              <button id="detect-versions" type="button" hidden>
+                Populate from Client Hints
+              </button>
+            </div>
+            <p id="metadata-source" role="status">
+              Browser-reported values can be incomplete or frozen. Confirm the
+              versions in the About screens.
+            </p>
+            <div id="forced-color-fields" hidden>
               <label
                 >Forced-color theme name
                 <input
@@ -129,175 +74,91 @@
                   maxlength="160"
                   aria-describedby="forced-color-help"
                   disabled
-                />
-              </label>
+              /></label>
+              <p id="forced-color-help">
+                Forced colors are active. Enter the name of your Contrast theme
+                or custom browser palette.
+              </p>
             </div>
-            <p id="forced-color-help">
-              Enter the Windows Contrast theme or your custom theme’s name when
-              testing one; the browser cannot discover it. Leave blank when no
-              theme is selected. A name is required when the browser reports
-              active forced colors. The OS theme name and browser-detected state
-              are recorded separately.
-            </p>
-            <label
-              >Notes: device, OS accent, experimental flags, or other relevant
-              settings
-              <textarea id="notes" rows="2" maxlength="2000"></textarea>
-            </label>
-            <p>
-              Don’t include names or other personal information. Data stays in
-              this tab’s memory: export before closing or reloading.
-            </p>
-            <button id="capture" type="submit" disabled>
-              Capture light and dark
-            </button>
+            <details>
+              <summary>Optional context and notes</summary>
+              <p id="environment"></p>
+              <label
+                >Context
+                <select id="context">
+                  <option value="normal">Normal browsing</option>
+                  <option value="private">Private browsing</option>
+                  <option value="installed-app">Installed web app</option>
+                  <option value="webview">Embedded WebView</option>
+                </select></label
+              >
+              <label
+                >Notes: device, accent, or other changed settings
+                <textarea
+                  id="notes"
+                  rows="2"
+                  maxlength="2000"
+                  aria-describedby="notes-help"
+                ></textarea>
+              </label>
+              <p id="notes-help">
+                Don’t include personal information in Notes.
+              </p>
+            </details>
           </fieldset>
+          <button
+            id="capture"
+            type="submit"
+            aria-describedby="capture-help"
+            disabled
+          >
+            Capture light and dark system colors
+          </button>
+          <p id="capture-help">
+            This records both CSS light and dark schemes, all 42 keywords, and
+            your browser’s current preferences; it doesn’t change your OS
+            settings.
+          </p>
         </form>
       </section>
-
-      <section id="captured-preview" aria-labelledby="captured-heading" hidden>
-        <h2 id="captured-heading">Latest capture: both modes</h2>
+      <section id="capture-result" aria-labelledby="result-heading" hidden>
+        <h2 id="result-heading">Your snapshot is ready</h2>
         <p id="capture-summary"></p>
+        <p><a id="download">Download JSON</a></p>
         <p>
-          Both grids come from independent probes run when you captured, not
-          from your selected display mode. All 42 keywords are saved; use
-          “Include deprecated keywords” to display the historical ones. Light
-          and dark may legitimately match in forced-color modes.
+          Save this before closing the page or capturing again. Nothing is
+          stored or uploaded automatically.
         </p>
-        <div id="captured-modes" class="captured-modes"></div>
-      </section>
-
-      <section aria-labelledby="palette-heading">
-        <h2 id="palette-heading">Live color grid</h2>
+        <h3>Contribute this snapshot</h3>
         <p>
-          Every current keyword is measured, plus the deprecated catalog when
-          displayed. N/A means the browser rejected the keyword in the CSS
-          <code>color</code> property. Eight-digit hex includes alpha:
-          <code>#rrggbbaa</code>.
-        </p>
-        <div id="palette" class="palette"></div>
-        <h3>Live foreground/background pairs</h3>
-        <p>
-          Samples composite over the selected backdrop. Only these reference
-          samples bypass forced-color paint adjustments; the rest of this page
-          keeps the user’s color preferences.
-        </p>
-        <div id="live-pairs" class="palette pairs"></div>
-      </section>
-
-      <section aria-labelledby="collection-heading">
-        <h2 id="collection-heading">Export and compare this session</h2>
-        <p>
-          Each capture records both modes, all 42 keywords, environment
-          metadata, and calculated pair results. Import exports from other
-          devices to add columns. Existing runs are never replaced. Published
-          captures are shown separately on the <a href="./">results page</a>;
-          this session starts empty.
+          Copy the JSON, then paste it into the snapshot issue form. GitHub
+          Actions checks the data. After maintainer approval on the issue, it
+          checks again before opening a pull request for review.
         </p>
         <div class="settings">
-          <button id="export" type="button" disabled>Export JSON</button>
-          <label
-            >Import capture JSON files
-            <input
-              id="import"
-              type="file"
-              accept=".json,application/json"
-              multiple
-              disabled
-          /></label>
+          <button id="copy-json" type="button">Copy JSON</button
+          ><a
+            href="https://github.com/aarongustafson/system-color-study/issues/new?template=color-snapshot.yml"
+            >Submit this snapshot on GitHub</a
+          >
         </div>
-        <details id="export-text" hidden>
-          <summary>Copy JSON manually if the download isn’t available</summary>
+        <details id="export-text">
+          <summary>View or copy JSON manually</summary>
           <label
             >Exported JSON <textarea id="json" readonly rows="8"></textarea>
           </label>
         </details>
-        <details>
-          <summary>Submit reviewed results to the study</summary>
-          <p>
-            Export JSON and review its metadata and Notes first.
-            <a
-              href="https://github.com/aarongustafson/system-color-study/upload/main/data"
-              >Upload the JSON to GitHub</a
-            >, choose a new branch, and open a pull request. GitHub may ask you
-            to sign in or create a fork.
-          </p>
-          <p>
-            With a local checkout, write access, and an authenticated GitHub
-            CLI,
-            <code>npm run submit -- /path/to/capture.json</code> validates the
-            file and opens a PR automatically. Use <code>--dry-run</code> to
-            check it without sending anything. Never enter access tokens on this
-            page.
-          </p>
-        </details>
-        <ul id="captures"></ul>
-        <p id="empty">
-          Capture this device or import files to populate the tables.
-        </p>
-
-        <h3 id="individual-heading">Individual system colors</h3>
-        <p>
-          Includes individual values for paired keywords too. Columns follow the
-          Display mode setting above.
-        </p>
-        <div
-          class="table-scroll"
-          tabindex="0"
-          role="region"
-          aria-labelledby="individual-heading"
-        >
-          <table id="individual-table">
-            <caption>
-              Resolved sRGB hex by browser/system capture
-            </caption>
-            <thead></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-
-        <h3 id="pair-heading">Color pairs</h3>
-        <p>
-          Each capture has a color column and a contrast column spanning its
-          background/foreground rows. Normal text: AA ≥ 4.5:1, AAA ≥ 7:1. Large
-          text: AA ≥ 3:1, AAA ≥ 4.5:1. Grades use unrounded ratios; displayed
-          ratios are rounded. Threshold results are not a WCAG conformance
-          verdict.
-        </p>
-        <p>
-          Verdict fills: green means all five thresholds pass; amber means some
-          pass; red means none pass; neutral means unavailable. These are UI
-          indicators, not recorded system colors. Every result also says pass or
-          fail in text; forced-color modes retain your chosen palette. Expand a
-          header’s “Run details” for its full measurement conditions.
-        </p>
-        <div
-          class="table-scroll"
-          tabindex="0"
-          role="region"
-          aria-labelledby="pair-heading"
-        >
-          <table id="pair-table">
-            <caption>
-              Pair values and alpha-aware contrast by browser/system capture
-            </caption>
-            <thead></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <p>
-          <code>GrayText</code> and <code>ButtonBorder</code> have no universal
-          two-color text pair. Evaluate disabled text and borders separately
-          against their actual adjacent surfaces.
-        </p>
       </section>
-    </main>
-    <footer>
-      <p>
-        Research by
-        <a href="https://www.aaron-gustafson.com/">Aaron Gustafson</a>. No
-        telemetry, uploads, or automatic local storage.
+      <p id="repeat-capture-help">
+        To add data for another configuration, change one setting—for example,
+        macOS Increase Contrast or a Windows Contrast theme—then capture again.
+        Note what changed. Save each snapshot separately. You can see how these
+        settings affect system colors in the
+        <a href="./">published comparisons</a>.
       </p>
+    </main>
+    <footer class="site-footer">
+      Made by <a href="https://www.aaron-gustafson.com/">Aaron Gustafson</a>.
     </footer>
   </body>
 </html>

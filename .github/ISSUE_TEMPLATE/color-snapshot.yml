@@ -1,0 +1,27 @@
+name: Add a system color snapshot
+description: Contribute a snapshot from your browser and settings.
+title: "[Snapshot]: "
+labels: ["color-snapshot"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Capture your browser at https://aarongustafson.github.io/system-color-study/test.html.
+        Download the JSON for your own copy, then use Copy JSON and paste it below.
+        The workflow validates one snapshot. After the owner comments /approve-snapshot, it revalidates the data and opens a data-only pull request for review.
+        Do not include personal information or credentials.
+  - type: textarea
+    id: snapshot
+    attributes:
+      label: Snapshot data
+      description: Paste the complete JSON from one capture. Do not add Markdown fences yourself.
+      render: json
+    validations:
+      required: true
+  - type: checkboxes
+    id: checked
+    attributes:
+      label: Confirmation
+      options:
+        - label: I checked the browser and OS versions, removed “verify” placeholders, and reviewed the data for personal information.
+          required: true

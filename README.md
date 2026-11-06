@@ -18,7 +18,7 @@ npm start
 ```
 
 Open <http://127.0.0.1:4189> for published results, or
-<http://127.0.0.1:4189/test.html> to gather and compare local captures.
+<http://127.0.0.1:4189/test.html> to capture your current browser.
 `npm start` builds the site before serving it; restart after source/data changes.
 Don’t open the HTML through `file://`: browsers restrict module loading there.
 Use HTTPS for public hosting and installed-web-app experiments.
@@ -36,55 +36,53 @@ allowlist, not your workspace or capture files. Stop the server afterward.
 
 ## What is automatic?
 
-The test page resolves colors automatically for its live preview on load. You
-don’t need to configure a measurement first. **Capture light and dark** reruns
-every keyword in both requested schemes and saves a dated snapshot with your
-reviewed metadata. It doesn’t upload or automatically save files.
+The test page starts with the capture form, not a live preview. **Capture light
+and dark** measures every keyword in both requested schemes and prepares one
+dated JSON snapshot. Its download is available immediately. Nothing uploads or
+saves automatically, and the page doesn’t import or display comparison datasets.
+Use the published results to explore the colors.
 
-The default contrast backdrop is each mode’s opaque `Canvas`. Only choose
-white or black in **Optional: change the contrast backdrop** when testing other
-surfaces. Translucent colors need a known background for compositing; opaque
-pairs have the same ratio on any known opaque backdrop. This changes contrast
-calculations, not the raw resolved colors. Existing captures never change when
-you adjust live settings.
+Captures use each mode’s resolved `Canvas` as the contrast backdrop. Raw colors,
+alpha, unsupported keywords, and both requested-scheme reports remain in the JSON.
 
 ## Gather a capture
 
-1. Read [the protocol](./PLAN.md), including the environment and privacy checks.
-   Open [the test page](./test.html); it starts with an empty local collection.
+1. Read [the protocol](./protocol.html), including the environment and privacy checks.
+   Open [the test page](./test.html).
 2. Verify the prefilled browser and OS names **against their About screens**.
    Prefills come from the user agent and may be reduced, frozen, or spoofed.
-   Where supported, **Fill available full versions** explicitly requests
+   Where supported, **Populate from Client Hints** explicitly requests
    additional browser-provided version details. These are still reports, not
    proof of the installed versions; Windows platform versions aren’t Windows
    release names. All fields remain editable.
+   The status below the fields identifies each value’s source: user-agent
+   inference, Client Hints, or your edits. User-agent versions can be frozen or
+   shortened to reduce fingerprinting; Client Hints may supply fuller versions
+   or a different browser brand. If only one field is disclosed, the other
+   keeps its value and source. Failed requests leave both unchanged.
    Record relevant device, accent, and experimental settings in Notes.
    When forced colors are active, enter the actual name in **Forced-color theme
    name**. Don’t include personal information.
-3. Keep the default Canvas backdrop unless you’re testing another surface.
-   The displayed mode affects the live grid and comparison tables, not which
-   modes are captured.
+3. Remove any “verify” placeholders from the editable text fields after checking
+   their values. The form, issue workflow, and maintainer submission command
+   reject these placeholders. The forced-theme field appears and is required
+   only when the browser reports active forced colors. Record other preference
+   changes in Notes.
 4. Select **Capture light and dark**. One capture contains both requested CSS
-   modes and all 42 keywords, even when deprecated keywords aren’t displayed.
-   The **Latest capture: both modes** section shows both saved grids side by
-   side on wide screens and stacked on narrow ones. Each comes from a fresh,
-   independent scheme probe—not a copied grid or a change to your OS preference.
-   Switching live settings never changes these saved measurements.
-5. Select **Export JSON**. Save the download; a text area also exposes the JSON
-   for manual copying.
+   modes and all 42 keywords, each from a fresh, independent scheme probe.
+5. Select **Download JSON**. Save the download; **Copy JSON** prepares the same
+   data for the GitHub issue form. A text area is available for manual copying.
    Filenames include browser/OS labels, versions, and the export timestamp.
    Mixed collections identify the first environment and the number of others;
    that count uses full browser/OS pairs before shortening filename labels.
    The complete metadata remains in the JSON.
-6. Change OS settings, browser, device, context, or backdrop and repeat.
-7. Import capture files into any copy of the page to build comparison columns.
-   Repeated runs remain separate. Identical duplicate IDs are reported and
-   skipped; conflicting IDs are rejected.
+6. Change OS settings, browser, device, or context and repeat.
+7. Use **Submit this snapshot on GitHub**, paste the complete JSON into the
+   dedicated issue form, and confirm that you reviewed the metadata.
 
-Captures stay in the current tab’s memory. Closing or reloading loses unexported
-data. Removing a capture only changes this tab, not previously exported files.
-Archive your exports independently. There’s no automatic persistence to leak
-measurements or obscure when data was collected.
+Only the latest snapshot stays in the tab. Capturing again replaces its download;
+editing metadata hides the stale download until you recapture. Closing or reloading
+loses unsaved data. Archive your downloads independently.
 
 ## Read the tables
 
@@ -94,18 +92,87 @@ keyword)` returned false; inherited colors are never substituted for a rejected
 keyword. Acceptance does not prove native OS integration or a distinct value:
 aliases and privacy-preserving fixed colors are legitimate findings.
 
-**Color pairs** has two rows per pair—background and foreground—with two columns
-per capture: values and a contrast result spanning both rows. Switch the display
-mode to compare the other requested scheme. Compact headers show browser, OS,
-and forced-color theme. Each numbered **Run details** disclosure preserves time,
-context, backdrop, native preferences, Notes, and supporting user-agent data.
-It works with the keyboard; captures are never collapsed merely because their
-browser/system labels match.
+Table headers group **OS → theme → browser**, putting browsers beside each other
+within **Light** and **Dark**. OS headings use the major release; browser headings
+omit minor releases and architecture. Full labels remain in the Details dialog,
+and observations with different full versions or contexts stay distinct.
+Chrome headers on iOS and iPadOS omit the “webview” context label; the recorded
+context remains in Details and exports. Other non-default contexts stay visible.
+Ordinary observations always retain both themes, even when their values match.
+Separate forced-color tables group OS, named theme, browser, then requested mode.
+A forced-color observation shares one mode column,
+marked **Light & Dark**, only when all 42 keyword records, backdrop settings, and
+scheme-support flags match. Otherwise, the theme has separate light and dark
+columns.
+
+**Color pairs** uses one row per pair, named “foreground on background.”
+Each displayed mode has a **Paired example** and **Contrast thresholds** column.
+The example shows “Normal” and “Large” text in the recorded foreground color on
+the recorded background. Normal starts at 16px and Large at 24px, both regular
+weight; larger font preferences can increase those sizes. Translucent backgrounds
+are layered over the recorded opaque backdrop, and foreground alpha is preserved.
+Missing colors or backdrops produce an explicit unavailable preview and verdict.
+Each measured example also includes a filled SVG face in the recorded foreground.
+One shared symbol per expression supplies the instances through `use`: a smile
+means all five thresholds pass, a neutral face means some pass, and a frown means
+none pass. The holes for the eyes and mouth reveal the recorded background rather
+than an added color. Unavailable examples have no face. Each face has an image
+role and an accessible name describing its expression and contrast verdict.
+The faces can’t receive keyboard focus; the adjacent text lists the individual results.
+Use the non-text result when evaluating the pairing for icons.
+Hex values remain in the individual tables. Some examples are hard to read—that’s
+the contrast they’re illustrating, not a substitute color chosen for legibility.
+Each **Details** button opens a shared modal for its browser/OS/context group
+from any table. Its title shows the simplified browser and OS on separate lines.
+Metadata appears on separate labeled lines, including full versions, time,
+context, preferences, Notes when supplied, and user agent. Empty or whitespace-only
+Notes fields are omitted. Capture identifiers, scheme diagnostics,
+and data-format versions remain in the JSON rather than the dialog.
+Buttons use `commandfor`, with a JavaScript fallback. The Close button follows
+the metadata in the markup, but sits beside the title at the top inline end.
+Flex layout reserves its space so it can’t overlap the title. When space is tight,
+the title wraps below the button rather than squeezing alongside it.
+Close the modal with that button or Escape; focus returns to the opener.
+Opening details doesn’t expand or reshape the table.
+
+Repeated runs with identical measurements and matching theme/media settings
+share columns, with every observation retained in the modal. Different measurements stay
+separate, even when the browser and theme labels match. No records are removed
+from exports or the published dataset, and different version/OS labels aren’t
+silently treated as the same environment.
+
+Each individual color cell uses the recorded color as its background and displays the raw
+hex value in whichever of black or white provides higher contrast. Translucent
+colors are composited over the capture’s recorded opaque backdrop for the preview;
+the exported color and alpha remain unchanged. Without that backdrop, the cell
+keeps its hex value and says “Preview unavailable.” Unsupported keywords remain
+N/A. These reference cells retain their colors in forced-color mode.
+
+The native keyword/color-pair headers stay pinned at the inline start while the other
+columns scroll. Tables use separate borders with zero spacing so borders stay
+with their cells during scrolling. The entire header hierarchy stays pinned during vertical scrolling
+within each table’s bounded scroll region. Pinning is checked immediately, after
+data or visibility toggles change, and on window resize. `ResizeObserver` also
+tracks table and region geometry. It is enabled only when at least 128 CSS pixels remain for the body; otherwise,
+headers scroll normally so they don’t cover the data. Printing removes that height
+limit and pinning.
+
+These are the original table cells, not duplicated headers. Native `th`, `scope`,
+and explicit `headers` associations remain in place. Each focusable scroll region
+is named by its section heading or table caption. Focus a scroll region and
+use the arrow keys to scroll; focused Details buttons stay clear of the pinned
+column, including in right-to-left layouts. Browser tests check these associations,
+geometry, and keyboard behavior; they don’t replace testing with a screen reader.
+Rows and columns no longer change appearance on hover or focus.
+
+Restart the local preview after source updates. A running server can retain an
+old asset allowlist: the static tables may still display while new enhancement
+modules return 404, leaving vertical pinning and the deprecated toggle inactive.
 
 Contrast cells show a bold ratio followed by five separate, labeled pass/fail
 lines. Green means all five thresholds pass; amber means some pass; red means
 none pass; neutral means unavailable. Amber can include normal-AA passes that
-don’t meet AAA. The same layout appears in live and captured pair cards.
+don’t meet AAA.
 These fills are UI indicators, not recorded system colors. Text conveys every
 verdict without color, light/dark palettes keep the labels readable, and forced
 colors use the visitor’s own palette instead.
@@ -121,8 +188,9 @@ Yes: run the page in the actual Windows browser you want to measure.
 
 1. In Windows 11, open **Settings > Accessibility > Contrast themes**, choose
    a theme, and apply it. Windows 10 calls this High contrast under Ease of Access.
-2. Return to the page and select **Resample current mode**, or reload.
-   Confirm the environment line reports **forced colors: active**.
+2. Return to the page, or reload.
+   Open **Optional context and notes** and confirm the preference readout reports
+   **forced colors: active**.
 3. Enter the theme’s name in **Forced-color theme name** and any customized
    palette settings in Notes.
 4. Capture both modes and export. Repeat for each theme, then capture with
@@ -134,12 +202,13 @@ result rather than trying to force them apart. The page cannot turn Windows
 Contrast themes on or off for you.
 
 The name field is required for new captures when `forced-colors` is active.
-Leave it blank when no OS theme is selected. With an inactive browser report,
-that displays **No forced colors**. A missing name
+The field is hidden and disabled with an inactive or unknown browser report.
+A missing name
 in a legacy active capture displays **Forced colors (unnamed)**; an unknown
 browser state stays **Forced colors unknown**. A missing label never overrides
-the recorded media state. If an OS theme is selected but the browser reports
-inactive/unknown forced colors, keep the name: the header shows both facts.
+the recorded media state. Historical authored labels remain intact even when
+their captures report inactive forced colors. New captures record other changes
+in Notes; reported more/less contrast preferences get their own table headings.
 Names are author-reported; there’s no browser API for discovering the actual
 Windows theme name.
 
@@ -151,17 +220,31 @@ component. Check actual controls, borders, focus, images, and backplates
 separately. Chromium’s automated forced-colors test is emulation, not an
 observation of a named Windows theme.
 
+## Other color and contrast preferences
+
+Forced colors aren’t limited to Windows. Firefox’s own color overrides can
+activate a forced palette on macOS and Linux too. Mozilla explains
+[which settings activate `forced-colors` and `prefers-contrast`](https://firefox-source-docs.mozilla.org/accessible/HCMMediaQueries.html).
+For example, macOS Increase Contrast alone isn’t a forced-color mode.
+
+Collect a normal baseline, then change one OS or browser preference and capture
+again. Name a custom forced palette in **Forced-color theme name**, and describe
+other changes in Notes. Keep the browser’s reported media state rather than
+assuming every contrast setting enables forced colors. Observations from
+macOS, Linux, and mobile accessibility preferences are useful even when
+`forced-colors` remains inactive.
+
 ## Publish a comparison dataset
 
-The [results homepage](./index.html) loads the committed dataset, without sampling
-the visitor’s browser. The [test page](./test.html) measures and imports data in
-tab memory only. Neither page uploads captures.
+The [results homepage](./index.html) contains tables and run details generated at
+build time, without sampling the visitor’s browser. The [test page](./test.html)
+measures one snapshot in tab memory. Neither page uploads captures.
 
 1. Export JSON from the test page.
 2. Review versions, environment labels, Notes, and provenance. Remove personal
    information before publishing.
-3. Add the export under [`data/`](./data/README.md), optionally in a dated
-   subdirectory, and open a pull request.
+3. Paste one snapshot into the dedicated GitHub issue form. Maintainers can
+   alternatively add reviewed exports under [`data/`](./data/README.md).
 4. Merge after validation passes. The Pages workflow builds and publishes the
    updated results automatically.
 
@@ -173,20 +256,62 @@ per comparison, with a combined input and generated dataset limit of 5 MB each.
 Nothing is silently truncated; curate a comparison subset if the archive outgrows
 those bounds. Keep private archival exports in the ignored `captures/` directory.
 There are no invented results. The first committed observations are headed
-Playwright Chromium 158.0.8127.18, Firefox 159.0, and WebKit 27.2 runs on
+bundled Chromium 158.0.8127.18, Firefox 159.0, and WebKit 27.2 runs on
 macOS 27.0.1 arm64, collected November 5, 2026. Their Notes identify automation
 and source provenance; they aren’t claims about installed Chrome or Safari.
+The WebKit observation is labeled Safari 27.2 in the data; its bundled-engine
+provenance remains in Notes.
+The supplied Windows observations were confirmed as Windows 11. Their Chrome
+identifier is consistently `Chrome 157.0.8103.39`; file names and metadata
+reflect those corrections without changing measurements.
 
-The results page reads the generated same-origin JSON asset. A loading or
-validation failure produces a visible error, not substitute browser results.
-Local imports and measurements never modify the published collection.
+The build writes the comparison tables, contrast verdicts, and Details dialogs
+into `dist/index.html`, using the shared DOM renderer. The browser
+doesn’t fetch the dataset or construct the comparisons. Invalid data stops the
+build before it replaces the previous output.
+
+“Include deprecated keywords” only toggles `hidden` on the existing
+`tbody[data-deprecated]` groups. Headers, cells, and dialogs stay in place.
+JavaScript also adds sticky-header safeguards, keyboard scrolling, and a
+fallback for browsers without native dialog commands. Local measurements never
+modify the published collection.
 
 ## Open a results PR automatically
 
 A static Pages site can’t create authenticated pull requests on its own. Don’t
 put an access token in the page, its URL, or exported data. The test page links
-to GitHub’s upload screen for a browser-only submission; GitHub handles sign-in,
-forks, branches, and proposing the change.
+to the [snapshot issue form](https://github.com/aarongustafson/system-color-study/issues/new?template=color-snapshot.yml).
+
+The issue workflow runs after an issue is opened or edited. It accepts one
+complete snapshot, rejects unconfirmed metadata, duplicate/conflicting IDs,
+incompatible data, and collection limits, then validates the complete site build.
+Successful validation leaves a comment asking for owner approval. Aaron can
+post a new comment containing exactly `/approve-snapshot` on the issue.
+This reruns validation before a separate publishing job rechecks the data,
+writes only `data/submissions/issue-<number>.json`, and opens a review PR.
+Only Aaron’s owner account can authorize repository writes. The publisher
+fetches the approval again and checks that it still belongs to this issue.
+Edits rerun validation but require a new approval comment before updating the
+same file and PR; closed PRs aren’t silently reopened. Errors are reported on
+the issue. The workflow never approves or merges the resulting PR.
+Both the issue publisher and maintainer command format repository copies with
+the project’s Prettier settings before committing them, so valid snapshots also
+pass CI’s formatting check. This changes formatting, not measurements or metadata;
+keep the original downloaded export for your archive.
+These checks confirm structure and consistency, not the browser’s identity or
+the accuracy of its measurements. Maintainers still review the provenance.
+
+The browser sends no data to GitHub automatically: contributors copy and paste
+it deliberately. Issue data is parsed as bounded JSON, not executed or interpolated
+into shell scripts. Validation has no repository-write permission. Only the
+owner-gated publisher receives contents, pull-request, and Actions write permissions; the
+repository’s default token remains read-only. Repository settings must allow
+Actions to create pull requests. Bot-created PRs don’t automatically trigger
+ordinary PR workflows, so the publisher explicitly dispatches the existing
+validation workflow against the data branch.
+
+The issue form and workflow become available after their PR merges into `main`.
+They don’t run from an unmerged feature branch.
 
 For a one-command submission from a local checkout, install
 [GitHub CLI](https://cli.github.com/) and authenticate with `gh auth login`.
@@ -211,8 +336,7 @@ Invalid/empty data and files over 5 MB are rejected before network requests.
 
 If upload or PR creation fails after branch creation, the command reports the
 remaining branch for inspection. It doesn’t claim success or delete remote work.
-Without write access, use the test page’s GitHub upload link and propose a change
-from your fork.
+Without write access, use the test page’s snapshot issue form.
 
 ## Repeat a local Playwright baseline
 
@@ -283,8 +407,10 @@ The browser suite tests this layout at `/system-color-study/`.
 
 The test page requires current browser APIs: ES modules, `CSS.supports`,
 file/blob text reads, and a 2D canvas. It isn’t a legacy-browser harness.
-Without JavaScript, the results page still links to the raw dataset and protocol;
-measurement controls on the test page remain disabled.
+Without JavaScript, the results page still shows the current keyword and pair
+comparisons, including forced-color observations. Deprecated rows remain hidden;
+the complete dataset is available to download. Measurement controls on the test
+page remain disabled.
 
 ## Color and contrast method
 
@@ -342,12 +468,12 @@ Each capture has:
 Archive the source revision with the exports. Version 1 fixes the catalog and
 measurement method. Change protocol versions when changing measurement,
 compositing, or grading; change schema/catalog versions when their contracts
-change. The current importer rejects incompatible versions rather than
+change. The current validator rejects incompatible versions rather than
 quietly mixing studies. Future changes should include explicit migrations.
 
-Imports are atomic and bounded: at most 5 MB per operation and 100 captures in
-the comparison view. Archive arbitrarily many runs in separate files and import
-the subset you want to compare. Invalid inputs leave existing captures intact.
+Builds are atomic and bounded: at most 5 MB of collections and 100 unique captures
+in the comparison view. Archive runs separately and choose a comparison subset.
+Invalid inputs leave the previous generated output intact.
 
 ## Validate development changes
 
@@ -358,10 +484,10 @@ npm run test:browser
 npm run format:check
 ```
 
-Unit tests cover the catalog, alpha, compositing, exact thresholds, and import
-contracts. Browser tests cover live sampling, both-mode capture, JSON downloads
-and imports, multi-column row spans, unsupported keywords, safe text rendering,
-and narrow-screen keyboard use.
+Unit tests cover the catalog, alpha, compositing, exact thresholds, metadata,
+collection contracts, and issue submission guards. Browser tests cover both-mode
+capture, immediate downloads, native validation, clipboard fallback, unsupported
+keywords, published table associations, and narrow-screen keyboard use.
 
 Browser tests validate the tool. Their bundled browser engines are **not**
 measurements of shipping Android, iOS, or desktop Safari. Real-device study

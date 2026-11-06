@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Study protocol — System colors, in practice</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-study-page="protocol">
+    <header>
+      <h1>Study protocol</h1>
+      <p>
+        To compare system colors across browsers, we need observations taken in
+        the same way. This is how we collect them, what the measurements tell
+        us, and where we still need to test for ourselves.
+      </p>
+      <nav aria-label="Study">
+        <a href="./">Published results</a> ·
+        <a href="./test.html">Take a snapshot</a> ·
+        <a href="https://github.com/aarongustafson/system-color-study"
+          >Repository</a
+        >
+      </nav>
+    </header>
+    <main>
+      <section aria-labelledby="questions-heading">
+        <h2 id="questions-heading">What we’re trying to learn</h2>
+        <p>
+          A system color’s name tells us its job, but not the color a particular
+          browser will give us. Before we choose these colors for a component,
+          it helps to know:
+        </p>
+        <ul>
+          <li>Which keywords does the browser accept?</li>
+          <li>
+            What values does it return for requested light and dark schemes?
+          </li>
+          <li>
+            Are any of those values translucent, shared by several names, or
+            fixed rather than drawn from the OS?
+          </li>
+          <li>
+            Which foreground and background pairs meet contrast thresholds on a
+            known surface?
+          </li>
+          <li>
+            What changes with the OS, accent color, contrast settings, browsing
+            context, browser version, or time?
+          </li>
+        </ul>
+        <p>
+          These are separate questions. Accepting a keyword doesn’t prove that
+          it follows the OS palette, and a passing contrast ratio doesn’t prove
+          that a whole interface is accessible.
+        </p>
+      </section>
+      <section aria-labelledby="capture-heading">
+        <h2 id="capture-heading">Take a snapshot we can compare</h2>
+        <ol>
+          <li>
+            Open <a href="./test.html">the capture page</a> in the browser and
+            context you want to record. Use the same protocol and catalog
+            version as the observations you’re comparing, and check for startup
+            errors.
+          </li>
+          <li>
+            Check the browser and OS versions against their About screens.
+            Starting values come from the user-agent string, which may contain
+            frozen or shortened versions. Where available, “Populate from
+            browser” requests Client Hints for more detail. Neither source
+            proves the installed versions. Correct the inferences and remove
+            “verify” before capturing.
+          </li>
+          <li>
+            Check the device clock. The snapshot’s timestamp comes from that
+            clock and is saved in UTC.
+          </li>
+          <li>
+            Open “Optional context and notes” to check the browser’s reported
+            forced-colors state and contrast preference. Choose the actual
+            browsing context, and note relevant device, accent, display, or
+            experimental settings. Don’t include personal information.
+          </li>
+          <li>
+            If forced colors are active, enter the name of the Contrast theme or
+            custom browser palette. Note any changes you made to its colors.
+          </li>
+          <li>
+            Select “Capture light and dark system colors.” Each snapshot records
+            both requested CSS schemes and all 42 keywords against resolved
+            <code>Canvas</code>. It doesn’t change the OS settings. Don’t change
+            settings while it’s measuring: both schemes share one environment
+            record, not two independently checked OS states.
+          </li>
+          <li>
+            Download the JSON immediately. Check for unsupported keywords and
+            transparency, and keep the original export unchanged. The page keeps
+            only the latest snapshot in the tab; closing or reloading it loses
+            anything you haven’t saved.
+          </li>
+          <li>
+            If a result surprises you, reload and take another snapshot under
+            the same settings. Keep both timestamps. A screenshot can help
+            explain what you saw, but it isn’t the numeric color measurement.
+          </li>
+          <li>
+            Submit one checked snapshot through the linked GitHub issue form.
+            The workflow validates the data and the combined build. I can then
+            comment <code>/approve-snapshot</code> to revalidate it and open a
+            data-only review PR. Editing the issue requires a new approval
+            before the PR updates. Nothing approves or merges that PR
+            automatically.
+          </li>
+        </ol>
+      </section>
+      <section aria-labelledby="coverage-heading">
+        <h2 id="coverage-heading">Choose useful comparisons</h2>
+        <p>
+          Start with the Android combination that prompted a question, then
+          broaden the comparison. Run the actual browsers where you can:
+        </p>
+        <dl>
+          <dt>Android</dt>
+          <dd>
+            Chrome, Android System WebView, Firefox, and Samsung Internet.
+          </dd>
+          <dt>iOS and iPadOS</dt>
+          <dd>
+            Safari and other browsers people use there. Record the actual engine
+            and whether you’re in a browser or an embedded view.
+          </dd>
+          <dt>macOS</dt>
+          <dd>Safari, Chrome or Chromium, and Firefox.</dd>
+          <dt>Windows</dt>
+          <dd>
+            Edge, Chrome, and Firefox, with ordinary settings and with Windows
+            Contrast themes.
+          </dd>
+          <dt>Linux</dt>
+          <dd>
+            Chromium and Firefox. Record the desktop environment and theme.
+          </dd>
+        </dl>
+        <p>
+          Collect an ordinary baseline first, then change one setting at a time.
+          Useful comparisons include the OS’s light and dark preferences, a
+          different accent color, an increased-contrast preference, private
+          browsing, or an installed or embedded context. Each snapshot still
+          records both requested CSS schemes.
+        </p>
+        <p>
+          Keep browser defaults separate from experimental flags and
+          accessibility overrides. Describe what changed rather than relabeling
+          an earlier snapshot.
+        </p>
+        <p>
+          Chrome’s mobile emulation isn’t an Android observation. A bundled
+          Playwright WebKit build isn’t installed Safari or an iOS device. To
+          record a WebView, open the page in an actual embedding app; a browser
+          tab won’t stand in for it. An installed-app observation needs an
+          actual installation and hosting that supports it.
+        </p>
+        <p>
+          The local <code>npm run capture:local</code> helper records the host
+          OS, bundled engine versions, headed or headless mode, and source
+          provenance. Those baselines are useful, but keep them distinct from
+          installed-browser and actual-device observations.
+        </p>
+        <h3 id="forced-colors-heading">Record forced colors separately</h3>
+        <p>
+          In Windows 11, choose a theme under Settings &gt; Accessibility &gt;
+          Contrast themes. Windows 10 calls this High contrast under Ease of
+          Access. Return to the capture page and confirm that the browser
+          reports
+          <code>forced-colors: active</code>; don’t infer it from appearance
+          alone.
+        </p>
+        <p>
+          Record the theme’s name, keep Edge, Chrome, and Firefox observations
+          separate, and take another snapshot with the theme off for a baseline.
+          The light and dark requests may produce the same forced palette.
+          That’s a finding, not a failed capture.
+        </p>
+        <p>
+          Forced colors aren’t limited to Windows. For example,
+          <a
+            href="https://firefox-source-docs.mozilla.org/accessible/HCMMediaQueries.html"
+            >Firefox’s color overrides</a
+          >
+          can activate them on other systems. An increased-contrast preference
+          and a forced palette aren’t interchangeable; record what the browser
+          reports as well as what you changed.
+        </p>
+        <p>
+          New active captures require
+          <code>environment.forcedColorTheme</code>. Older files may lack a
+          name; that doesn’t make their active or unknown media state “none.”
+          When using the local recorder, pass
+          <code>--forced-color-theme "Actual theme name"</code>.
+        </p>
+      </section>
+      <section aria-labelledby="catalog-heading">
+        <h2 id="catalog-heading">Which colors and pairs we record</h2>
+        <p>
+          The catalog contains 19 current and 23 deprecated system-color
+          keywords. Proprietary vendor keywords aren’t part of this catalog. The
+          10 current pairs are:
+        </p>
+        <ul>
+          <li><code>CanvasText</code> on <code>Canvas</code></li>
+          <li><code>LinkText</code> on <code>Canvas</code></li>
+          <li><code>VisitedText</code> on <code>Canvas</code></li>
+          <li><code>ActiveText</code> on <code>Canvas</code></li>
+          <li><code>ButtonText</code> on <code>ButtonFace</code></li>
+          <li><code>FieldText</code> on <code>Field</code></li>
+          <li><code>HighlightText</code> on <code>Highlight</code></li>
+          <li><code>SelectedItemText</code> on <code>SelectedItem</code></li>
+          <li><code>AccentColorText</code> on <code>AccentColor</code></li>
+          <li><code>MarkText</code> on <code>Mark</code></li>
+        </ul>
+        <p>
+          We also retain five historical pairs:
+          <code>CaptionText</code> on <code>ActiveCaption</code>,
+          <code>InactiveCaptionText</code> on <code>InactiveCaption</code>,
+          <code>InfoText</code> on <code>InfoBackground</code>,
+          <code>MenuText</code> on <code>Menu</code>, and
+          <code>WindowText</code> on <code>Window</code>. We identify them as
+          deprecated; their presence isn’t a recommendation to use them in a new
+          design.
+        </p>
+        <p>
+          <code>VisitedText</code> here is an explicit system keyword, not a
+          test of someone’s browsing history. These measurements also don’t
+          establish what a native button, input, visited link, or
+          <code>::selection</code> will paint. Those surfaces need their own
+          tests.
+        </p>
+      </section>
+      <section aria-labelledby="method-heading">
+        <h2 id="method-heading">How the measurements work</h2>
+        <p>
+          The sampler tests each keyword in the CSS <code>color</code> property
+          and reads computed styles from generic spans in separate containers
+          for each requested scheme. An unsupported keyword stays unsupported:
+          we don’t substitute an inherited color or a named approximation to
+          fill a gap.
+        </p>
+        <p>
+          We keep the original CSS strings alongside the converted sRGB bytes,
+          hex values, and alpha. For contrast, we paint the background over the
+          recorded opaque backdrop, then the foreground over that background.
+          The
+          <a
+            href="https://github.com/aarongustafson/system-color-study#color-and-contrast-method"
+            >README’s color and contrast method</a
+          >
+          describes the conversion and calculation.
+        </p>
+        <p>
+          The capture page fixes the backdrop to resolved <code>Canvas</code>.
+          To investigate another surface, use the recorded RGBA values and
+          compositing method for that surface. Don’t rename a Canvas capture as
+          a white- or black-backdrop measurement.
+        </p>
+        <p>
+          Reference swatches can turn off forced paint adjustment to show the
+          recorded values on their declared backdrop. The rest of the page still
+          follows the visitor’s color preferences; we don’t disable them
+          globally.
+        </p>
+        <p>
+          Keep aliases and fixed colors. Different names needn’t produce
+          different values, and a system keyword needn’t expose the OS accent.
+          If both requested schemes resolve to the same forced palette, keep
+          both raw observations and their media metadata.
+        </p>
+        <p>
+          The comparison tables show both schemes. They share display columns
+          for a forced palette only when every keyword record, backdrop, and
+          scheme-support flag matches. Identical repeat measurements can also
+          share columns, but every run keeps its metadata. A different
+          measurement gets a separate column.
+        </p>
+      </section>
+      <section aria-labelledby="quality-heading">
+        <h2 id="quality-heading">Check the tool as well as the data</h2>
+        <p>
+          Before widening the collection, check that the measurement and
+          contribution paths still work:
+        </p>
+        <ul>
+          <li>
+            Run unit and browser tests, including the 21:1 black-on-white
+            reference and unrounded contrast boundaries.
+          </li>
+          <li>
+            Check keyboard operation, visible errors, metadata validation, copy
+            and download fallbacks, table scrolling, and 200% zoom.
+          </li>
+          <li>
+            Confirm an unsupported-keyword fixture produces N/A, not an
+            inherited default.
+          </li>
+          <li>
+            Confirm malformed issue data and unapproved submissions can’t create
+            a PR.
+          </li>
+          <li>
+            Inspect translucent examples against different backing surfaces.
+          </li>
+          <li>
+            Check native table headers and single-row pair examples with several
+            captures and both schemes.
+          </li>
+          <li>
+            Try the download, copy, and issue flow on a real phone, including
+            finding its saved file.
+          </li>
+        </ul>
+        <p>
+          Automated checks and calculated ratios don’t establish conformance for
+          the whole tool or a component. Screen-reader testing and review under
+          actual OS Contrast themes are separate work.
+        </p>
+      </section>
+      <section aria-labelledby="archive-heading">
+        <h2 id="archive-heading">Keep enough context to compare later</h2>
+        <p>
+          Archive the downloaded JSON with the protocol source, browser and OS
+          notes, and any corroborating screenshots. A dated folder under
+          <code>captures/</code> is one option. The exports are the durable
+          records; the capture page has no backend or automatic browser storage.
+        </p>
+        <p>
+          Compare equivalent conditions before attributing a difference to a
+          browser update. Keep versions, dates, native preferences, context, and
+          backdrop with every observation. Repeat unusual results, and
+          distinguish a platform change from a change to measurement or
+          conversion.
+        </p>
+        <p>
+          The build combines reviewed JSON under <code>data/</code> with the
+          root <code>published.json</code>, then writes the tables and details
+          into the results HTML. The homepage doesn’t fetch or render the
+          dataset at runtime, and the capture page doesn’t load it.
+        </p>
+        <p>
+          Both the combined build input and the generated collection must stay
+          within 5 MB, with at most 100 unique captures. These limits bound the
+          work on smaller devices. Keep a full archive and choose a useful
+          published subset rather than silently dropping history. Exceeding a
+          limit fails validation.
+        </p>
+        <p>
+          Review Notes and provenance before publishing. The page doesn’t send
+          captured data to its host automatically, though ordinary page requests
+          are still subject to that host’s access-log policy. Once reviewed and
+          merged, a contribution is published through GitHub Pages, with the
+          repository configured to use GitHub Actions.
+        </p>
+      </section>
+      <section aria-labelledby="design-heading">
+        <h2 id="design-heading">Use the findings in a real interface</h2>
+        <p>
+          Choose tokens for their semantic roles, not because you like the color
+          one machine happens to return. Look for reliable pairs and
+          alpha-sensitive contexts, then test them on the component’s actual
+          text and non-text surfaces.
+        </p>
+        <p>
+          Where needed, provide compatible fallbacks and stable, opaque backing
+          surfaces. Preserve user-selected forced palettes, and give states
+          indicators that don’t depend on color alone.
+        </p>
+        <p>
+          Use this evidence to make simpler defaults, not to add OS sniffing or
+          production-time JavaScript contrast repairs. Document where authors
+          need to supply paired theme colors, and keep implementations,
+          duplicated styles, manifests, documentation, and demos aligned.
+        </p>
+      </section>
+      <section aria-labelledby="references-heading">
+        <h2 id="references-heading">References and version</h2>
+        <p>
+          The measurement protocol and catalog remain version 1, assembled on
+          November 5, 2026. Rewriting this guide doesn’t change the measurement
+          method or the exported versions.
+        </p>
+        <p>
+          MDN’s
+          <a
+            href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/system-color"
+            >system-color reference</a
+          >
+          defines the keywords. Its general support badge and browser
+          compatibility entries aren’t a complete browser, OS, and RGBA matrix.
+          This study adds observations; it doesn’t claim a separately documented
+          introduction version for every keyword. The
+          <a href="https://github.com/aarongustafson/system-color-study#sources"
+            >README sources</a
+          >
+          link to the specifications behind the method.
+        </p>
+      </section>
+    </main>
+    <footer class="site-footer">
+      Made by <a href="https://www.aaron-gustafson.com/">Aaron Gustafson</a>.
+    </footer>
+  </body>
+</html>
