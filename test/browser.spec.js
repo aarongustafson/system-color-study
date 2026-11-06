@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { fixture } from "./fixtures.js";
-import { versions, hex, contrast } from "../model.js";
+import { versions, hex, contrast, comparisonGroups } from "../model.js";
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/published.json", (route) =>
@@ -15,6 +15,100 @@ test.beforeEach(async ({ page }) => {
     }),
   );
   await page.goto("./test.html");
+});
+
+test("comparison tables group environments, show both modes, and retain split forced palettes and repeat provenance", async ({
+  page,
+}) => {
+  const normal = fixture("normal-matrix");
+  normal.schemes.light = structuredClone(normal.schemes.light);
+  normal.schemes.light.colors.Canvas = {
+    supported: true,
+    rgba: [255, 255, 255, 255],
+    hex: "#ffffff",
+    computed: "rgb(255, 255, 255)",
+    conversion: "rgb-serialization",
+  };
+  const forced = fixture("forced-matrix");
+  forced.media.forcedColors = true;
+  forced.environment.forcedColorTheme = "Aquatic";
+  forced.schemes.dark = structuredClone(forced.schemes.light);
+  forced.schemes.dark.computedColorScheme = "dark";
+  const repeat = structuredClone(forced);
+  repeat.id = "repeat-matrix";
+  repeat.environment.notes = "Independent repeated observation";
+  const split = structuredClone(forced);
+  split.id = "split-matrix";
+  split.environment.forcedColorTheme = "Desert";
+  split.schemes.dark.colors.SelectedItem = {
+    supported: true,
+    rgba: [1, 2, 3, 255],
+    hex: "#010203",
+    computed: "rgb(1, 2, 3)",
+    conversion: "rgb-serialization",
+  };
+  await page.route("**/published.json", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...versions,
+        captures: [normal, forced, repeat, split],
+      }),
+    }),
+  );
+  await page.goto("./");
+  await expect(page.getByLabel("Display mode")).toHaveCount(0);
+  await expect(page.locator("#individual-table .capture-heading")).toHaveCount(
+    1,
+  );
+  for (const table of ["individual-table", "pair-table"]) {
+    await expect(page.locator(`#${table} .mode-label`)).toHaveText([
+      "Light",
+      "Dark",
+      "Aquatic",
+      "Desert · Light",
+      "Desert · Dark",
+    ]);
+    await expect(page.locator(`#${table} .mode-heading`).nth(2)).toContainText(
+      "Light = dark",
+    );
+    await expect(page.locator(`#${table} .mode-heading`).nth(2)).toContainText(
+      "Runs 2, 3",
+    );
+  }
+  const canvas = page.locator("#individual-table tbody tr").filter({
+    has: page.getByRole("rowheader", { name: "Canvas", exact: true }),
+  });
+  await expect(canvas.locator("td code").first()).toHaveText("#ffffff");
+  await expect(canvas.locator("td code").nth(1)).toHaveText("#000000");
+  const verdicts = page
+    .locator("#pair-table tbody tr")
+    .filter({
+      has: page.getByRole("rowheader", {
+        name: "Canvas (background)",
+        exact: true,
+      }),
+    })
+    .first()
+    .locator("td.contrast-result");
+  await expect(verdicts.nth(0).locator("strong").first()).toHaveText("21.00:1");
+  await expect(verdicts.nth(1).locator("strong").first()).toHaveText("1.00:1");
+  const summary = page.locator("#individual-table .capture-heading summary");
+  await summary.focus();
+  await page.keyboard.press("Enter");
+  await expect(
+    page.locator("#individual-table .capture-heading details"),
+  ).toContainText("Independent repeated observation");
+  expect(
+    await page.locator("td[headers]").evaluateAll((cells) =>
+      cells.every((cell) =>
+        cell
+          .getAttribute("headers")
+          .split(" ")
+          .every((id) => document.getElementById(id)?.tagName === "TH"),
+      ),
+    ),
+  ).toBe(true);
 });
 
 test("verdict cells distinguish all, some, no, and unavailable thresholds with readable separate lines", async ({
@@ -60,7 +154,8 @@ test("verdict cells distinguish all, some, no, and unavailable thresholds with r
         }),
       })
       .first()
-      .locator("td[rowspan='2']");
+      .locator("td[rowspan='2']")
+      .first();
   const success = verdict("Canvas");
   const mixed = verdict("Field");
   const failure = verdict("ButtonFace");
@@ -132,6 +227,10 @@ test("compact headers keep full provenance in keyboard-accessible details and pr
   captures[1].media.forcedColors = true;
   captures[1].environment.forcedColorTheme = "Aquatic";
   captures[2].media.forcedColors = true;
+  for (const capture of captures.slice(1, 3)) {
+    capture.schemes.dark = structuredClone(capture.schemes.light);
+    capture.schemes.dark.computedColorScheme = "dark";
+  }
   captures[3].media.forcedColors = null;
   captures[4].environment.forcedColorTheme = "Desert";
   await page.route("**/published.json", (route) =>
@@ -142,21 +241,23 @@ test("compact headers keep full provenance in keyboard-accessible details and pr
   );
   await page.goto("./");
   const headings = page.locator("#individual-table .capture-heading");
-  await expect(headings.locator(".capture-theme")).toHaveText([
-    "No forced colors",
+  await expect(page.locator("#individual-table .mode-label")).toHaveText([
+    "Light",
+    "Dark",
     "Aquatic",
     "Forced colors (unnamed)",
-    "Forced colors unknown",
-    "Desert (forced colors inactive)",
+    "Forced colors unknown · Light",
+    "Forced colors unknown · Dark",
+    "Desert (forced colors inactive) · Light",
+    "Desert (forced colors inactive) · Dark",
   ]);
   const first = headings.first();
   await expect(first.locator(":scope > p")).toHaveText([
     "Unit fixture",
     "Fixture",
-    "No forced colors",
   ]);
   const details = first.locator("details");
-  await expect(details.locator("p")).toBeHidden();
+  await expect(details.locator("p").first()).toBeHidden();
   await details.locator("summary").focus();
   await page.keyboard.press("Enter");
   await expect(details).toHaveAttribute("open", "");
@@ -177,9 +278,10 @@ test("an authored OS theme does not overwrite an inactive browser media report",
     "Reported OS theme",
   );
   expect(data.captures[0].media.forcedColors).toBe(false);
-  await expect(page.locator("#individual-table .capture-theme")).toHaveText(
-    "Reported OS theme (forced colors inactive)",
-  );
+  await expect(page.locator("#individual-table .mode-label")).toHaveText([
+    "Reported OS theme (forced colors inactive) · Light",
+    "Reported OS theme (forced colors inactive) · Dark",
+  ]);
 });
 
 test("one capture measures both schemes independently and shows both recorded grids", async ({
@@ -308,7 +410,7 @@ test("live page samples every keyword, captures both modes, and exports portable
     "Test browser 1",
   );
   await expect(page.locator('#pair-table tbody td[rowspan="2"]')).toHaveCount(
-    15,
+    30,
   );
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export JSON" }).click();
@@ -345,24 +447,22 @@ test("JSON import builds independent columns and round-trips original captures",
   await expect(page.locator("#individual-table thead img")).toHaveCount(0);
   await page.getByLabel("Import capture JSON files").setInputFiles(path);
   await expect(page.locator("#status")).toContainText("duplicate");
-  await expect(page.locator("#individual-table thead tr th")).toHaveCount(2);
+  await expect(page.locator("#individual-table .mode-heading")).toHaveCount(2);
   await page.getByLabel("Browser and version").fill("Second browser");
   await page.getByLabel("OS and version").fill("Second OS");
   await page.getByRole("button", { name: "Capture light and dark" }).click();
-  await expect(page.locator("#individual-table thead tr th")).toHaveCount(3);
-  await expect(page.locator('#pair-table thead th[colspan="2"]')).toHaveCount(
-    2,
-  );
+  await expect(page.locator("#individual-table .mode-heading")).toHaveCount(4);
+  await expect(page.locator("#pair-table .mode-heading")).toHaveCount(4);
   await expect(page.locator('#pair-table tbody td[rowspan="2"]')).toHaveCount(
-    20,
+    40,
   );
   await page.getByLabel("Display mode").selectOption("dark");
-  await expect(page.locator("#individual-table thead tr th")).toHaveCount(3);
+  await expect(page.locator("#individual-table .mode-heading")).toHaveCount(4);
   await page
     .getByText("Optional: change the contrast backdrop", { exact: true })
     .click();
   await page.getByLabel("Opaque backdrop for contrast").selectOption("white");
-  await expect(page.locator("#individual-table thead tr th")).toHaveCount(3);
+  await expect(page.locator("#individual-table .mode-heading")).toHaveCount(4);
 });
 
 test("invalid import is visible and does not replace existing results", async ({
@@ -428,10 +528,8 @@ test("table swatches use each capture backdrop, not the viewing page background"
   const row = page.locator("#individual-table tbody tr").filter({
     has: page.getByRole("rowheader", { name: "Highlight", exact: true }),
   });
-  await expect(row.locator(".table-swatch")).toHaveCSS(
-    "background-color",
-    "rgb(0, 0, 0)",
-  );
+  for (const swatch of await row.locator(".table-swatch").all())
+    await expect(swatch).toHaveCSS("background-color", "rgb(0, 0, 0)");
 });
 
 test("without JavaScript, instructions remain and measurement controls are disabled", async ({
@@ -508,9 +606,9 @@ test("a published collection populates comparison tables without uploading local
     "Published fixture",
   );
   await expect(page.locator("#pair-table tbody td[rowspan='2']")).toHaveCount(
-    10,
+    20,
   );
-  await page.getByLabel("Display mode").selectOption("dark");
+  await expect(page.getByLabel("Display mode")).toHaveCount(0);
   const capture = JSON.parse(body).captures[0];
   await expect(page.locator("#individual-table tbody")).toContainText(
     capture.schemes.dark.colors.Canvas.hex,
@@ -556,7 +654,7 @@ test("invalid published data fails visibly without pretending the dataset is emp
   await expect(page.locator("#error")).toBeVisible();
   await expect(page.locator("#status")).toContainText("failed");
   await expect(page.locator("#empty")).toBeHidden();
-  await expect(page.getByLabel("Display mode")).toBeDisabled();
+  await expect(page.getByLabel("Include deprecated keywords")).toBeDisabled();
 });
 
 test("the built homepage renders every actual committed capture", async ({
@@ -572,11 +670,19 @@ test("the built homepage renders every actual committed capture", async ({
   await expect(page.locator("#status")).toContainText(
     `Loaded ${data.captures.length} published captures`,
   );
-  await expect(page.locator("#individual-table thead th")).toHaveCount(
-    data.captures.length + 1,
+  const groups = comparisonGroups(data.captures);
+  const columns = groups.reduce(
+    (count, group) => count + group.columns.length,
+    0,
+  );
+  await expect(page.locator("#individual-table .capture-heading")).toHaveCount(
+    groups.length,
+  );
+  await expect(page.locator("#individual-table .mode-heading")).toHaveCount(
+    columns,
   );
   await expect(page.locator("#pair-table tbody td[rowspan='2']")).toHaveCount(
-    data.captures.length * 10,
+    columns * 10,
   );
   for (const capture of data.captures) {
     await expect(page.locator("#individual-table thead")).toContainText(

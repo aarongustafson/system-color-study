@@ -343,3 +343,56 @@ export function mergeCaptures(existing, incoming) {
     throw new TypeError(`Import at most ${maxCaptures} captures at a time.`);
   return { captures: [...byId.values()], duplicates };
 }
+
+function snapshotKey(snapshot, includeScheme = false) {
+  return JSON.stringify([
+    snapshot.backdrop,
+    snapshot.schemeSupported,
+    ...(includeScheme ? [snapshot.computedColorScheme] : []),
+    keywords.map(({ name }) => {
+      const color = snapshot.colors[name];
+      return [color.supported, color.rgba, color.computed, color.conversion];
+    }),
+  ]);
+}
+
+export function comparisonGroups(captures) {
+  const groups = new Map();
+  captures.forEach((capture, index) => {
+    const { browser, os, context } = capture.environment;
+    const key = JSON.stringify([browser, os, context]);
+    if (!groups.has(key))
+      groups.set(key, {
+        group: { browser, os, context, runs: [], columns: [] },
+        observations: new Map(),
+      });
+    const { group, observations } = groups.get(key);
+    const run = { capture, number: index + 1 };
+    group.runs.push(run);
+    const signature = JSON.stringify([
+      capture.environment.forcedColorTheme?.trim() || "",
+      capture.media.forcedColors,
+      capture.media.prefersColorScheme,
+      capture.media.prefersContrast,
+      capture.media.displayMode,
+      snapshotKey(capture.schemes.light, true),
+      snapshotKey(capture.schemes.dark, true),
+    ]);
+    if (observations.has(signature)) {
+      observations.get(signature).push(run);
+      return;
+    }
+    const runs = [run];
+    observations.set(signature, runs);
+    const same =
+      capture.media.forcedColors === true &&
+      snapshotKey(capture.schemes.light) === snapshotKey(capture.schemes.dark);
+    for (const schemes of same ? [["light", "dark"]] : [["light"], ["dark"]])
+      group.columns.push({
+        runs,
+        schemes,
+        snapshot: capture.schemes[schemes[0]],
+      });
+  });
+  return [...groups.values()].map(({ group }) => group);
+}

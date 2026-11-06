@@ -62,8 +62,8 @@ you adjust live settings.
    When forced colors are active, enter the actual name in **Forced-color theme
    name**. Don’t include personal information.
 3. Keep the default Canvas backdrop unless you’re testing another surface.
-   The displayed mode affects the live grid and comparison tables, not which
-   modes are captured.
+   The displayed mode affects only the live grid, not the comparison tables or
+   which modes are captured.
 4. Select **Capture light and dark**. One capture contains both requested CSS
    modes and all 42 keywords, even when deprecated keywords aren’t displayed.
    The **Latest capture: both modes** section shows both saved grids side by
@@ -78,8 +78,9 @@ you adjust live settings.
    The complete metadata remains in the JSON.
 6. Change OS settings, browser, device, context, or backdrop and repeat.
 7. Import capture files into any copy of the page to build comparison columns.
-   Repeated runs remain separate. Identical duplicate IDs are reported and
-   skipped; conflicting IDs are rejected.
+   Every run remains in the collection. Identical repeated measurements may
+   share display columns, with all run metadata retained. Identical duplicate
+   IDs are reported and skipped; conflicting IDs are rejected.
 
 Captures stay in the current tab’s memory. Closing or reloading loses unexported
 data. Removing a capture only changes this tab, not previously exported files.
@@ -94,13 +95,24 @@ keyword)` returned false; inherited colors are never substituted for a rejected
 keyword. Acceptance does not prove native OS integration or a distinct value:
 aliases and privacy-preserving fixed colors are legitimate findings.
 
-**Color pairs** has two rows per pair—background and foreground—with two columns
-per capture: values and a contrast result spanning both rows. Switch the display
-mode to compare the other requested scheme. Compact headers show browser, OS,
-and forced-color theme. Each numbered **Run details** disclosure preserves time,
-context, backdrop, native preferences, Notes, and supporting user-agent data.
-It works with the keyboard; captures are never collapsed merely because their
-browser/system labels match.
+Both tables group observations by their exact browser, OS, and context labels.
+Ordinary observations always show **Light** and **Dark** side by side, even when
+the values happen to match. A forced-color observation shares one theme column,
+marked **Light = dark**, only when all 42 keyword records, backdrop settings, and
+scheme-support flags match. Otherwise, the theme has separate light and dark
+columns. The test page’s Display mode control affects only its live grid.
+
+**Color pairs** has two rows per pair—background and foreground—with a value
+column and a contrast result spanning both rows for each displayed mode.
+Each numbered **Run details** disclosure preserves time, context, both schemes’
+backdrops and support, native preferences, Notes, and supporting user-agent data.
+It works with the keyboard.
+
+Repeated runs with identical measurements and matching theme/media settings
+share columns labeled with every run number. Different measurements stay
+separate, even when the browser and theme labels match. No records are removed
+from exports or the published dataset, and different version/OS labels aren’t
+silently treated as the same environment.
 
 Contrast cells show a bold ratio followed by five separate, labeled pass/fail
 lines. Green means all five thresholds pass; amber means some pass; red means

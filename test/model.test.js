@@ -11,6 +11,7 @@ import {
   validateCollection,
   mergeCaptures,
   versions,
+  comparisonGroups,
 } from "../model.js";
 import { fixture } from "./fixtures.js";
 
@@ -173,4 +174,78 @@ test("theme metadata is optional for legacy captures, typed, and independent of 
   assert.equal(capture.media.forcedColors, false);
   capture.environment.forcedColorTheme = "";
   assert.equal(validateCollection(data)[0], capture);
+});
+
+test("comparison groups retain both normal modes and collapse only identical forced palettes", () => {
+  const normal = fixture("normal");
+  const forced = fixture("forced");
+  forced.media.forcedColors = true;
+  forced.environment.forcedColorTheme = "Aquatic";
+  forced.schemes.dark = structuredClone(forced.schemes.light);
+  forced.schemes.dark.computedColorScheme = "dark";
+  const split = structuredClone(forced);
+  split.id = "split";
+  split.environment.forcedColorTheme = "Desert";
+  split.schemes.dark.colors.SelectedItem.rgba = [1, 2, 3, 255];
+  split.schemes.dark.colors.SelectedItem.hex = "#010203";
+  split.schemes.dark.colors.SelectedItem.computed = "rgb(1, 2, 3)";
+  const input = [normal, forced, split];
+  const original = structuredClone(input);
+  const groups = comparisonGroups(input);
+  assert.equal(groups.length, 1);
+  assert.deepEqual(
+    groups[0].columns.map((c) => c.schemes),
+    [["light"], ["dark"], ["light", "dark"], ["light"], ["dark"]],
+  );
+  assert.equal(
+    groups[0].columns[4].snapshot.colors.SelectedItem.hex,
+    "#010203",
+  );
+  assert.deepEqual(input, original);
+});
+
+test("identical repeat measurements share columns without discarding provenance or hiding differences", () => {
+  const first = fixture("first");
+  const repeat = structuredClone(first);
+  repeat.id = "repeat";
+  repeat.capturedAt = "2001-01-01T00:00:00.000Z";
+  repeat.environment.notes = "Second independent run";
+  const changed = structuredClone(first);
+  changed.id = "changed";
+  changed.schemes.dark.backdrop = "black";
+  const differentContext = structuredClone(first);
+  differentContext.id = "private";
+  differentContext.environment.context = "private";
+  const groups = comparisonGroups([first, repeat, changed, differentContext]);
+  assert.equal(groups.length, 2);
+  assert.equal(groups[0].columns.length, 4);
+  assert.deepEqual(
+    groups[0].columns[0].runs.map((r) => r.capture.id),
+    ["first", "repeat"],
+  );
+  assert.equal(groups[0].runs.length, 3);
+  assert.equal(groups[1].context, "private");
+});
+
+test("forced palette collapse checks all keywords, support, alpha, and backdrop", () => {
+  for (const change of [
+    (s) => {
+      s.backdrop = "black";
+    },
+    (s) => {
+      s.schemeSupported = false;
+    },
+    (s) => {
+      s.colors.Window.rgba[3] = 128;
+    },
+    (s) => {
+      s.colors.Window.supported = false;
+    },
+  ]) {
+    const capture = fixture("forced-difference");
+    capture.media.forcedColors = true;
+    capture.schemes.dark = structuredClone(capture.schemes.light);
+    change(capture.schemes.dark);
+    assert.equal(comparisonGroups([capture])[0].columns.length, 2);
+  }
 });

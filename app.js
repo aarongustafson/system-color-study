@@ -7,6 +7,7 @@ import {
   pairResult,
   validateCollection,
   mergeCaptures,
+  comparisonGroups,
 } from "./model.js";
 import { measureScheme, mediaSnapshot } from "./sampler.js";
 import {
@@ -28,15 +29,47 @@ const visibleKeywords = () =>
   keywords.filter((item) => byId("deprecated").checked || !item.deprecated);
 const visiblePairs = () =>
   pairs.filter((item) => byId("deprecated").checked || !item.deprecated);
-const snapshotFor = (capture) => capture.schemes[byId("scheme").value];
 const forcedLabel = (value) =>
   value === null ? "unknown" : value ? "active" : "inactive";
 const label = (capture) =>
-  `${capture.environment.browser} / ${capture.environment.os} · ${capture.environment.context} · ${capture.capturedAt} · ${snapshotFor(capture).backdrop} backdrop · OS preference: ${capture.media.prefersColorScheme} · contrast preference: ${capture.media.prefersContrast} · forced colors: ${forcedLabel(capture.media.forcedColors)}${capture.environment.forcedColorTheme?.trim() ? " · theme: " + capture.environment.forcedColorTheme.trim() : ""}${snapshotFor(capture).schemeSupported ? "" : " · requested CSS scheme unsupported"}`;
+  `${capture.environment.browser} / ${capture.environment.os} · ${capture.environment.context} · ${capture.capturedAt} · ${["light", "dark"].map((scheme) => `${scheme}: ${capture.schemes[scheme].backdrop} backdrop, computed ${capture.schemes[scheme].computedColorScheme || "unsupported"}${capture.schemes[scheme].schemeSupported ? "" : ", requested CSS scheme unsupported"}`).join(" · ")} · OS preference: ${capture.media.prefersColorScheme} · contrast preference: ${capture.media.prefersContrast} · forced colors: ${forcedLabel(capture.media.forcedColors)}${capture.environment.forcedColorTheme?.trim() ? " · theme: " + capture.environment.forcedColorTheme.trim() : ""}`;
 
-function captureHeading(capture, index) {
+function captureHeading(group) {
   const heading = element("th");
   heading.className = "capture-heading";
+  for (const [type, text] of [
+    ["browser", group.browser],
+    ["os", group.os],
+  ]) {
+    const line = element("p", text);
+    line.className = `capture-${type}`;
+    heading.append(line);
+  }
+  if (group.context !== "normal") heading.append(element("p", group.context));
+  const details = element("details");
+  details.append(
+    element(
+      "summary",
+      `${group.runs.length === 1 ? "Run" : "Runs"} ${group.runs.map((run) => run.number).join(", ")} details`,
+    ),
+  );
+  for (const { capture, number } of group.runs) {
+    details.append(element("p", `Run ${number}: ${label(capture)}`));
+    if (capture.environment.notes)
+      details.append(element("p", "Notes: " + capture.environment.notes));
+    if (capture.environment.userAgent)
+      details.append(
+        element("p", "User agent: " + capture.environment.userAgent),
+      );
+  }
+  heading.append(details);
+  return heading;
+}
+
+function modeHeading(column) {
+  const heading = element("th");
+  heading.className = "mode-heading";
+  const capture = column.runs[0].capture;
   const name = capture.environment.forcedColorTheme?.trim();
   const theme =
     capture.media.forcedColors === false
@@ -48,29 +81,25 @@ function captureHeading(capture, index) {
         : name
           ? `${name} (forced colors unknown)`
           : "Forced colors unknown";
-  for (const [type, text] of [
-    ["browser", capture.environment.browser],
-    ["os", capture.environment.os],
-    ["theme", theme],
-  ]) {
-    const line = element("p", text);
-    line.className = `capture-${type}`;
-    heading.append(line);
-  }
-  if (!snapshotFor(capture).schemeSupported)
-    heading.append(element("p", "Requested scheme unsupported"));
-  const details = element("details");
-  details.append(
-    element("summary", `Run ${index + 1} details`),
-    element("p", label(capture)),
+  const mode = column.schemes[0] === "light" ? "Light" : "Dark";
+  const text =
+    column.schemes.length === 2
+      ? theme
+      : theme === "No forced colors"
+        ? mode
+        : `${theme} · ${mode}`;
+  const line = element("p", text);
+  line.className = "mode-label";
+  heading.append(line);
+  if (column.schemes.length === 2) heading.append(element("p", "Light = dark"));
+  heading.append(
+    element(
+      "p",
+      `${column.runs.length === 1 ? "Run" : "Runs"} ${column.runs.map((run) => run.number).join(", ")}`,
+    ),
   );
-  if (capture.environment.notes)
-    details.append(element("p", "Notes: " + capture.environment.notes));
-  if (capture.environment.userAgent)
-    details.append(
-      element("p", "User agent: " + capture.environment.userAgent),
-    );
-  heading.append(details);
+  if (!column.snapshot.schemeSupported)
+    heading.append(element("p", "Requested scheme unsupported"));
   return heading;
 }
 
@@ -227,18 +256,31 @@ function renderCapturedModes() {
 }
 
 function renderTables() {
+  const groups = comparisonGroups(captures);
+  const columns = groups.flatMap((group, groupIndex) =>
+    group.columns.map((column) => ({ ...column, groupIndex })),
+  );
   const individual = byId("individual-table");
   const heading = element("tr");
+  const modes = element("tr");
   const keywordHeading = element("th", "Keyword");
   keywordHeading.scope = "col";
+  keywordHeading.rowSpan = 2;
   heading.append(keywordHeading);
-  captures.forEach((capture, index) => {
-    const th = captureHeading(capture, index);
-    th.scope = "col";
-    th.id = `individual-column-${index}`;
+  groups.forEach((group, index) => {
+    const th = captureHeading(group);
+    th.scope = "colgroup";
+    th.colSpan = group.columns.length;
+    th.id = `individual-group-${index}`;
     heading.append(th);
   });
-  individual.tHead.replaceChildren(heading);
+  columns.forEach((column, index) => {
+    const th = modeHeading(column);
+    th.scope = "col";
+    th.id = `individual-column-${index}`;
+    modes.append(th);
+  });
+  individual.tHead.replaceChildren(heading, modes);
   const rows = document.createDocumentFragment();
   visibleKeywords().forEach(({ name }, rowIndex) => {
     const row = element("tr");
@@ -246,10 +288,12 @@ function renderTables() {
     th.scope = "row";
     th.id = `keyword-${rowIndex}`;
     row.append(th);
-    captures.forEach((capture, index) => {
-      const snapshot = snapshotFor(capture);
+    columns.forEach(({ snapshot, groupIndex }, index) => {
       const cell = colorCell(snapshot.colors[name], snapshot);
-      cell.setAttribute("headers", `${th.id} individual-column-${index}`);
+      cell.setAttribute(
+        "headers",
+        `${th.id} individual-group-${groupIndex} individual-column-${index}`,
+      );
       row.append(cell);
     });
     rows.append(row);
@@ -258,16 +302,24 @@ function renderTables() {
   const table = byId("pair-table");
   const firstHeader = element("tr");
   const secondHeader = element("tr");
+  const thirdHeader = element("tr");
   const first = element("th", "Keyword and role");
-  first.rowSpan = 2;
+  first.rowSpan = 3;
   first.scope = "col";
   firstHeader.append(first);
-  captures.forEach((capture, index) => {
-    const column = captureHeading(capture, index);
+  groups.forEach((group, index) => {
+    const column = captureHeading(group);
+    column.colSpan = group.columns.length * 2;
+    column.scope = "colgroup";
+    column.id = `pair-group-${index}`;
+    firstHeader.append(column);
+  });
+  columns.forEach((entry, index) => {
+    const column = modeHeading(entry);
     column.colSpan = 2;
     column.scope = "colgroup";
     column.id = `pair-column-${index}`;
-    firstHeader.append(column);
+    secondHeader.append(column);
     for (const [type, text] of [
       ["color", "Resolved hex"],
       ["contrast", "Contrast thresholds"],
@@ -275,10 +327,10 @@ function renderTables() {
       const th = element("th", text);
       th.scope = "col";
       th.id = `${type}-column-${index}`;
-      secondHeader.append(th);
+      thirdHeader.append(th);
     }
   });
-  table.tHead.replaceChildren(firstHeader, secondHeader);
+  table.tHead.replaceChildren(firstHeader, secondHeader, thirdHeader);
   const pairRows = document.createDocumentFragment();
   visiblePairs().forEach((pair, rowIndex) => {
     const background = element("tr"),
@@ -290,8 +342,7 @@ function renderTables() {
     fg.id = `foreground-${rowIndex}`;
     background.append(bg);
     foreground.append(fg);
-    captures.forEach((capture, index) => {
-      const snapshot = snapshotFor(capture);
+    columns.forEach(({ snapshot, groupIndex }, index) => {
       for (const [row, name, header] of [
         [background, pair.background, bg],
         [foreground, pair.foreground, fg],
@@ -299,7 +350,7 @@ function renderTables() {
         const cell = colorCell(snapshot.colors[name], snapshot);
         cell.setAttribute(
           "headers",
-          `${header.id} pair-column-${index} color-column-${index}`,
+          `${header.id} pair-group-${groupIndex} pair-column-${index} color-column-${index}`,
         );
         row.append(cell);
       }
@@ -308,7 +359,7 @@ function renderTables() {
       cell.rowSpan = 2;
       cell.setAttribute(
         "headers",
-        `${bg.id} ${fg.id} pair-column-${index} contrast-column-${index}`,
+        `${bg.id} ${fg.id} pair-group-${groupIndex} pair-column-${index} contrast-column-${index}`,
       );
       renderVerdict(cell, result);
       background.append(cell);
@@ -366,16 +417,15 @@ function refreshWithStatus() {
     refresh();
     byId("status").textContent = isTestPage
       ? "Live values resampled. Saved captures are unchanged."
-      : `Showing ${captures.length} published captures in ${byId("scheme").value} mode.`;
+      : `Showing ${captures.length} published captures across light, dark, and forced-color columns.`;
   } catch (error) {
     report(error);
   }
 }
 
 for (const id of [
-  "scheme",
   "deprecated",
-  ...(isTestPage ? ["backdrop", "refresh"] : []),
+  ...(isTestPage ? ["scheme", "backdrop", "refresh"] : []),
 ]) {
   byId(id).addEventListener(
     id === "refresh" ? "click" : "change",
@@ -537,13 +587,14 @@ async function initialize() {
   }
   refresh();
   for (const id of [
-    "scheme",
     "deprecated",
-    ...(isTestPage ? ["backdrop", "refresh", "capture", "import"] : []),
+    ...(isTestPage
+      ? ["scheme", "backdrop", "refresh", "capture", "import"]
+      : []),
   ])
     byId(id).disabled = false;
   byId("status").textContent = isTestPage
     ? "Ready. Set metadata, then capture both modes."
-    : `Loaded ${captures.length} published captures. Choose a mode to compare.`;
+    : `Loaded ${captures.length} published captures. Compare light, dark, and forced-color columns side by side.`;
 }
 initialize().catch(report);

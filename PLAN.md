@@ -126,6 +126,11 @@ is missing. For local recording, pass `--forced-color-theme "Actual theme name"`
   over the declared backdrop. Never disable user color preferences globally.
 - If forced colors maps both requested schemes to the same palette, keep both
   observations and the forced-colors metadata. Don’t treat sameness as failure.
+- Show both schemes together in the comparison tables. Collapse a forced
+  palette’s display columns only when every keyword record, backdrop, and
+  scheme-support flag matches; preserve both raw snapshots. Identical repeated
+  measurements can share columns, but retain every run’s metadata and keep
+  differing observations separate.
 - Keep aliases and fixed values. Different keyword names needn’t mean different
   colors, and system colors needn’t expose the user’s OS accent.
 

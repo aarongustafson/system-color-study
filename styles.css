@@ -165,10 +165,12 @@ th {
 td p {
   margin-block: 0.25rem;
 }
-.capture-heading {
+.capture-heading,
+.mode-heading {
   overflow-wrap: anywhere;
 }
-.capture-heading > p {
+.capture-heading > p,
+.mode-heading > p {
   margin-block: 0.25rem;
 }
 .capture-heading details {
