@@ -200,6 +200,20 @@ component. Check actual controls, borders, focus, images, and backplates
 separately. Chromium’s automated forced-colors test is emulation, not an
 observation of a named Windows theme.
 
+## Other color and contrast preferences
+
+Forced colors aren’t limited to Windows. Firefox’s own color overrides can
+activate a forced palette on macOS and Linux too. Mozilla explains
+[which settings activate `forced-colors` and `prefers-contrast`](https://firefox-source-docs.mozilla.org/accessible/HCMMediaQueries.html).
+For example, macOS Increase Contrast alone isn’t a forced-color mode.
+
+Collect a normal baseline, then change one OS or browser preference and capture
+again. Name a custom forced palette in **Forced-color theme name**, and describe
+other changes in Notes. Keep the browser’s reported media state rather than
+assuming every contrast setting enables forced colors. Observations from
+macOS, Linux, and mobile accessibility preferences are useful even when
+`forced-colors` remains inactive.
+
 ## Publish a comparison dataset
 
 The [results homepage](./index.html) loads the committed dataset, without sampling

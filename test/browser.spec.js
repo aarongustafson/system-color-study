@@ -1109,9 +1109,19 @@ test("without JavaScript, instructions remain and measurement controls are disab
   await expect(page.locator("noscript p")).toContainText(
     "JavaScript is required",
   );
+  await expect(page.locator("#snapshot-intro")).toBeVisible();
+  await expect(page.locator("#forced-colors-guide")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Capture light and dark" }),
   ).toBeDisabled();
+  await page.goto("./");
+  await expect(page.locator("#study-intro")).toBeVisible();
+  await expect(page.locator("#forced-colors-guide")).toBeVisible();
+  await expect(
+    page
+      .getByRole("navigation")
+      .getByRole("link", { name: "Take a snapshot", exact: true }),
+  ).toHaveAttribute("href", "./test.html");
   await context.close();
 });
 
@@ -1182,6 +1192,78 @@ test("a published collection populates comparison tables without uploading local
   ).toBeDisabled();
 });
 
+test("study pages explain color preferences and invite designers to contribute snapshots", async ({
+  page,
+}) => {
+  await page.goto("./");
+  await expect(
+    page.getByRole("heading", { name: "Why this study?", exact: true }),
+  ).toBeVisible();
+  await expect(page.locator("#study-intro > p").first()).not.toHaveCSS(
+    "max-inline-size",
+    "none",
+  );
+  await expect(
+    page
+      .locator("#study-intro")
+      .getByRole("link", { name: "system color keywords", exact: true }),
+  ).toHaveAttribute(
+    "href",
+    "https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/system-color",
+  );
+  await expect(page.locator("#forced-colors-guide")).toBeVisible();
+  await expect(
+    page.locator("#forced-colors-guide").getByRole("link", {
+      name: "Firefox’s forced-color behavior",
+      exact: true,
+    }),
+  ).toHaveAttribute(
+    "href",
+    "https://firefox-source-docs.mozilla.org/accessible/HCMMediaQueries.html",
+  );
+  await expect(page.locator("#forced-section")).toBeHidden();
+  await page
+    .getByRole("region", { name: "Don’t see your browser?", exact: true })
+    .getByRole("link", { name: "Take a snapshot", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Take a system color snapshot",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(page.locator("#snapshot-intro")).toContainText("system colors");
+  await expect(page.locator("#forced-colors-guide")).toBeVisible();
+  await expect(
+    page.getByRole("link", {
+      name: "Contribute your snapshot on GitHub",
+      exact: true,
+    }),
+  ).toHaveAttribute(
+    "href",
+    "https://github.com/aarongustafson/system-color-study/upload/main/data",
+  );
+  await expect(
+    page.getByRole("button", { name: "Capture light and dark", exact: true }),
+  ).toBeEnabled();
+  expect(
+    await page
+      .locator("[aria-labelledby], [aria-describedby]")
+      .evaluateAll((nodes) =>
+        nodes.every((node) =>
+          ["aria-labelledby", "aria-describedby"].every(
+            (name) =>
+              !node.hasAttribute(name) ||
+              node
+                .getAttribute(name)
+                .split(/\s+/)
+                .every((id) => document.getElementById(id)),
+          ),
+        ),
+      ),
+  ).toBe(true);
+});
+
 test("homepage shows published results without sampling or capture controls", async ({
   page,
 }) => {
@@ -1197,7 +1279,7 @@ test("homepage shows published results without sampling or capture controls", as
   await expect(page.locator("#capture-form")).toHaveCount(0);
   await expect(page.locator("#palette")).toHaveCount(0);
   await expect(
-    page.getByRole("navigation").getByRole("link", { name: "Run the test" }),
+    page.getByRole("navigation").getByRole("link", { name: "Take a snapshot" }),
   ).toHaveAttribute("href", "./test.html");
   await expect(page.locator("#status")).toContainText("0 published captures");
   expect(await page.evaluate(() => window.systemColorProbeCalls)).toBe(0);

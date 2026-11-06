@@ -3,17 +3,17 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Run the system color test</title>
+    <title>Take a system color snapshot</title>
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="./styles.css" />
     <script type="module" src="./app.js"></script>
   </head>
   <body data-study-page="test">
     <header>
-      <h1>Run the system color test</h1>
+      <h1>Take a system color snapshot</h1>
       <p>
-        Measure CSS system colors here, then compare captures from real browsers
-        and operating systems.
+        Help us build a clearer picture of how system colors behave, one browser
+        and set of preferences at a time.
       </p>
       <p>
         <a href="./">Published results</a> ·
@@ -22,18 +22,40 @@
       </p>
     </header>
     <main>
-      <section aria-labelledby="controls-heading">
-        <h2 id="controls-heading">Automatic measurements</h2>
+      <section id="snapshot-intro" aria-labelledby="snapshot-intro-heading">
+        <h2 id="snapshot-intro-heading">Add your browser to the picture</h2>
         <p>
-          Colors are measured automatically when this page loads. No setup is
-          needed for the default Canvas backdrop. Verify the browser/system
-          details below, then select “Capture light and dark” to rerun all 42
-          keywords in both schemes and save a repeatable snapshot.
+          CSS system colors are names for particular jobs, such as a page’s
+          background (<code>Canvas</code>) and the text on it
+          (<code>CanvasText</code>). The browser supplies the colors. The
+          <a
+            href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/system-color"
+            >system color reference</a
+          >
+          explains those jobs; this study looks at what we actually get across
+          browsers and settings.
         </p>
         <p>
-          Light and dark are requested CSS color schemes, not changes to your OS
-          settings. Change OS preferences separately and capture again. Recorded
-          colors may include alpha.
+          I started this after running into poor contrast between system colors
+          on Android. If we’re going to use these colors in our designs, we need
+          a better understanding of where they work well and where we need to
+          take more care. Your snapshot can help fill a gap in the
+          <a href="./">published comparisons</a>, even if we already have a
+          different version of your browser.
+        </p>
+      </section>
+      <section aria-labelledby="controls-heading">
+        <h2 id="controls-heading">Start with your usual settings</h2>
+        <p>
+          The page is already measuring the colors your browser supplies. You
+          don’t need to set up a test first. Use “Display mode” to explore the
+          live samples, check your browser and operating system details, then
+          select “Capture light and dark” to save a snapshot of both.
+        </p>
+        <p>
+          That button requests both CSS color schemes; it doesn’t switch your
+          operating system’s preferences. To explore a different OS theme or
+          contrast setting, change it yourself and take another snapshot.
         </p>
         <div class="settings">
           <label
@@ -54,11 +76,11 @@
         <details>
           <summary>Optional: change the contrast backdrop</summary>
           <p>
-            Translucent colors need an opaque surface behind them to calculate
-            contrast. By default, each mode uses its own resolved Canvas color.
-            White and black let you test other surfaces; opaque pairs keep the
-            same ratio on known backdrops. This changes compositing, not keyword
-            resolution. Raw colors and alpha are always preserved in the export.
+            Some system colors are translucent: the surface behind them shows
+            through and affects their contrast. Leave this at “Resolved Canvas”
+            to start with each mode’s page background. Choose white or black if
+            you want to explore those surfaces instead. This changes how we
+            evaluate transparent colors, not the colors the browser supplies.
           </p>
           <label
             >Opaque backdrop for contrast
@@ -85,11 +107,10 @@
           <fieldset>
             <legend>Identify this browser/system combination</legend>
             <p id="metadata-help">
-              Prefilled values are browser-reported estimates. They can be
-              reduced, frozen, or spoofed: verify browser and OS versions in
-              their “About” screens and edit these fields before capturing. The
-              optional button requests additional version details locally; it
-              doesn’t upload them.
+              Browsers don’t always report their full version or the correct OS
+              version. Check their “About” screens and correct these estimates
+              before capturing. “Fill available full versions” may supply more
+              detail where the browser allows it; it doesn’t upload anything.
             </p>
             <button id="detect-versions" type="button" hidden>
               Fill available full versions
@@ -133,11 +154,14 @@
               </label>
             </div>
             <p id="forced-color-help">
-              Enter the Windows Contrast theme or your custom theme’s name when
-              testing one; the browser cannot discover it. Leave blank when no
-              theme is selected. A name is required when the browser reports
-              active forced colors. The OS theme name and browser-detected state
-              are recorded separately.
+              Testing a Windows Contrast theme or a browser’s custom forced
+              palette? Give it a name so we know which colors you chose. The
+              browser can report whether forced colors are active, but not the
+              palette’s name. A name is required when they’re active; otherwise,
+              leave this blank unless you selected a named theme. See
+              <a href="#forced-colors-guide"
+                >what to test beyond your usual settings</a
+              >.
             </p>
             <label
               >Notes: device, OS accent, experimental flags, or other relevant
@@ -155,44 +179,107 @@
         </form>
       </section>
 
+      <section id="forced-colors-guide" aria-labelledby="preferences-heading">
+        <h2 id="preferences-heading">
+          Try another palette or contrast preference
+        </h2>
+        <p>
+          Forced colors let someone use a limited palette in place of many of
+          the colors a site’s designer chose. Windows Contrast themes are one
+          example. This can make a page easier to read, and system colors let us
+          work with that choice. Learn more about
+          <a
+            href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@media/forced-colors"
+            >forced colors</a
+          >
+          and
+          <a
+            href="https://firefox-source-docs.mozilla.org/accessible/HCMMediaQueries.html"
+            >Firefox’s forced-color behavior</a
+          >, including its own color overrides on macOS and Linux.
+        </p>
+        <p>
+          After your normal snapshot, try a different setting and capture again.
+          On Windows, that could be a built-in or custom Contrast theme. On
+          macOS, try Increase Contrast; in Firefox, you can also test its color
+          overrides. Linux themes and mobile accessibility preferences are worth
+          comparing too. A setting that increases contrast doesn’t necessarily
+          activate forced colors—record what you changed in Notes, and let the
+          browser report its state.
+        </p>
+        <p>
+          Change one setting at a time so we can understand its effect. Use the
+          actual browser and OS settings for contributions; a developer tool’s
+          emulation is useful for checking a design, but isn’t a measurement of
+          someone’s real palette.
+        </p>
+      </section>
+
       <section id="captured-preview" aria-labelledby="captured-heading" hidden>
-        <h2 id="captured-heading">Latest capture: both modes</h2>
+        <h2 id="captured-heading">Review your latest snapshot</h2>
         <p id="capture-summary"></p>
         <p>
-          Both grids come from independent probes run when you captured, not
-          from your selected display mode. All 42 keywords are saved; use
-          “Include deprecated keywords” to display the historical ones. Light
-          and dark may legitimately match in forced-color modes.
+          Look for differences between light and dark, and for anything you
+          didn’t expect. These samples stay as they were when you captured them,
+          even if you change the live preview. In forced-color mode, both
+          schemes may use the same palette; matching results aren’t necessarily
+          a mistake.
         </p>
         <div id="captured-modes" class="captured-modes"></div>
       </section>
 
       <section aria-labelledby="palette-heading">
-        <h2 id="palette-heading">Live color grid</h2>
+        <h2 id="palette-heading">What does this browser choose?</h2>
         <p>
-          Every current keyword is measured, plus the deprecated catalog when
-          displayed. N/A means the browser rejected the keyword in the CSS
-          <code>color</code> property. Eight-digit hex includes alpha:
-          <code>#rrggbbaa</code>.
+          Look at the colors available for different jobs. Can you distinguish a
+          selected item from the page around it? Does changing “Display mode”
+          give you a different palette? These samples reflect this browser now,
+          rather than an earlier snapshot.
+        </p>
+        <p>
+          N/A means the browser didn’t accept a keyword. Eight-digit hex values
+          include transparency, which can change how a color looks over
+          different backgrounds. The optional deprecated names are historical
+          comparisons, not suggestions for new designs.
         </p>
         <div id="palette" class="palette"></div>
-        <h3>Live foreground/background pairs</h3>
+        <h3>Check the colors together</h3>
         <p>
-          Samples composite over the selected backdrop. Only these reference
-          samples bypass forced-color paint adjustments; the rest of this page
-          keeps the user’s color preferences.
+          Compare the text with its intended surface, rather than judging each
+          swatch on its own. For ordinary text, look for at least 4.5:1 for
+          <a
+            href="https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html"
+            >WCAG AA</a
+          >. Use the appropriate large-text or non-text threshold for other
+          uses. Transparent colors are evaluated over your selected backdrop.
+          These reference samples preserve the colors we’re examining; the rest
+          of the page still follows your preferences.
         </p>
         <div id="live-pairs" class="palette pairs"></div>
       </section>
 
       <section aria-labelledby="collection-heading">
-        <h2 id="collection-heading">Export and compare this session</h2>
+        <h2 id="collection-heading">Share what you found</h2>
         <p>
-          Each capture records both modes, all 42 keywords, environment
-          metadata, and calculated pair results. Import exports from other
-          devices to add columns. Existing runs are never replaced. Published
-          captures are shown separately on the <a href="./">results page</a>;
-          this session starts empty.
+          More real-world observations will help us make better choices about
+          these colors. Once you’ve reviewed your snapshots, select “Export
+          JSON” to download them. Do this before closing the page: nothing is
+          saved automatically.
+        </p>
+        <p>
+          Review the downloaded file’s browser details and Notes, then
+          <a
+            href="https://github.com/aarongustafson/system-color-study/upload/main/data"
+            >Contribute your snapshot on GitHub</a
+          >. Choose a new branch and open a pull request; GitHub may ask you to
+          sign in or create a fork. Your contribution can be reviewed before it
+          joins the published comparisons.
+        </p>
+        <p>
+          You can also import snapshots from other devices to compare them below
+          before sharing. This session starts empty and doesn’t change the
+          <a href="./">published results</a>. Importing a file doesn’t upload
+          it.
         </p>
         <div class="settings">
           <button id="export" type="button" disabled>Export JSON</button>
@@ -213,15 +300,7 @@
           </label>
         </details>
         <details>
-          <summary>Submit reviewed results to the study</summary>
-          <p>
-            Export JSON and review its metadata and Notes first.
-            <a
-              href="https://github.com/aarongustafson/system-color-study/upload/main/data"
-              >Upload the JSON to GitHub</a
-            >, choose a new branch, and open a pull request. GitHub may ask you
-            to sign in or create a fork.
-          </p>
+          <summary>Submit from a local checkout instead</summary>
           <p>
             With a local checkout, write access, and an authenticated GitHub
             CLI,
@@ -238,20 +317,16 @@
 
         <h3 id="individual-heading">Individual system colors</h3>
         <p>
-          Includes individual values for paired keywords too. Headers group OS,
-          then Light or Dark, then browser. Forced-color observations appear in
-          separate tables. Identical repeat measurements share columns, with
-          every observation preserved in the Details dialog. The Display mode
-          control affects only the live grid.
+          Compare the same keyword across your snapshots to see what changed
+          with a browser, theme, or preference. Select “Details” if you need to
+          check the conditions behind a result. The “Display mode” control
+          changes the live samples, not these saved comparisons.
         </p>
         <p>
-          Color cells show the recorded color behind its hex value, with black
-          or white text for readability. Translucent colors use the recorded
-          opaque backdrop; without one, the preview is unavailable. Keyword
-          headers stay pinned while you scroll sideways. The header hierarchy
-          stays pinned while you scroll down, unless it would leave too little
-          room for data. Focus a table’s scroll region and use the arrow keys to
-          scroll.
+          A cell’s background is the recorded color; its black or white hex text
+          is chosen for readability, not as a recommended pairing. Translucent
+          colors use the recorded backdrop. You can scroll the comparisons, or
+          focus a scroll region and use the arrow keys.
         </p>
         <div
           class="table-scroll"
@@ -270,18 +345,16 @@
 
         <h3 id="pair-heading">Color pairs</h3>
         <p>
-          Each displayed mode has a color column and a contrast column spanning
-          its background/foreground rows. Normal text: AA ≥ 4.5:1, AAA ≥ 7:1.
-          Large text: AA ≥ 3:1, AAA ≥ 4.5:1. Grades use unrounded ratios;
-          displayed ratios are rounded. Threshold results are not a WCAG
-          conformance verdict.
+          Check whether a text-and-surface pairing stays readable across the
+          settings you’ve tried. Green meets all listed thresholds; amber meets
+          some; red meets none. Read the labels to choose the threshold that
+          applies to your use—amber doesn’t automatically rule a pairing out.
         </p>
         <p>
-          Verdict fills: green means all five thresholds pass; amber means some
-          pass; red means none pass; neutral means unavailable. These are UI
-          indicators, not recorded system colors. Every result also says pass or
-          fail in text; forced-color modes retain your chosen palette. Select
-          “Details” for the full versions, capture time, and preferences.
+          The <a href="./#pair-heading">guide to reading pair contrast</a>
+          explains the thresholds. A passing ratio is one part of evaluating an
+          interface, not a complete WCAG conformance verdict. Try the pairing
+          with your actual text, controls, and surrounding surfaces.
         </p>
         <div
           class="table-scroll"
@@ -298,18 +371,30 @@
           </table>
         </div>
         <p>
-          <code>GrayText</code> and <code>ButtonBorder</code> have no universal
-          two-color text pair. Evaluate disabled text and borders separately
-          against their actual adjacent surfaces.
+          Evaluate <code>GrayText</code> and <code>ButtonBorder</code> in
+          context: disabled text and control boundaries don’t have one universal
+          background, or the same requirements as ordinary text.
         </p>
       </section>
       <section id="forced-section" aria-labelledby="forced-heading" hidden>
         <h2 id="forced-heading">Forced colors</h2>
         <p>
-          Compare themes, then browsers and requested modes. Light &amp; Dark
-          means both snapshots match across the complete catalog.
+          Compare how your chosen palettes handle text, selection, and control
+          surfaces. Colors you normally use to distinguish states may become
+          identical, so make sure the interface has other ways to communicate
+          those differences.
+        </p>
+        <p>
+          “Light &amp; Dark” means we measured both schemes and found the same
+          forced palette. That’s a valid result. These samples don’t reproduce
+          every browser adjustment to a page; check your actual design in the
+          mode as well.
         </p>
         <h3 id="forced-individual-heading">Individual system colors</h3>
+        <p>
+          Look for changes in the colors assigned to each job, including
+          differences between light-background and dark-background palettes.
+        </p>
         <div
           class="table-scroll"
           tabindex="0"
@@ -325,6 +410,11 @@
           </table>
         </div>
         <h3 id="forced-pair-heading">Color pairs</h3>
+        <p>
+          Check the pairings your design needs in each palette. Don’t replace
+          someone’s chosen colors just to make the result resemble your usual
+          design.
+        </p>
         <div
           class="table-scroll"
           tabindex="0"

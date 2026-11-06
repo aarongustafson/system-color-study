@@ -11,6 +11,9 @@
 body {
   margin: 0;
 }
+p {
+  max-inline-size: 70ch;
+}
 header,
 main,
 footer {
