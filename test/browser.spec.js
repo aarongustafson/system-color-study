@@ -1120,7 +1120,9 @@ test("full version hints are requested only after an explicit action", async ({
   await expect(page.locator("#metadata-source")).toContainText(
     "freeze or shorten",
   );
-  await page.getByRole("button", { name: "Populate from browser" }).click();
+  await page
+    .getByRole("button", { name: "Populate from Client Hints" })
+    .click();
   await expect(page.getByLabel("Browser and version")).toHaveValue(
     "Chromium 156.1.2.3",
   );
@@ -1150,13 +1152,15 @@ test("refused version hints preserve entered metadata and report the failure", a
   await page.reload();
   await page.getByLabel("Browser and version").fill("Verified browser");
   const source = await page.locator("#metadata-source").textContent();
-  await page.getByRole("button", { name: "Populate from browser" }).click();
+  await page
+    .getByRole("button", { name: "Populate from Client Hints" })
+    .click();
   await expect(page.locator("#error")).toContainText("Version details denied");
   await expect(page.getByLabel("Browser and version")).toHaveValue(
     "Verified browser",
   );
   await expect(
-    page.getByRole("button", { name: "Populate from browser" }),
+    page.getByRole("button", { name: "Populate from Client Hints" }),
   ).toBeEnabled();
   await expect(page.locator("#metadata-source")).toHaveText(source);
 });
@@ -1179,7 +1183,9 @@ test("partial Client Hints describe only the fields they replace", async ({
   await page.getByLabel("OS and version").fill("Confirmed OS");
   await page.getByRole("button", { name: "Capture light and dark" }).click();
   await expect(page.locator("#status")).toContainText("download is ready");
-  await page.getByRole("button", { name: "Populate from browser" }).click();
+  await page
+    .getByRole("button", { name: "Populate from Client Hints" })
+    .click();
   await expect(page.getByLabel("Browser and version")).toHaveValue(
     "Confirmed browser",
   );

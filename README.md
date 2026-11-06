@@ -51,7 +51,7 @@ alpha, unsupported keywords, and both requested-scheme reports remain in the JSO
    Open [the test page](./test.html).
 2. Verify the prefilled browser and OS names **against their About screens**.
    Prefills come from the user agent and may be reduced, frozen, or spoofed.
-   Where supported, **Populate from browser** explicitly requests
+   Where supported, **Populate from Client Hints** explicitly requests
    additional browser-provided version details. These are still reports, not
    proof of the installed versions; Windows platform versions aren’t Windows
    release names. All fields remain editable.
