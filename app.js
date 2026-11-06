@@ -1,23 +1,5 @@
-import {
-  keywords,
-  pairs,
-  versions,
-  hex,
-  backdropRGB,
-  pairResult,
-  validateCollection,
-  mergeCaptures,
-} from "./model.js";
-import {
-  createComparisonRenderer,
-  forcedLabel,
-} from "./comparison-renderer.js";
-import {
-  enhanceComparisons,
-  updateComparisonHeaders,
-  report,
-  clearError,
-} from "./comparison-ui.js";
+import { versions, validateSubmission, forcedLabel } from "./model.js";
+import { report, clearError } from "./comparison-ui.js";
 import { measureScheme, mediaSnapshot } from "./sampler.js";
 import {
   detectEnvironment,
@@ -26,347 +8,161 @@ import {
 } from "./environment.js";
 
 const byId = (id) => document.getElementById(id);
-const isTestPage = document.body.dataset.studyPage === "test";
-let captures = [];
-let live;
-let renderedCaptures;
-let renderedDeprecated;
-const { renderTables: renderComparisons, renderVerdict } =
-  createComparisonRenderer(document);
-const element = (tag, text) => {
-  const node = document.createElement(tag);
-  if (text !== undefined) node.textContent = text;
-  return node;
-};
-const visibleKeywords = () =>
-  keywords.filter((item) => byId("deprecated").checked || !item.deprecated);
-const visiblePairs = () =>
-  pairs.filter((item) => byId("deprecated").checked || !item.deprecated);
-const label = (capture) =>
-  `${capture.environment.browser} / ${capture.environment.os} · ${capture.environment.context} · ${capture.capturedAt} · ${["light", "dark"].map((scheme) => `${scheme}: ${capture.schemes[scheme].backdrop} backdrop, computed ${capture.schemes[scheme].computedColorScheme || "unsupported"}${capture.schemes[scheme].schemeSupported ? "" : ", requested CSS scheme unsupported"}`).join(" · ")} · OS preference: ${capture.media.prefersColorScheme} · contrast preference: ${capture.media.prefersContrast} · forced colors: ${forcedLabel(capture.media.forcedColors)}${capture.environment.forcedColorTheme?.trim() ? " · theme: " + capture.environment.forcedColorTheme.trim() : ""}`;
+const fields = ["browser", "os", "notes", "forced-color-theme"];
+let downloadURL;
 
-function renderPalette(
-  snapshot = live,
-  colorTarget = byId("palette"),
-  pairTarget = byId("live-pairs"),
-  headingLevel = 3,
-) {
-  const grid = document.createDocumentFragment();
-  const backdrop = backdropRGB(snapshot);
-  for (const { name, deprecated } of visibleKeywords()) {
-    const color = snapshot.colors[name];
-    const card = element("article");
-    card.className = "color-card";
-    card.append(element(`h${headingLevel}`, name));
-    if (color.supported) {
-      const swatch = element("div");
-      swatch.className = "swatch";
-      if (backdrop) swatch.style.backgroundColor = hex([...backdrop, 255]);
-      const fill = element("div");
-      fill.className = "swatch-color";
-      fill.style.backgroundColor = color.hex;
-      swatch.append(fill);
-      swatch.setAttribute("aria-hidden", "true");
-      if (backdrop || color.rgba[3] === 255) card.append(swatch);
-      else
-        card.append(element("p", "Preview unavailable: no opaque backdrop."));
-      card.append(element("code", color.hex));
-      const raw = element("p", color.computed);
-      raw.className = "raw";
-      card.append(raw);
-    } else card.append(element("p", "N/A — keyword unsupported."));
-    if (deprecated)
-      card.append(
-        element("p", "Deprecated; measured for historical comparison."),
-      );
-    grid.append(card);
-  }
-  colorTarget.replaceChildren(grid);
-  const cards = document.createDocumentFragment();
-  for (const pair of visiblePairs()) {
-    const result = pairResult(pair, snapshot);
-    const card = element("article");
-    card.className = "pair-card";
-    card.append(
-      element(
-        `h${headingLevel + 1}`,
-        `${pair.background} / ${pair.foreground}`,
-      ),
-    );
-    if (result.ratio !== null) {
-      const sample = element("div");
-      sample.className = "pair-sample";
-      sample.style.backgroundColor = hex([...backdrop, 255]);
-      const text = element("span", "Sample text: Aa 0123456789");
-      text.style.backgroundColor = snapshot.colors[pair.background].hex;
-      text.style.color = snapshot.colors[pair.foreground].hex;
-      sample.append(text);
-      card.append(sample);
-    }
-    const verdict = element("div");
-    renderVerdict(verdict, result);
-    card.append(verdict);
-    cards.append(card);
-  }
-  pairTarget.replaceChildren(cards);
+function validateField(field) {
+  field.setCustomValidity(
+    /verify/i.test(field.value)
+      ? "Confirm this value and remove “verify” before capturing."
+      : field.required && !field.value.trim()
+        ? "Enter a confirmed value."
+        : "",
+  );
 }
 
-function renderCapturedModes() {
-  const capture = captures.at(-1);
-  byId("captured-preview").hidden = !capture;
-  byId("captured-modes").replaceChildren();
-  if (!capture) return;
-  byId("capture-summary").textContent = label(capture);
-  for (const scheme of ["light", "dark"]) {
-    const snapshot = capture.schemes[scheme];
-    const group = element("section");
-    group.className = "captured-mode";
-    group.setAttribute("aria-label", `Captured ${scheme} mode`);
-    group.style.colorScheme = scheme;
-    group.append(
-      element("h3", `Captured ${scheme} mode`),
-      element(
-        "p",
-        `Requested CSS scheme: ${scheme}. Computed: ${snapshot.computedColorScheme || "unsupported"}. These are saved values, not a resample.`,
-      ),
-    );
-    const colors = element("div");
-    colors.className = "palette";
-    const pairs = element("div");
-    pairs.className = "palette pairs";
-    group.append(colors, element("h4", "Color pairs"), pairs);
-    renderPalette(snapshot, colors, pairs, 4);
-    byId("captured-modes").append(group);
-  }
+function syncEnvironment() {
+  const media = mediaSnapshot();
+  const active = media.forcedColors === true;
+  byId("forced-color-fields").hidden = !active;
+  byId("forced-color-theme").disabled = !active;
+  byId("forced-color-theme").required = active;
+  byId("environment").textContent =
+    `Forced colors: ${forcedLabel(media.forcedColors)}; contrast preference: ${media.prefersContrast}.`;
+  for (const id of fields) validateField(byId(id));
 }
 
-function renderTables() {
-  const deprecated = byId("deprecated").checked;
-  const changed = renderedCaptures !== captures;
-  if (!changed && renderedDeprecated === deprecated) return;
-  if (changed) {
-    renderComparisons(captures);
-    updateComparisonHeaders();
-  }
-  renderedCaptures = captures;
-  renderedDeprecated = deprecated;
-  if (!isTestPage) return;
-  renderCapturedModes();
-  if (!changed) return;
-  byId("export").disabled = captures.length === 0;
-  const list = document.createDocumentFragment();
-  captures.forEach((capture) => {
-    const row = element("li", label(capture));
-    const remove = element("button", "Remove capture");
-    remove.type = "button";
-    remove.setAttribute("aria-label", "Remove " + label(capture));
-    remove.addEventListener("click", () => {
-      captures = captures.filter((item) => item.id !== capture.id);
-      byId("export-text").hidden = true;
-      renderTables();
-      byId("export").disabled
-        ? byId("capture").focus()
-        : byId("export").focus();
-      byId("status").textContent =
-        "Capture removed from this tab. Exported files are unchanged.";
-    });
-    row.append(remove);
-    list.append(row);
+for (const id of [...fields, "context"])
+  byId(id).addEventListener("input", () => {
+    if (id !== "context") validateField(byId(id));
+    byId("capture-result").hidden = true;
   });
-  byId("captures").replaceChildren(list);
-}
+for (const query of [
+  "(forced-colors: active)",
+  "(prefers-contrast: more)",
+  "(prefers-contrast: less)",
+  "(prefers-color-scheme: dark)",
+])
+  matchMedia(query).addEventListener("change", () => {
+    syncEnvironment();
+    byId("capture-result").hidden = true;
+  });
 
-function syncThemeField(media) {
-  byId("forced-color-theme").disabled = false;
-  byId("forced-color-theme").required = media.forcedColors === true;
-}
-
-function refresh() {
-  if (isTestPage) {
-    live = measureScheme(byId("scheme").value, byId("backdrop").value);
-    const media = mediaSnapshot();
-    syncThemeField(media);
-    byId("environment").textContent =
-      `OS preference: ${media.prefersColorScheme}; forced colors: ${forcedLabel(media.forcedColors)}; contrast preference: ${media.prefersContrast}. Requested scheme: ${byId("scheme").value}; computed scheme: ${live.schemeSupported ? live.computedColorScheme : "unsupported"}.`;
-    renderPalette();
+byId("detect-versions").addEventListener("click", async () => {
+  clearError();
+  const button = byId("detect-versions");
+  button.disabled = true;
+  try {
+    const hints = await navigator.userAgentData.getHighEntropyValues([
+      "fullVersionList",
+      "platformVersion",
+    ]);
+    const detected = environmentFromHints(hints);
+    if (!detected.browser && !detected.os)
+      throw new Error(
+        "The browser did not disclose full versions. Enter confirmed versions manually.",
+      );
+    for (const id of ["browser", "os"])
+      if (detected[id]) byId(id).value = detected[id];
+    syncEnvironment();
+    byId("capture-result").hidden = true;
+    byId("status").textContent =
+      "Reported versions filled. Confirm them in the About screens before capturing.";
+  } catch (error) {
+    report(error);
+  } finally {
+    button.disabled = false;
   }
-  renderTables();
-}
+});
 
-function refreshWithStatus() {
+byId("capture-form").addEventListener("submit", (event) => {
+  event.preventDefault();
   clearError();
   try {
-    refresh();
-    byId("status").textContent = isTestPage
-      ? "Live values resampled. Saved captures are unchanged."
-      : `Showing ${captures.length} published captures across light, dark, and forced-color columns.`;
+    syncEnvironment();
+    const invalid = fields
+      .map(byId)
+      .find((field) => !field.disabled && !field.checkValidity());
+    if (invalid?.closest("details")) invalid.closest("details").open = true;
+    if (!byId("capture-form").reportValidity()) return;
+    const capturedAt = new Date().toISOString();
+    const capture = {
+      id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
+      capturedAt,
+      environment: {
+        browser: byId("browser").value.trim(),
+        os: byId("os").value.trim(),
+        context: byId("context").value,
+        notes: byId("notes").value.trim(),
+        userAgent: navigator.userAgent,
+        ...(byId("forced-color-theme").disabled
+          ? {}
+          : { forcedColorTheme: byId("forced-color-theme").value.trim() }),
+      },
+      media: mediaSnapshot(),
+      schemes: Object.fromEntries(
+        ["light", "dark"].map((scheme) => [
+          scheme,
+          measureScheme(scheme, "canvas"),
+        ]),
+      ),
+    };
+    const collection = {
+      ...versions,
+      exportedAt: capturedAt,
+      captures: [capture],
+    };
+    validateSubmission(collection);
+    const text = JSON.stringify(collection, null, 2);
+    const url = URL.createObjectURL(
+      new Blob([text], { type: "application/json" }),
+    );
+    if (downloadURL) URL.revokeObjectURL(downloadURL);
+    downloadURL = url;
+    byId("json").value = text;
+    byId("download").href = url;
+    byId("download").download = exportFilename([capture], capturedAt);
+    byId("capture-summary").textContent =
+      `${capture.environment.browser} / ${capture.environment.os} · ${capturedAt}`;
+    byId("capture-result").hidden = false;
+    byId("status").textContent =
+      "Captured both schemes and all 42 keywords. Your download is ready.";
+    byId("download").focus();
   } catch (error) {
     report(error);
   }
-}
+});
 
-for (const id of [
-  "deprecated",
-  ...(isTestPage ? ["scheme", "backdrop", "refresh"] : []),
-]) {
-  byId(id).addEventListener(
-    id === "refresh" ? "click" : "change",
-    refreshWithStatus,
-  );
-}
-
-if (isTestPage) {
-  matchMedia("(forced-colors: active)").addEventListener(
-    "change",
-    refreshWithStatus,
-  );
-  byId("detect-versions").addEventListener("click", async () => {
-    clearError();
-    const button = byId("detect-versions");
-    button.disabled = true;
-    try {
-      const hints = await navigator.userAgentData.getHighEntropyValues([
-        "fullVersionList",
-        "platformVersion",
-      ]);
-      const detected = environmentFromHints(hints);
-      if (!detected.browser && !detected.os)
-        throw new Error(
-          "The browser did not disclose full version details. Enter verified versions manually.",
-        );
-      for (const field of ["browser", "os"])
-        if (detected[field]) byId(field).value = detected[field];
-      byId("status").textContent =
-        "Available reported versions filled. Verify them in the About screens before capturing.";
-    } catch (error) {
-      report(error);
-    } finally {
-      button.disabled = false;
-    }
-  });
-  byId("capture-form").addEventListener("submit", (event) => {
-    event.preventDefault();
-    clearError();
-    try {
-      const media = mediaSnapshot();
-      syncThemeField(media);
-      byId("forced-color-theme").value =
-        byId("forced-color-theme").value.trim();
-      if (!byId("capture-form").reportValidity()) return;
-      const capturedAt = new Date().toISOString();
-      const capture = {
-        id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
-        capturedAt,
-        environment: {
-          browser: byId("browser").value.trim(),
-          os: byId("os").value.trim(),
-          forcedColorTheme: byId("forced-color-theme").value,
-          context: byId("context").value,
-          notes: byId("notes").value,
-          userAgent: navigator.userAgent,
-        },
-        media,
-        schemes: Object.fromEntries(
-          ["light", "dark"].map((scheme) => [
-            scheme,
-            measureScheme(scheme, byId("backdrop").value),
-          ]),
-        ),
-      };
-      validateCollection({ ...versions, captures: [capture] });
-      captures = mergeCaptures(captures, [capture]).captures;
-      byId("export-text").hidden = true;
-      renderTables();
-      byId("status").textContent =
-        "Captured both modes and all 42 keywords. Review the saved light and dark grids below; export JSON before leaving.";
-    } catch (error) {
-      report(error);
-    }
-  });
-
-  byId("export").addEventListener("click", () => {
-    clearError();
-    try {
-      const exportedAt = new Date().toISOString();
-      const text = JSON.stringify(
-        { ...versions, exportedAt, captures },
-        null,
-        2,
+byId("copy-json").addEventListener("click", async () => {
+  clearError();
+  try {
+    if (!navigator.clipboard)
+      throw new Error(
+        "Clipboard access is unavailable. Copy the JSON from the text area.",
       );
-      byId("json").value = text;
-      byId("export-text").hidden = false;
-      const url = URL.createObjectURL(
-        new Blob([text], { type: "application/json" }),
-      );
-      const link = element("a");
-      link.href = url;
-      link.download = exportFilename(captures, exportedAt);
-      document.body.append(link);
-      link.click();
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
-      byId("status").textContent =
-        "JSON prepared. Save the download or copy it from the text area.";
-    } catch (error) {
-      report(error);
-    }
-  });
-
-  byId("import").addEventListener("change", async (event) => {
-    clearError();
-    const input = event.currentTarget;
-    const files = [...input.files];
-    if (!files.length) return;
-    input.disabled = true;
-    byId("capture").disabled = true;
-    byId("export").disabled = true;
-    byId("status").textContent = "Reading capture files.";
-    try {
-      if (files.reduce((size, file) => size + file.size, 0) > 5_000_000) {
-        throw new Error("Import at most 5 MB at a time.");
-      }
-      const incoming = [];
-      for (const file of files) {
-        const collection = JSON.parse(await file.text());
-        incoming.push(...validateCollection(collection));
-      }
-      const result = mergeCaptures(captures, incoming);
-      const added = result.captures.length - captures.length;
-      captures = result.captures;
-      byId("export-text").hidden = true;
-      renderTables();
-      byId("status").textContent =
-        `Imported ${added} captures; skipped ${result.duplicates} duplicate captures.`;
-    } catch (error) {
-      report(error);
-    } finally {
-      input.disabled = false;
-      input.value = "";
-      byId("capture").disabled = false;
-      byId("export").disabled = captures.length === 0;
-    }
-  });
-}
-
-async function initialize() {
-  enhanceComparisons();
-  if (isTestPage) {
-    const detected = detectEnvironment(navigator.userAgent);
-    for (const field of ["browser", "os"])
-      if (!byId(field).value) byId(field).value = detected[field];
-    byId("detect-versions").hidden =
-      !navigator.userAgentData?.getHighEntropyValues;
+    await navigator.clipboard.writeText(byId("json").value);
+    byId("status").textContent =
+      "JSON copied. Paste it into the GitHub snapshot issue form.";
+  } catch (error) {
+    byId("export-text").open = true;
+    byId("json").focus();
+    byId("json").select();
+    report(error);
   }
-  refresh();
-  for (const id of [
-    "deprecated",
-    ...(isTestPage
-      ? ["scheme", "backdrop", "refresh", "capture", "import"]
-      : []),
-  ])
-    byId(id).disabled = false;
-  byId("status").textContent = isTestPage
-    ? "Ready. Set metadata, then capture both modes."
-    : `Loaded ${captures.length} published captures. Compare light, dark, and forced-color columns side by side.`;
+});
+window.addEventListener("pagehide", (event) => {
+  if (!event.persisted && downloadURL) URL.revokeObjectURL(downloadURL);
+});
+
+try {
+  const detected = detectEnvironment(navigator.userAgent);
+  for (const id of ["browser", "os"]) byId(id).value = detected[id] || "";
+  byId("detect-versions").hidden =
+    !navigator.userAgentData?.getHighEntropyValues;
+  syncEnvironment();
+  byId("capture").disabled = false;
+  byId("status").textContent =
+    "Ready. Confirm the details, then capture both schemes.";
+} catch (error) {
+  report(error);
 }
-initialize().catch(report);

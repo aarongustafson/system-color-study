@@ -6,13 +6,14 @@ import {
   pairResult,
   comparisonGroups,
   comparisonSections,
+  comparisonThemeName,
   compactEnvironmentLabel,
   composite,
   contrast,
+  forcedLabel,
 } from "./model.js";
 
-export const forcedLabel = (value) =>
-  value === null ? "unknown" : value ? "active" : "inactive";
+export { forcedLabel } from "./model.js";
 
 export function createComparisonRenderer(document) {
   const byId = (id) => document.getElementById(id);
@@ -162,7 +163,7 @@ export function createComparisonRenderer(document) {
     const heading = element("th");
     heading.className = "mode-heading";
     const capture = column.runs[0].capture;
-    const name = capture.environment.forcedColorTheme?.trim();
+    const name = comparisonThemeName(capture);
     const theme =
       capture.media.forcedColors === false
         ? name

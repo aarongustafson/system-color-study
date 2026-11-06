@@ -4,6 +4,8 @@ export const versions = {
   catalogVersion: 1,
 };
 export const maxCaptures = 100;
+export const forcedLabel = (value) =>
+  value === null ? "unknown" : value ? "active" : "inactive";
 
 const modern = [
   "AccentColor",
@@ -317,6 +319,43 @@ export function validateCollection(data) {
   return data.captures;
 }
 
+export function validateSubmission(data) {
+  const captures = validateCollection(data);
+  if (!captures.length)
+    throw new TypeError("The submission contains no captures.");
+  for (const capture of captures) {
+    for (const field of [
+      "browser",
+      "os",
+      "context",
+      "notes",
+      "forcedColorTheme",
+    ])
+      if (/verify/i.test(capture.environment[field] || ""))
+        throw new TypeError(
+          `Confirm ${field} and remove “verify” before submitting.`,
+        );
+    if (
+      capture.media.forcedColors === true &&
+      !capture.environment.forcedColorTheme?.trim()
+    )
+      throw new TypeError(
+        "Name the active forced-color theme before submitting.",
+      );
+  }
+  return captures;
+}
+
+export function comparisonThemeName(capture) {
+  return (
+    capture.environment.forcedColorTheme?.trim() ||
+    (capture.media.forcedColors === false &&
+    ["more", "less"].includes(capture.media.prefersContrast)
+      ? `${capture.media.prefersContrast} contrast`
+      : undefined)
+  );
+}
+
 export function mergeCaptures(existing, incoming) {
   const byId = new Map(existing.map((capture) => [capture.id, capture]));
   let duplicates = 0;
@@ -413,7 +452,7 @@ export function comparisonSections(captures) {
     for (const column of group.columns) {
       const capture = column.runs[0].capture;
       const forced = capture.media.forcedColors;
-      const name = capture.environment.forcedColorTheme?.trim();
+      const name = comparisonThemeName(capture);
       const mode = column.schemes[0] === "light" ? "Light" : "Dark";
       const theme =
         forced === true

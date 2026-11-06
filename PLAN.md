@@ -79,23 +79,24 @@ an actual installed context and suitable HTTPS hosting/installation setup.
    accent/contrast settings, display color settings, and flags in Notes.
    Avoid personal information.
 4. Open the page in the target context. Check for visible startup errors.
-5. Confirm the reported OS preference and forced-colors state. Resample after
+5. Confirm the reported OS preference and forced-colors state. Capture after
    changing settings; capture again rather than relabeling old data.
-6. Capture both modes on Canvas; inspect the live grid for unsupported colors
-   and unexpected transparency.
-7. Repeat on white/black where alpha could affect contrast.
-8. Export JSON immediately. Keep the original export immutable.
+6. Confirm all browser/OS estimates and remove “verify” placeholders. Capture
+   both modes on Canvas; inspect the JSON for unsupported colors and alpha.
+7. The capture page fixes the backdrop to resolved Canvas. Use the raw RGBA and
+   compositing model for other-surface experiments rather than relabeling captures.
+8. Download JSON immediately. Keep the original export immutable.
 9. Where a finding is surprising, reload and repeat under the same settings.
    Preserve both timestamps. Save a screenshot as corroboration, not as the
    numeric color measurement.
-10. Import runs into the test page’s local comparison. Use the mode selector to compare
-    equivalent requested schemes and read context/backdrop labels.
+10. Submit one reviewed snapshot through the GitHub issue form. Compare the
+    resulting published columns under equivalent settings after review.
 
 Settings can change while a capture runs. Don’t change them mid-capture.
 The tool performs bounded synchronous measurements in isolated scheme probes;
 both modes share one environment snapshot, not two separately verified OS states.
-The capture review displays both saved modes together. The live display selector
-doesn’t determine which modes are captured.
+The download includes both saved modes. No display selector determines which
+modes are captured.
 
 Browser/OS prefills are unverified browser reports. Confirm About-screen versions
 before submitting; optional full-version hints are requested only by an explicit
@@ -139,15 +140,15 @@ is missing. For local recording, pass `--forced-color-theme "Actual theme name"`
 Before collecting a wider dataset:
 
 1. Run unit and browser tests.
-2. Check keyboard operation, visible errors, copy/download fallback, imports,
+2. Check keyboard operation, visible errors, metadata validation, copy/download fallback,
    horizontal table scrolling, and 200% zoom.
 3. Verify an unsupported-keyword fixture produces N/A rather than an inherited
-   default; check a deliberately malformed import leaves the collection intact.
+   default; check malformed issue data cannot open a pull request.
 4. Check black/white yields 21:1 and boundary tests use unrounded ratios.
 5. Inspect translucent examples on different backdrops.
-6. Confirm table headers and contrast row spans remain correct with several
-   captures and both display modes.
-7. Test a real phone export/import workflow, including access to downloaded files.
+6. Confirm native table headers and single-row pairs remain correct with several
+   published captures and both display modes.
+7. Test a real phone download/copy/issue workflow, including access to saved files.
 
 Automated accessibility checks and calculated ratios don’t prove the entire
 tool or a component conforms. Screen-reader review and actual OS contrast-theme
@@ -169,7 +170,7 @@ These are example names, not pre-filled results. Keep protocol source, browser
 and OS notes, and optional screenshots with the exports. Exports are the durable
 data; there is no backend or implicit browser database.
 
-For longitudinal comparisons, import old and new captures together. Preserve
+For longitudinal comparisons, build old and new captures together. Preserve
 versions, dates, native preference, context, and backdrop. Compare equivalent
 conditions before attributing a difference to a browser update. Repeat anomalous
 results; separate platform behavior from measurement/conversion changes.

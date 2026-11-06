@@ -43,6 +43,20 @@ test("comparison sections group OS major releases, then themes, then browser ide
   assert.deepEqual([safari, chrome], original);
 });
 
+test("recorded contrast preferences retain separate themes without an authored forced-palette name", () => {
+  const capture = fixture("more");
+  capture.media.prefersContrast = "more";
+  const sections = comparisonSections([capture]);
+  assert.deepEqual(
+    sections[0].themes.map((t) => t.name),
+    [
+      "more contrast (forced colors inactive) · Light",
+      "more contrast (forced colors inactive) · Dark",
+    ],
+  );
+  assert.equal(capture.environment.forcedColorTheme, undefined);
+});
+
 test("confirmed device batch uses Windows 11, one Chrome identifier, and unprefixed headed engine names", async () => {
   const directory = new URL("../data/", import.meta.url);
   const paths = (await readdir(directory, { recursive: true })).filter((path) =>

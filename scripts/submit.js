@@ -4,22 +4,21 @@ import { createHash, randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
-import { validateCollection, mergeCaptures } from "../model.js";
+import { validateSubmission, mergeCaptures } from "../model.js";
 import { exportFilename } from "../environment.js";
 
 const repository = "aarongustafson/system-color-study";
 const endpoint = `repos/${repository}`;
 
-function githubAPI(path, method, input) {
+export function githubAPI(path, method, input) {
   const args = ["api", "--hostname", "github.com", path, "--method", method];
   if (input) args.push("--input", "-");
-  return JSON.parse(
-    execFileSync("gh", args, {
-      encoding: "utf8",
-      input: input ? JSON.stringify(input) : undefined,
-      maxBuffer: 5_000_000,
-    }),
-  );
+  const response = execFileSync("gh", args, {
+    encoding: "utf8",
+    input: input ? JSON.stringify(input) : undefined,
+    maxBuffer: 5_000_000,
+  });
+  return response ? JSON.parse(response) : null;
 }
 
 export async function submitCapture(
@@ -32,7 +31,7 @@ export async function submitCapture(
   if (source.length > 5_000_000) throw new Error("Submit at most 5 MB.");
   const captures = mergeCaptures(
     [],
-    validateCollection(JSON.parse(source.toString("utf8"))),
+    validateSubmission(JSON.parse(source.toString("utf8"))),
   ).captures;
   if (!captures.length) throw new Error("The submission contains no captures.");
   const timestamp = captures
@@ -50,7 +49,7 @@ export async function submitCapture(
   const repo = await api(endpoint, "GET");
   if (!repo.permissions?.push)
     throw new Error(
-      "This command needs repository write access. Use the test page's GitHub upload link to propose results from a fork.",
+      "This command needs repository write access. Use the test page's snapshot issue form to contribute data.",
     );
   const base = await api(`${endpoint}/git/ref/heads/main`, "GET");
   const branch = `data/capture-${randomUUID()}`;

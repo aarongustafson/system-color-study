@@ -81,6 +81,20 @@ test("invalid or empty data is rejected before contacting GitHub", async (t) => 
   }
 });
 
+test("unconfirmed metadata is rejected before any submission request", async (t) => {
+  for (const field of ["browser", "os", "notes", "forcedColorTheme"]) {
+    const capture = fixture("unconfirmed");
+    capture.environment[field] = "Reported value; VERIFY";
+    const path = await setup(t, { ...versions, captures: [capture] });
+    await assert.rejects(
+      submitCapture(path, {
+        api: () => assert.fail("Unconfirmed data sent to GitHub"),
+      }),
+      /verify/i,
+    );
+  }
+});
+
 test("a failed upload reports its created branch instead of claiming a PR exists", async (t) => {
   const path = await setup(t);
   await assert.rejects(
