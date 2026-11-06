@@ -4,3 +4,4 @@ playwright-report/
 captures/
 dist/
 .submission/
+.DS_Store
