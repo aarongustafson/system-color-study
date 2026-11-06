@@ -58,7 +58,16 @@ export async function startPreview() {
 export async function captureLocal({
   output = join(root, "captures", "playwright-local"),
   headless = false,
+  forcedColorTheme = "",
 } = {}) {
+  if (
+    typeof forcedColorTheme !== "string" ||
+    forcedColorTheme.trim().length > 160
+  )
+    throw new TypeError(
+      "The forced-color theme name must be a string of at most 160 characters.",
+    );
+  forcedColorTheme = forcedColorTheme.trim();
   const os =
     process.platform === "darwin"
       ? `macOS ${execFileSync("sw_vers", ["-productVersion"], { encoding: "utf8" }).trim()} ${arch()}`
@@ -100,10 +109,21 @@ export async function captureLocal({
           .getByLabel("Browser and version")
           .fill(`Playwright ${name} ${browser.version()}`);
         await page.getByLabel("OS and version").fill(os);
+        const theme = page.getByLabel("Forced-color theme name", {
+          exact: true,
+        });
+        if (
+          (await theme.getAttribute("required")) !== null &&
+          !forcedColorTheme
+        )
+          throw new Error(
+            `${name} reports active forced colors. Rerun with --forced-color-theme followed by the actual theme name.`,
+          );
+        if (forcedColorTheme) await theme.fill(forcedColorTheme);
         await page
           .getByLabel("Notes:")
           .fill(
-            `Automated local observation using Playwright ${version}, ${headless ? "headless" : "headed"} bundled ${name}; media emulation disabled. Source ${revision}${dirty ? " (working tree modified)" : ""}. Not an installed Chrome/Firefox/Safari release; verify separately in shipping browsers. OS version obtained from ${process.platform === "darwin" ? "sw_vers" : "the host kernel"}, architecture from Node. OS accent and contrast-theme names were not manually verified.`,
+            `Automated local observation using Playwright ${version}, ${headless ? "headless" : "headed"} bundled ${name}; media emulation disabled. Source ${revision}${dirty ? " (working tree modified)" : ""}. Not an installed Chrome/Firefox/Safari release; verify separately in shipping browsers. OS version obtained from ${process.platform === "darwin" ? "sw_vers" : "the host kernel"}, architecture from Node. OS accent was not independently verified; any supplied contrast-theme name is author-reported.`,
           );
         await page
           .getByRole("button", { name: "Capture light and dark" })
@@ -134,10 +154,12 @@ if (
     options: {
       output: { type: "string" },
       headless: { type: "boolean", default: false },
+      "forced-color-theme": { type: "string" },
     },
   });
   await captureLocal({
     output: values.output ? resolve(values.output) : undefined,
     headless: values.headless,
+    forcedColorTheme: values["forced-color-theme"],
   });
 }

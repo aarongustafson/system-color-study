@@ -258,6 +258,14 @@ export function validateCollection(data) {
     ) {
       throw new TypeError("Invalid capture media values.");
     }
+    if (capture.environment.forcedColorTheme !== undefined) {
+      text(
+        capture.environment.forcedColorTheme,
+        160,
+        "Invalid forced-color theme name.",
+        true,
+      );
+    }
     record(capture.schemes, "Invalid capture schemes.");
     for (const scheme of ["light", "dark"]) {
       const snapshot = capture.schemes[scheme];

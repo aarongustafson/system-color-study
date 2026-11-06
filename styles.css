@@ -165,6 +165,59 @@ th {
 td p {
   margin-block: 0.25rem;
 }
+.capture-heading {
+  overflow-wrap: anywhere;
+}
+.capture-heading > p {
+  margin-block: 0.25rem;
+}
+.capture-heading details {
+  margin-block-start: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: normal;
+}
+.capture-heading summary {
+  cursor: pointer;
+}
+.contrast-result {
+  padding: 0.75rem;
+}
+.contrast-result p {
+  margin-block: 0.25rem;
+}
+.contrast-result > p:first-child {
+  margin-block-end: 0.75rem;
+}
+.contrast-result[data-verdict="pass"] {
+  color: #123a20;
+  background-color: #e6f4ea;
+  color: light-dark(#123a20, #c7efd5);
+  background-color: light-dark(#e6f4ea, #173522);
+}
+.contrast-result[data-verdict="mixed"] {
+  color: #513c00;
+  background-color: #fff2cc;
+  color: light-dark(#513c00, #ffe6a3);
+  background-color: light-dark(#fff2cc, #403318);
+}
+.contrast-result[data-verdict="fail"] {
+  color: #621b1b;
+  background-color: #fde8e8;
+  color: light-dark(#621b1b, #ffd6d6);
+  background-color: light-dark(#fde8e8, #432124);
+}
+.contrast-result[data-verdict="unavailable"] {
+  color: #25323a;
+  background-color: #eceff1;
+  color: light-dark(#25323a, #e1e7ed);
+  background-color: light-dark(#eceff1, #28313a);
+}
+@media (forced-colors: active) {
+  .contrast-result[data-verdict] {
+    color: CanvasText;
+    background-color: Canvas;
+  }
+}
 .table-swatch {
   position: relative;
   display: inline-block;

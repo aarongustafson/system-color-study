@@ -108,6 +108,10 @@ Confirm `forced-colors: active` instead of inferring it from a theme’s appeara
 Record the named or customized palette, collect an off-theme baseline, and keep
 Edge/Chrome/Firefox runs separate. Light/dark requests can legitimately collapse
 to one forced palette.
+Use the dedicated `environment.forcedColorTheme` field for the author-reported
+name; keep customized palette details in Notes. Older files may lack a name.
+Don’t turn an active or unknown media state into “none” just because that name
+is missing. For local recording, pass `--forced-color-theme "Actual theme name"`.
 
 ## Measurement controls
 

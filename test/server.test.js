@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { startPreview } from "../scripts/capture-local.js";
+import { startPreview, captureLocal } from "../scripts/capture-local.js";
 
 test(
   "local capture uses an ephemeral loopback server without exposing repository files or accepting uploads",
@@ -19,3 +19,9 @@ test(
     assert.equal((await fetch(server.url + "%zz")).status, 400);
   },
 );
+
+test("the recorder rejects invalid theme labels before starting browsers", async () => {
+  for (const forcedColorTheme of [42, "x".repeat(161)]) {
+    await assert.rejects(captureLocal({ forcedColorTheme }), /theme name.*160/);
+  }
+});

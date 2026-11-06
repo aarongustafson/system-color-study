@@ -34,6 +34,20 @@ your firewall if needed. This exposes only the server’s explicit public-file
 allowlist, not your workspace or capture files. Stop the server afterward.
 `PORT` can override the default; the automated browser tests use port 4189.
 
+## What is automatic?
+
+The test page resolves colors automatically for its live preview on load. You
+don’t need to configure a measurement first. **Capture light and dark** reruns
+every keyword in both requested schemes and saves a dated snapshot with your
+reviewed metadata. It doesn’t upload or automatically save files.
+
+The default contrast backdrop is each mode’s opaque `Canvas`. Only choose
+white or black in **Optional: change the contrast backdrop** when testing other
+surfaces. Translucent colors need a known background for compositing; opaque
+pairs have the same ratio on any known opaque backdrop. This changes contrast
+calculations, not the raw resolved colors. Existing captures never change when
+you adjust live settings.
+
 ## Gather a capture
 
 1. Read [the protocol](./PLAN.md), including the environment and privacy checks.
@@ -44,10 +58,12 @@ allowlist, not your workspace or capture files. Stop the server afterward.
    additional browser-provided version details. These are still reports, not
    proof of the installed versions; Windows platform versions aren’t Windows
    release names. All fields remain editable.
-   Record relevant device, accent, contrast-theme, and experimental settings
-   in Notes. Don’t include personal information.
-3. Choose a backdrop: the mode’s resolved opaque `Canvas`, white, or black.
-   The displayed mode affects the live grid and comparison tables.
+   Record relevant device, accent, and experimental settings in Notes.
+   When forced colors are active, enter the actual name in **Forced-color theme
+   name**. Don’t include personal information.
+3. Keep the default Canvas backdrop unless you’re testing another surface.
+   The displayed mode affects the live grid and comparison tables, not which
+   modes are captured.
 4. Select **Capture light and dark**. One capture contains both requested CSS
    modes and all 42 keywords, even when deprecated keywords aren’t displayed.
    The **Latest capture: both modes** section shows both saved grids side by
@@ -80,9 +96,19 @@ aliases and privacy-preserving fixed colors are legitimate findings.
 
 **Color pairs** has two rows per pair—background and foreground—with two columns
 per capture: values and a contrast result spanning both rows. Switch the display
-mode to compare the other requested scheme. Column labels preserve time,
-browser/system, context, and backdrop; captures are never collapsed merely
-because those browser/system labels match.
+mode to compare the other requested scheme. Compact headers show browser, OS,
+and forced-color theme. Each numbered **Run details** disclosure preserves time,
+context, backdrop, native preferences, Notes, and supporting user-agent data.
+It works with the keyboard; captures are never collapsed merely because their
+browser/system labels match.
+
+Contrast cells show a bold ratio followed by five separate, labeled pass/fail
+lines. Green means all five thresholds pass; amber means some pass; red means
+none pass; neutral means unavailable. Amber can include normal-AA passes that
+don’t meet AAA. The same layout appears in live and captured pair cards.
+These fills are UI indicators, not recorded system colors. Text conveys every
+verdict without color, light/dark palettes keep the labels readable, and forced
+colors use the visitor’s own palette instead.
 
 The current catalog has 19 modern keywords, 23 deprecated keywords, 10 modern
 pairs, and five historical pairs. Deprecated results are research data, not a
@@ -97,7 +123,8 @@ Yes: run the page in the actual Windows browser you want to measure.
    a theme, and apply it. Windows 10 calls this High contrast under Ease of Access.
 2. Return to the page and select **Resample current mode**, or reload.
    Confirm the environment line reports **forced colors: active**.
-3. Enter the theme’s name and any customized palette settings in Notes.
+3. Enter the theme’s name in **Forced-color theme name** and any customized
+   palette settings in Notes.
 4. Capture both modes and export. Repeat for each theme, then capture with
    Contrast themes off for a baseline.
 
@@ -105,6 +132,16 @@ The capture’s `media.forcedColors` records what the browser actually reports.
 Both requested CSS schemes may resolve to the same forced palette; keep that
 result rather than trying to force them apart. The page cannot turn Windows
 Contrast themes on or off for you.
+
+The name field is required for new captures when `forced-colors` is active.
+Leave it blank when no OS theme is selected. With an inactive browser report,
+that displays **No forced colors**. A missing name
+in a legacy active capture displays **Forced colors (unnamed)**; an unknown
+browser state stays **Forced colors unknown**. A missing label never overrides
+the recorded media state. If an OS theme is selected but the browser reports
+inactive/unknown forced colors, keep the name: the header shows both facts.
+Names are author-reported; there’s no browser API for discovering the actual
+Windows theme name.
 
 Reference swatches bypass automatic paint adjustment so they can show the
 recorded system tokens over the specified backdrop. System keywords still
@@ -202,7 +239,13 @@ Optional arguments:
 ```sh
 npm run capture:local -- --output /path/to/review-directory
 npm run capture:local -- --headless
+npm run capture:local -- --forced-color-theme "Aquatic"
 ```
+
+Supply the actual theme name when recording with forced colors active. The
+recorder fails explicitly if an engine reports active forced colors without a
+name, rather than hanging on the required field. An author-supplied OS theme name
+never overrides an engine’s inactive or unknown media report.
 
 Headed is the default. Headless results are labeled separately; don’t present
 them as normal interactive-browser observations. Likewise, bundled WebKit is
@@ -279,6 +322,11 @@ Exports contain `schemaVersion`, `protocolVersion`, `catalogVersion`,
 Each capture has:
 
 - A unique `id`, UTC `capturedAt`, and editable browser/system `environment`.
+- Optional `environment.forcedColorTheme`, a string of at most 160 characters.
+  New captures include it; an empty value represents no named theme. Legacy
+  files can omit it. Names never override `media.forcedColors`; inactive and
+  unknown states remain explicit even when a name is supplied. This field is compatible
+  with existing version-1 collections and doesn’t change the measurement method.
 - The user agent as supporting evidence. Additional client-hint version details
   are requested only after selecting **Fill available full versions**, never
   automatically. No details are uploaded by detection or capture.
