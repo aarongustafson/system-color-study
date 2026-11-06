@@ -1,6 +1,12 @@
 import { test, expect } from "@playwright/test";
 import { fixture } from "./fixtures.js";
-import { versions, hex, contrast, comparisonGroups } from "../model.js";
+import {
+  versions,
+  hex,
+  contrast,
+  comparisonSections,
+  composite,
+} from "../model.js";
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/published.json", (route) =>
@@ -26,6 +32,196 @@ async function publish(page, captures) {
   );
   await page.goto("./");
 }
+
+test("the header hierarchy sticks as a group during vertical scrolling only when body space remains", async ({
+  page,
+}) => {
+  const normal = fixture("sticky-head");
+  const forced = fixture("sticky-forced-head");
+  forced.environment.os = "Windows 11";
+  forced.media.forcedColors = true;
+  forced.environment.forcedColorTheme = "Aquatic";
+  await publish(page, [normal, forced]);
+  await page.setViewportSize({ width: 1400, height: 900 });
+  for (const direction of ["ltr", "rtl"]) {
+    await page.evaluate((value) => {
+      document.documentElement.dir = value;
+    }, direction);
+    for (const table of await page.locator("table").all()) {
+      const region = table.locator(".."),
+        head = table.locator("thead");
+      await expect(head).toHaveCSS("position", "sticky");
+      await region.evaluate((node) => {
+        node.scrollTop = 0;
+      });
+      await region.focus();
+      await page.keyboard.press("ArrowDown");
+      await expect
+        .poll(() => region.evaluate((node) => node.scrollTop))
+        .toBeGreaterThan(0);
+      await region.evaluate((node) => {
+        node.scrollTop = node.scrollHeight;
+      });
+      const area = await region.boundingBox(),
+        header = await head.boundingBox();
+      expect(Math.abs(header.y - area.y)).toBeLessThanOrEqual(2);
+    }
+  }
+  await page.setViewportSize({ width: 320, height: 240 });
+  for (const table of await page.locator("table").all()) {
+    const region = table.locator(".."),
+      head = table.locator("thead");
+    await expect(head).toHaveCSS("position", "static");
+    await region.evaluate((node) => {
+      node.scrollTop = node.scrollHeight;
+    });
+    const area = await region.boundingBox(),
+      header = await head.boundingBox();
+    expect(header.y + header.height).toBeLessThanOrEqual(area.y + 2);
+  }
+});
+
+test("OS and theme headers put browsers side by side and identify every data column", async ({
+  page,
+}) => {
+  const zeta = fixture("hierarchy-z");
+  zeta.environment.os = "iPadOS 26.5.0";
+  zeta.environment.browser = "Zeta 99.1";
+  zeta.environment.context = "webview";
+  const alpha = fixture("hierarchy-a");
+  alpha.environment.os = "iPadOS 26.5";
+  alpha.environment.browser = "Alpha 12.0";
+  const other = fixture("hierarchy-other");
+  other.environment.os = "macOS 27.0.1 arm64";
+  other.environment.browser = "Other 7.2";
+  await publish(page, [zeta, other, alpha]);
+  for (const id of ["individual-table", "pair-table"]) {
+    await expect(page.locator(`#${id} .os-heading`)).toHaveText([
+      "iPadOS 26",
+      "macOS 27",
+    ]);
+    await expect(page.locator(`#${id} .theme-heading`)).toHaveText([
+      "Light",
+      "Dark",
+      "Light",
+      "Dark",
+    ]);
+    await expect(page.locator(`#${id} .capture-browser`)).toHaveText([
+      "Alpha 12",
+      "Zeta 99",
+      "Alpha 12",
+      "Zeta 99",
+      "Other 7",
+      "Other 7",
+    ]);
+  }
+  const associations = await page
+    .locator("#individual-table tbody td")
+    .first()
+    .evaluate((cell) =>
+      cell
+        .getAttribute("headers")
+        .split(" ")
+        .map((id) => document.getElementById(id).textContent),
+    );
+  expect(associations[0]).toBe("AccentColor");
+  expect(associations[1]).toBe("iPadOS 26");
+  expect(associations[2]).toBe("Light");
+  expect(associations[3]).toContain("Alpha 12");
+});
+
+test("color cells fill their backgrounds with readable raw hex, handle alpha, and stay unchanged on hover", async ({
+  page,
+  browserName,
+}) => {
+  const capture = fixture("color-backgrounds");
+  for (const [name, rgba] of [
+    ["Canvas", [255, 255, 255, 255]],
+    ["Field", [119, 119, 119, 255]],
+    ["SelectedItem", [51, 181, 229, 102]],
+  ])
+    capture.schemes.light.colors[name] = {
+      supported: true,
+      rgba,
+      hex: hex(rgba),
+      computed: `rgba(${rgba.slice(0, 3).join(", ")}, ${rgba[3] / 255})`,
+      conversion: "rgb-serialization",
+    };
+  await publish(page, [capture]);
+  const cell = (name) =>
+    page
+      .locator("#individual-table tbody tr")
+      .filter({
+        has: page.getByRole("rowheader", { name, exact: true }),
+      })
+      .locator("td")
+      .first();
+  await expect(page.locator(".table-swatch")).toHaveCount(0);
+  for (const name of ["Canvas", "Field", "SelectedItem", "ButtonFace"]) {
+    const target = cell(name);
+    await expect(target.locator("code")).toHaveText(
+      capture.schemes.light.colors[name].hex,
+    );
+    const styles = await target.evaluate((node) => ({
+      color: getComputedStyle(node).color,
+      background: getComputedStyle(node).backgroundColor,
+    }));
+    const channels = (value) => value.match(/\d+/g).map(Number);
+    expect(
+      contrast(channels(styles.color), channels(styles.background)),
+    ).toBeGreaterThanOrEqual(4.5);
+    await target.hover();
+    expect(
+      await target.evaluate((node) => ({
+        color: getComputedStyle(node).color,
+        background: getComputedStyle(node).backgroundColor,
+      })),
+    ).toEqual(styles);
+  }
+  await expect(cell("SelectedItem")).toHaveCSS(
+    "background-color",
+    `rgb(${composite([51, 181, 229, 102], [255, 255, 255]).map(Math.round).join(", ")})`,
+  );
+  await expect(
+    page.locator("table .is-hover-row, table .is-hover-column"),
+  ).toHaveCount(0);
+  if (browserName === "chromium") {
+    await page.emulateMedia({ forcedColors: "active" });
+    await expect(cell("Field")).toHaveCSS(
+      "background-color",
+      "rgb(119, 119, 119)",
+    );
+  }
+});
+
+test("a translucent color with no recorded opaque backdrop keeps its hex without inventing a preview", async ({
+  page,
+}) => {
+  const capture = fixture("unknown-alpha");
+  for (const snapshot of Object.values(capture.schemes)) {
+    snapshot.backdrop = "canvas";
+    snapshot.colors.Canvas = {
+      supported: false,
+      computed: null,
+      rgba: null,
+      hex: null,
+    };
+    snapshot.colors.Highlight = {
+      supported: true,
+      computed: "rgba(51, 181, 229, 0.4)",
+      rgba: [51, 181, 229, 102],
+      hex: "#33b5e566",
+      conversion: "rgb-serialization",
+    };
+  }
+  await publish(page, [capture]);
+  const row = page.locator("#individual-table tbody tr").filter({
+    has: page.getByRole("rowheader", { name: "Highlight", exact: true }),
+  });
+  await expect(row.locator("td").first()).toContainText("#33b5e566");
+  await expect(row.locator("td").first()).toContainText("Preview unavailable");
+  await expect(row.locator("td.color-value")).toHaveCount(0);
+});
 
 test("sticky keyword headers preserve native associations and keyboard-visible controls while tables scroll", async ({
   page,
@@ -87,7 +283,10 @@ test("sticky keyword headers preserve native associations and keyboard-visible c
             ),
           ),
         ).toBe(true);
-        if (width === 320) {
+        if (
+          width === 320 &&
+          (await region.evaluate((node) => node.scrollWidth > node.clientWidth))
+        ) {
           await region.evaluate((node) => {
             node.scrollLeft = 0;
           });
@@ -123,12 +322,8 @@ for (const fallback of [false, true]) {
     forced.media.forcedColors = true;
     forced.environment.forcedColorTheme = "Aquatic";
     await publish(page, [normal, forced]);
-    const buttons = [
-      page.locator("#individual-table .details-button"),
-      page.locator("#pair-table .details-button"),
-      page.locator("#forced-individual-table .details-button"),
-      page.locator("#forced-pair-table .details-button"),
-    ];
+    const buttons = await page.locator("table .details-button").all();
+    expect(buttons).toHaveLength(6);
     const target = await buttons[0].getAttribute("commandfor");
     await expect(page.locator("#capture-dialogs dialog")).toHaveCount(1);
     for (const button of buttons) {
@@ -231,38 +426,6 @@ test("forced tables organize theme, browser, and mode without leaking into ordin
   ).toBe(true);
 });
 
-test("row and column hover respects contrast row spans and leaves verdict colors unchanged", async ({
-  page,
-}) => {
-  await publish(page, [fixture("hover")]);
-  const rows = page.locator("#pair-table tbody tr");
-  const verdict = rows.nth(0).locator("td.contrast-result").first();
-  const colors = await verdict.evaluate((node) => [
-    getComputedStyle(node).color,
-    getComputedStyle(node).backgroundColor,
-  ]);
-  await rows.nth(1).locator("td").first().hover();
-  await expect(verdict).toHaveClass(/is-hover-row/);
-  await expect(rows.nth(2).locator("td").first()).toHaveClass(
-    /is-hover-column/,
-  );
-  await expect(rows.nth(2).locator("td").first()).not.toHaveClass(
-    /is-hover-row/,
-  );
-  expect(
-    await verdict.evaluate((node) => [
-      getComputedStyle(node).color,
-      getComputedStyle(node).backgroundColor,
-    ]),
-  ).toEqual(colors);
-  await page
-    .getByRole("heading", { name: "System color study results", exact: true })
-    .hover();
-  await expect(
-    page.locator("table .is-hover-row, table .is-hover-column"),
-  ).toHaveCount(0);
-});
-
 test("comparison tables group environments, show both modes, and retain split forced palettes and repeat provenance", async ({
   page,
 }) => {
@@ -305,7 +468,7 @@ test("comparison tables group environments, show both modes, and retain split fo
   await page.goto("./");
   await expect(page.getByLabel("Display mode")).toHaveCount(0);
   await expect(page.locator("#individual-table .capture-heading")).toHaveCount(
-    1,
+    2,
   );
   for (const table of ["individual-table", "pair-table"]) {
     await expect(page.locator(`#${table} .mode-label`)).toHaveText([
@@ -333,7 +496,7 @@ test("comparison tables group environments, show both modes, and retain split fo
     .locator("td.contrast-result");
   await expect(verdicts.nth(0).locator("strong").first()).toHaveText("21.00:1");
   await expect(verdicts.nth(1).locator("strong").first()).toHaveText("1.00:1");
-  const summary = page.locator("#individual-table .details-button");
+  const summary = page.locator("#individual-table .details-button").first();
   await summary.focus();
   await page.keyboard.press("Enter");
   await expect(page.locator("#capture-dialogs dialog[open]")).toContainText(
@@ -482,12 +645,12 @@ test("compact headers keep full provenance in keyboard-accessible details and pr
   await page.goto("./");
   const headings = page.locator("#individual-table .capture-heading");
   await expect(page.locator("#individual-table .mode-label")).toHaveText([
+    "Desert (forced colors inactive) · Light",
+    "Forced colors unknown · Light",
     "Light",
     "Dark",
-    "Forced colors unknown · Light",
-    "Forced colors unknown · Dark",
-    "Desert (forced colors inactive) · Light",
     "Desert (forced colors inactive) · Dark",
+    "Forced colors unknown · Dark",
   ]);
   await expect(
     page.locator("#forced-individual-table .theme-heading"),
@@ -756,7 +919,7 @@ test("narrow screens retain keyboard operation and contained table scrolling", a
   expect(widths.body).toBeLessThanOrEqual(widths.viewport);
 });
 
-test("table swatches use each capture backdrop, not the viewing page background", async ({
+test("color cells composite over each capture backdrop, not the viewing page background", async ({
   page,
 }) => {
   await page
@@ -769,8 +932,20 @@ test("table swatches use each capture backdrop, not the viewing page background"
   const row = page.locator("#individual-table tbody tr").filter({
     has: page.getByRole("rowheader", { name: "Highlight", exact: true }),
   });
-  for (const swatch of await row.locator(".table-swatch").all())
-    await expect(swatch).toHaveCSS("background-color", "rgb(0, 0, 0)");
+  await page.getByRole("button", { name: "Export JSON" }).click();
+  const capture = JSON.parse(
+    await page.getByLabel("Exported JSON").inputValue(),
+  ).captures[0];
+  for (const [index, scheme] of ["light", "dark"].entries()) {
+    const rgb = composite(
+      capture.schemes[scheme].colors.Highlight.rgba,
+      [0, 0, 0],
+    ).map(Math.round);
+    await expect(row.locator("td").nth(index)).toHaveCSS(
+      "background-color",
+      `rgb(${rgb.join(", ")})`,
+    );
+  }
 });
 
 test("without JavaScript, instructions remain and measurement controls are disabled", async ({
@@ -909,8 +1084,11 @@ test("the built homepage renders every actual committed capture", async ({
   await expect(page.locator("#status")).toContainText(
     `Loaded ${data.captures.length} published captures`,
   );
-  const groups = comparisonGroups(
+  const sections = comparisonSections(
     data.captures.filter((capture) => capture.media.forcedColors !== true),
+  );
+  const groups = sections.flatMap((section) =>
+    section.themes.flatMap((theme) => theme.groups),
   );
   const columns = groups.reduce(
     (count, group) => count + group.columns.length,
@@ -920,8 +1098,19 @@ test("the built homepage renders every actual committed capture", async ({
     groups.length,
   );
   await expect(page.locator("#individual-table .mode-heading")).toHaveCount(
-    columns,
+    sections.reduce((count, section) => count + section.themes.length, 0),
   );
+  await expect(page.locator("#individual-table .os-heading")).toHaveText(
+    sections.map((section) => section.os),
+  );
+  const ipad = sections.find((section) => section.os === "iPadOS 26");
+  for (const theme of ipad.themes)
+    expect(theme.groups.map((group) => [group.browser, group.context])).toEqual(
+      expect.arrayContaining([
+        ["Chrome 155.0.8059.37", "webview"],
+        ["Safari 26.5", "normal"],
+      ]),
+    );
   await expect(page.locator("#pair-table tbody td[rowspan='2']")).toHaveCount(
     columns * 10,
   );

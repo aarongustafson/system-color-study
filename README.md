@@ -95,12 +95,13 @@ keyword)` returned false; inherited colors are never substituted for a rejected
 keyword. Acceptance does not prove native OS integration or a distinct value:
 aliases and privacy-preserving fixed colors are legitimate findings.
 
-Ordinary tables group observations by their exact browser, OS, and context labels.
-Visible headers show major releases without architecture; full labels remain
-in the Details dialog.
-Ordinary observations always show **Light** and **Dark** side by side, even when
-the values happen to match. Separate forced-color tables group themes, then
-browsers and modes. A forced-color observation shares one mode column,
+Table headers group **OS → theme → browser**, putting browsers beside each other
+within **Light** and **Dark**. OS headings use the major release; browser headings
+omit minor releases and architecture. Full labels remain in the Details dialog,
+and observations with different full versions or contexts stay distinct.
+Ordinary observations always retain both themes, even when their values match.
+Separate forced-color tables group OS, named theme, browser, then requested mode.
+A forced-color observation shares one mode column,
 marked **Light & Dark**, only when all 42 keyword records, backdrop settings, and
 scheme-support flags match. Otherwise, the theme has separate light and dark
 columns. The test page’s Display mode control affects only its live grid.
@@ -120,13 +121,26 @@ separate, even when the browser and theme labels match. No records are removed
 from exports or the published dataset, and different version/OS labels aren’t
 silently treated as the same environment.
 
-Pointer and keyboard focus on table controls highlight the corresponding rows
-and columns. Span-aware highlighting includes paired contrast cells, without
-changing measured swatch colors or verdict fills.
+Each color cell uses the recorded color as its background and displays the raw
+hex value in whichever of black or white provides higher contrast. Translucent
+colors are composited over the capture’s recorded opaque backdrop for the preview;
+the exported color and alpha remain unchanged. Without that backdrop, the cell
+keeps its hex value and says “Preview unavailable.” Unsupported keywords remain
+N/A. These reference cells retain their colors in forced-color mode.
+
 The native keyword/role headers stay pinned at the inline start while the other
-columns scroll. Table semantics and header associations are unchanged.
-Focus a scroll region and use Left/Right Arrow to scroll horizontally; focused
-Details buttons stay clear of the pinned column, including in right-to-left layouts.
+columns scroll. The entire header hierarchy stays pinned during vertical scrolling
+within each table’s bounded scroll region. Where `ResizeObserver` is available,
+pinning is enabled only when at least 128 CSS pixels remain for the body; otherwise,
+headers scroll normally so they don’t cover the data. Printing removes that height
+limit and pinning.
+
+These are the original table cells, not duplicated headers. Native `th`, `scope`,
+and explicit `headers` associations remain in place. Focus a scroll region and
+use the arrow keys to scroll; focused Details buttons stay clear of the pinned
+column, including in right-to-left layouts. Browser tests check these associations,
+geometry, and keyboard behavior; they don’t replace testing with a screen reader.
+Rows and columns no longer change appearance on hover or focus.
 
 Contrast cells show a bold ratio followed by five separate, labeled pass/fail
 lines. Green means all five thresholds pass; amber means some pass; red means

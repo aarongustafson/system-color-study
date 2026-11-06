@@ -8,6 +8,10 @@ import {
   validateCollection,
   mergeCaptures,
   comparisonGroups,
+  comparisonSections,
+  compactEnvironmentLabel,
+  composite,
+  contrast,
 } from "./model.js";
 import { measureScheme, mediaSnapshot } from "./sampler.js";
 import {
@@ -38,12 +42,6 @@ const label = (capture) =>
 
 const environmentKey = (group) =>
   JSON.stringify([group.browser, group.os, group.context]);
-const compactLabel = (value) => {
-  const match = value.match(
-    /^(.+?)\s+(\d+)(?:\.\d+)*(?:\s+(?:arm64|x86_64|x64|ia32|aarch64))?$/,
-  );
-  return match ? `${match[1]} ${match[2]}` : value;
-};
 
 function renderDialogs(groups) {
   const fragment = document.createDocumentFragment();
@@ -119,12 +117,20 @@ function captureHeading(group, id, dialogId, forced = false) {
     ["browser", group.browser],
     ["os", group.os],
   ]) {
-    const line = element("p", compactLabel(text));
+    const line = element("p", compactEnvironmentLabel(text));
     line.id = `${id}-${type}`;
     line.className = `capture-${type}${forced && type === "os" ? " visually-hidden" : ""}`;
     heading.append(line);
   }
-  if (group.context !== "normal") heading.append(element("p", group.context));
+  if (group.context !== "normal") {
+    const context = element("p", group.context);
+    context.id = `${id}-context`;
+    heading.append(context);
+  }
+  heading.setAttribute(
+    "aria-labelledby",
+    `${id}-browser${group.context !== "normal" ? ` ${id}-context` : ""}`,
+  );
   const button = element("button", "Details");
   button.type = "button";
   button.id = `${id}-details`;
@@ -210,18 +216,25 @@ function colorCell(color, snapshot) {
   if (!color.supported) {
     cell.textContent = "N/A";
   } else {
-    const chip = element("span");
-    chip.className = "table-swatch";
-    const backdrop = backdropRGB(snapshot);
-    if (backdrop) chip.style.backgroundColor = hex([...backdrop, 255]);
-    const fill = element("span");
-    fill.className = "table-swatch-fill";
-    fill.style.backgroundColor = color.hex;
-    chip.append(fill);
-    chip.setAttribute("aria-hidden", "true");
-    if (backdrop || color.rgba[3] === 255) cell.append(chip);
     cell.append(element("code", color.hex));
     cell.title = color.computed;
+    const backdrop = backdropRGB(snapshot);
+    if (color.rgba[3] === 255 || backdrop) {
+      const rgb = (
+        color.rgba[3] === 255
+          ? color.rgba.slice(0, 3)
+          : composite(color.rgba, backdrop)
+      ).map(Math.round);
+      cell.className = "color-value";
+      cell.style.backgroundColor = hex([...rgb, 255]);
+      cell.style.color =
+        contrast([0, 0, 0], rgb) >= contrast([255, 255, 255], rgb)
+          ? "#000000"
+          : "#ffffff";
+    } else
+      cell.append(
+        element("small", "Preview unavailable: no recorded opaque backdrop."),
+      );
   }
   return cell;
 }
@@ -321,55 +334,96 @@ function renderCapturedModes() {
   }
 }
 
-function renderComparisonTables(groups, dialogs, forced = false) {
+function renderComparisonTables(sections, dialogs, forced = false) {
   const prefix = forced ? "forced-" : "";
+  const groups = sections.flatMap((section, osIndex) =>
+    section.themes.flatMap((theme, themeIndex) =>
+      theme.groups.map((group) => ({ ...group, osIndex, themeIndex })),
+    ),
+  );
   const columns = groups.flatMap((group, groupIndex) =>
     group.columns.map((column) => ({ ...column, groupIndex })),
   );
   const themeIds = new Map();
+  const osHeadings = (multiplier, tableId) => {
+    const row = element("tr");
+    sections.forEach((section, index) => {
+      const heading = element("th", section.os);
+      heading.className = "os-heading";
+      heading.scope = "colgroup";
+      heading.id = `${tableId}-os-${index}`;
+      heading.colSpan = groups
+        .filter((group) => group.osIndex === index)
+        .reduce((sum, group) => sum + group.columns.length * multiplier, 0);
+      row.append(heading);
+    });
+    return row;
+  };
   const themeHeadings = (multiplier, tableId) => {
     const row = element("tr");
-    for (const theme of new Set(groups.map((group) => group.theme))) {
-      const heading = element("th", theme);
-      heading.className = "theme-heading";
-      heading.scope = "colgroup";
-      heading.id = `${tableId}-theme-${themeIds.size}`;
-      heading.colSpan = groups
-        .filter((group) => group.theme === theme)
-        .reduce((sum, group) => sum + group.columns.length * multiplier, 0);
-      themeIds.set(`${tableId}:${theme}`, heading.id);
-      row.append(heading);
-    }
+    sections.forEach((section, osIndex) =>
+      section.themes.forEach((theme, themeIndex) => {
+        const heading = element("th");
+        if (forced) heading.textContent = theme.name;
+        else {
+          const label = element("p", theme.name);
+          label.className = "mode-label";
+          heading.append(label);
+        }
+        heading.className = `theme-heading${forced ? "" : " mode-heading"}`;
+        heading.scope = "colgroup";
+        heading.id = `${tableId}-theme-${osIndex}-${themeIndex}`;
+        heading.colSpan = groups
+          .filter(
+            (group) =>
+              group.osIndex === osIndex && group.themeIndex === themeIndex,
+          )
+          .reduce((sum, group) => sum + group.columns.length * multiplier, 0);
+        themeIds.set(`${tableId}:${osIndex}:${themeIndex}`, heading.id);
+        row.append(heading);
+      }),
+    );
     return row;
+  };
+  const columnHeaders = (tableId, groupIndex) => {
+    const group = groups[groupIndex];
+    return `${tableId}-os-${group.osIndex} ${themeIds.get(`${tableId}:${group.osIndex}:${group.themeIndex}`)} ${tableId.replace("-table", "")}-group-${groupIndex}`;
   };
   const individual = byId(`${prefix}individual-table`);
   const heading = element("tr");
   const modes = element("tr");
   const keywordHeading = element("th", "Keyword");
   keywordHeading.scope = "col";
-  keywordHeading.rowSpan = forced ? 3 : 2;
-  const themes = forced ? themeHeadings(1, individual.id) : null;
-  (themes || heading).prepend(keywordHeading);
+  keywordHeading.rowSpan = forced ? 4 : 3;
+  const os = osHeadings(1, individual.id);
+  const themes = themeHeadings(1, individual.id);
+  os.prepend(keywordHeading);
   groups.forEach((group, index) => {
     const id = `${prefix}individual-group-${index}`;
     const th = captureHeading(
       group,
       id,
       dialogs.get(environmentKey(group)),
-      forced,
+      true,
     );
     th.scope = "colgroup";
     th.colSpan = group.columns.length;
     th.id = id;
     heading.append(th);
   });
-  columns.forEach((column, index) => {
-    const th = modeHeading(column, forced);
-    th.scope = "col";
-    th.id = `${prefix}individual-column-${index}`;
-    modes.append(th);
-  });
-  individual.tHead.replaceChildren(...(themes ? [themes] : []), heading, modes);
+  if (forced)
+    columns.forEach((column, index) => {
+      const th = modeHeading(column, forced);
+      th.scope = "col";
+      th.id = `${prefix}individual-column-${index}`;
+      modes.append(th);
+    });
+  individual.tHead.replaceChildren(
+    os,
+    themes,
+    heading,
+    ...(forced ? [modes] : []),
+  );
   const rows = document.createDocumentFragment();
   visibleKeywords().forEach(({ name }, rowIndex) => {
     const row = element("tr");
@@ -381,7 +435,7 @@ function renderComparisonTables(groups, dialogs, forced = false) {
       const cell = colorCell(snapshot.colors[name], snapshot);
       cell.setAttribute(
         "headers",
-        `${th.id} ${forced ? themeIds.get(`${individual.id}:${groups[groupIndex].theme}`) + " " : ""}${prefix}individual-group-${groupIndex} ${prefix}individual-column-${index}`,
+        `${th.id} ${columnHeaders(individual.id, groupIndex)}${forced ? ` ${prefix}individual-column-${index}` : ""}`,
       );
       row.append(cell);
     });
@@ -393,17 +447,18 @@ function renderComparisonTables(groups, dialogs, forced = false) {
   const secondHeader = element("tr");
   const thirdHeader = element("tr");
   const first = element("th", "Keyword and role");
-  first.rowSpan = forced ? 4 : 3;
+  first.rowSpan = forced ? 5 : 4;
   first.scope = "col";
-  const pairThemes = forced ? themeHeadings(2, table.id) : null;
-  (pairThemes || firstHeader).prepend(first);
+  const pairOS = osHeadings(2, table.id);
+  const pairThemes = themeHeadings(2, table.id);
+  pairOS.prepend(first);
   groups.forEach((group, index) => {
     const id = `${prefix}pair-group-${index}`;
     const column = captureHeading(
       group,
       id,
       dialogs.get(environmentKey(group)),
-      forced,
+      true,
     );
     column.colSpan = group.columns.length * 2;
     column.scope = "colgroup";
@@ -427,9 +482,10 @@ function renderComparisonTables(groups, dialogs, forced = false) {
     }
   });
   table.tHead.replaceChildren(
-    ...(pairThemes ? [pairThemes] : []),
+    pairOS,
+    pairThemes,
     firstHeader,
-    secondHeader,
+    ...(forced ? [secondHeader] : []),
     thirdHeader,
   );
   const pairRows = document.createDocumentFragment();
@@ -451,7 +507,7 @@ function renderComparisonTables(groups, dialogs, forced = false) {
         const cell = colorCell(snapshot.colors[name], snapshot);
         cell.setAttribute(
           "headers",
-          `${header.id} ${forced ? themeIds.get(`${table.id}:${groups[groupIndex].theme}`) + " " : ""}${prefix}pair-group-${groupIndex} ${prefix}pair-column-${index} ${prefix}color-column-${index}`,
+          `${header.id} ${columnHeaders(table.id, groupIndex)}${forced ? ` ${prefix}pair-column-${index}` : ""} ${prefix}color-column-${index}`,
         );
         row.append(cell);
       }
@@ -460,7 +516,7 @@ function renderComparisonTables(groups, dialogs, forced = false) {
       cell.rowSpan = 2;
       cell.setAttribute(
         "headers",
-        `${bg.id} ${fg.id} ${forced ? themeIds.get(`${table.id}:${groups[groupIndex].theme}`) + " " : ""}${prefix}pair-group-${groupIndex} ${prefix}pair-column-${index} ${prefix}contrast-column-${index}`,
+        `${bg.id} ${fg.id} ${columnHeaders(table.id, groupIndex)}${forced ? ` ${prefix}pair-column-${index}` : ""} ${prefix}contrast-column-${index}`,
       );
       renderVerdict(cell, result);
       background.append(cell);
@@ -469,8 +525,6 @@ function renderComparisonTables(groups, dialogs, forced = false) {
   });
   table.tBodies[0].replaceChildren(pairRows);
   individual.hidden = table.hidden = columns.length === 0;
-  prepareHover(individual);
-  prepareHover(table);
 }
 
 function renderTables() {
@@ -479,7 +533,7 @@ function renderTables() {
     return;
   const dialogs = renderDialogs(comparisonGroups(captures));
   renderComparisonTables(
-    comparisonGroups(
+    comparisonSections(
       captures.filter((capture) => capture.media.forcedColors !== true),
     ),
     dialogs,
@@ -487,29 +541,7 @@ function renderTables() {
   const forced = captures.filter(
     (capture) => capture.media.forcedColors === true,
   );
-  const themes = [
-    ...new Set(
-      forced.map(
-        (capture) =>
-          capture.environment.forcedColorTheme?.trim() || "Unnamed theme",
-      ),
-    ),
-  ].sort((a, b) => a.localeCompare(b));
-  const forcedGroups = themes.flatMap((theme) =>
-    comparisonGroups(
-      forced.filter(
-        (capture) =>
-          (capture.environment.forcedColorTheme?.trim() || "Unnamed theme") ===
-          theme,
-      ),
-    )
-      .sort(
-        (a, b) =>
-          a.browser.localeCompare(b.browser) || a.os.localeCompare(b.os),
-      )
-      .map((group) => ({ ...group, theme })),
-  );
-  renderComparisonTables(forcedGroups, dialogs, true);
+  renderComparisonTables(comparisonSections(forced), dialogs, true);
   byId("forced-section").hidden = forced.length === 0;
   byId("forced-heading").textContent =
     forced.length &&
@@ -549,72 +581,25 @@ function syncThemeField(media) {
   byId("forced-color-theme").required = media.forcedColors === true;
 }
 
-const hoverTables = new WeakMap();
-function prepareHover(table) {
-  const grid = [],
-    rows = new Map(),
-    columns = new Map(),
-    cells = new Map();
-  const add = (map, index, cell) => {
-    if (!map.has(index)) map.set(index, new Set());
-    map.get(index).add(cell);
-  };
-  [...table.rows].forEach((row, y) => {
-    let x = 0;
-    for (const cell of row.cells) {
-      while (grid[y]?.[x]) x++;
-      const bounds = {
-        top: y,
-        bottom: y + cell.rowSpan - 1,
-        left: x,
-        right: x + cell.colSpan - 1,
-      };
-      cells.set(cell, bounds);
-      for (let r = bounds.top; r <= bounds.bottom; r++) {
-        grid[r] ||= [];
-        add(rows, r, cell);
-        for (let c = bounds.left; c <= bounds.right; c++) grid[r][c] = cell;
-      }
-      for (let c = bounds.left; c <= bounds.right; c++) add(columns, c, cell);
-      x += cell.colSpan;
-    }
-  });
-  hoverTables.set(table, {
-    rows,
-    columns,
-    cells,
-    rowActive: new Set(),
-    columnActive: new Set(),
-    target: null,
-  });
-}
-
-function highlight(table, cell) {
-  const state = hoverTables.get(table);
-  if (!state || state.target === cell) return;
-  state.target = cell;
-  const bounds = state.cells.get(cell);
-  const nextRows = new Set(),
-    nextColumns = new Set();
-  if (bounds) {
-    for (let r = bounds.top; r <= bounds.bottom; r++)
-      for (const node of state.rows.get(r)) nextRows.add(node);
-    for (let c = bounds.left; c <= bounds.right; c++)
-      for (const node of state.columns.get(c)) nextColumns.add(node);
-  }
-  for (const [previous, next, className] of [
-    [state.rowActive, nextRows, "is-hover-row"],
-    [state.columnActive, nextColumns, "is-hover-column"],
-  ]) {
-    for (const node of previous)
-      if (!next.has(node)) node.classList.remove(className);
-    for (const node of next)
-      if (!previous.has(node)) node.classList.add(className);
-  }
-  state.rowActive = nextRows;
-  state.columnActive = nextColumns;
-}
-
+const headerObserver =
+  typeof ResizeObserver === "function"
+    ? new ResizeObserver((entries) => {
+        const tables = new Set(
+          entries.map(({ target }) =>
+            target.tagName === "THEAD"
+              ? target.parentElement
+              : target.querySelector("table"),
+          ),
+        );
+        for (const table of tables) {
+          table.dataset.stickyHeader = String(
+            table.parentElement.clientHeight -
+              table.tHead.getBoundingClientRect().height >=
+              128,
+          );
+        }
+      })
+    : null;
 for (const id of [
   "individual-table",
   "pair-table",
@@ -622,15 +607,9 @@ for (const id of [
   "forced-pair-table",
 ]) {
   const table = byId(id);
-  const activate = (event) =>
-    highlight(
-      table,
-      event.target instanceof Element ? event.target.closest("td, th") : null,
-    );
-  table.addEventListener("pointerover", activate);
-  table.addEventListener("pointerleave", () => highlight(table, null));
+  headerObserver?.observe(table.tHead);
+  headerObserver?.observe(table.parentElement);
   table.addEventListener("focusin", (event) => {
-    activate(event);
     if (!(event.target instanceof HTMLElement)) return;
     const region = table.parentElement;
     const area = region.getBoundingClientRect();
@@ -656,15 +635,17 @@ for (const id of [
       event.shiftKey
     )
       return;
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    if (
+      !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)
+    )
+      return;
     event.preventDefault();
     table.parentElement.scrollBy({
-      left: event.key === "ArrowRight" ? 40 : -40,
+      left:
+        event.key === "ArrowRight" ? 40 : event.key === "ArrowLeft" ? -40 : 0,
+      top: event.key === "ArrowDown" ? 40 : event.key === "ArrowUp" ? -40 : 0,
       behavior: "auto",
     });
-  });
-  table.addEventListener("focusout", (event) => {
-    if (!table.contains(event.relatedTarget)) highlight(table, null);
   });
 }
 

@@ -140,6 +140,8 @@ code,
 .table-scroll {
   --keyword-column-width: clamp(8rem, 20vi, 12rem);
   max-inline-size: 100%;
+  max-block-size: min(75vh, 48rem);
+  max-block-size: min(75dvh, 48rem);
   overflow: auto;
   scroll-padding-inline-start: var(--keyword-column-width);
   margin-block: 1rem;
@@ -159,10 +161,21 @@ td {
   padding: 0.75rem;
   text-align: start;
   vertical-align: top;
-  min-inline-size: 12rem;
+  min-inline-size: 9rem;
 }
 th {
   font-weight: 600;
+}
+thead {
+  background: Canvas;
+}
+table[data-sticky-header="true"] thead {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 3;
+}
+thead th {
+  background: Canvas;
 }
 td p {
   margin-block: 0.25rem;
@@ -237,34 +250,9 @@ dialog h2 {
   margin-block-end: 0.75rem;
   overflow-wrap: anywhere;
 }
-th.is-hover-row,
-td.is-hover-row {
-  box-shadow: inset 0 0 0 1px CanvasText;
-}
-th.is-hover-column,
-td.is-hover-column {
-  outline: 2px solid CanvasText;
-  outline-offset: -3px;
-}
-.is-hover-row.is-hover-column {
-  box-shadow: inset 0 0 0 3px CanvasText;
-}
-.is-hover-row:not(.contrast-result),
-.is-hover-column:not(.contrast-result) {
-  background: color-mix(in srgb, Canvas 90%, CanvasText);
-}
-@media (forced-colors: active) {
-  th.is-hover-row,
-  td.is-hover-row {
-    outline: 1px dashed CanvasText;
-    outline-offset: -2px;
-  }
-  .is-hover-row.is-hover-column {
-    outline: 3px solid CanvasText;
-  }
-}
 .contrast-result {
   padding: 0.75rem;
+  min-inline-size: 12rem;
 }
 .contrast-result p {
   margin-block: 0.25rem;
@@ -302,19 +290,15 @@ td.is-hover-column {
     background-color: Canvas;
   }
 }
-.table-swatch {
-  position: relative;
-  display: inline-block;
-  inline-size: 1rem;
-  block-size: 1rem;
-  border: 1px solid CanvasText;
-  margin-inline-end: 0.5rem;
-  vertical-align: middle;
+.color-value {
   forced-color-adjust: none;
 }
-.table-swatch-fill {
-  position: absolute;
-  inset: 0;
+.color-value code {
+  color: inherit;
+  white-space: nowrap;
+}
+td small {
+  display: block;
 }
 #error {
   padding: 1rem;
@@ -361,6 +345,10 @@ td.is-hover-column {
   }
   .table-scroll {
     overflow: visible;
+    max-block-size: none;
+  }
+  table[data-sticky-header="true"] thead {
+    position: static;
   }
   table {
     font-size: 0.75rem;

@@ -13,8 +13,35 @@ import {
   mergeCaptures,
   versions,
   comparisonGroups,
+  comparisonSections,
 } from "../model.js";
 import { fixture } from "./fixtures.js";
+
+test("comparison sections group OS major releases, then themes, then browser identities without changing captures", () => {
+  const chrome = fixture("ipad-chrome");
+  chrome.environment.os = "iPadOS 26.5.0";
+  chrome.environment.browser = "Chrome 155.0.8059.37";
+  chrome.environment.context = "webview";
+  const safari = fixture("ipad-safari");
+  safari.environment.os = "iPadOS 26.5";
+  safari.environment.browser = "Safari 26.5";
+  const original = structuredClone([safari, chrome]);
+  const sections = comparisonSections([safari, chrome]);
+  assert.equal(sections.length, 1);
+  assert.equal(sections[0].os, "iPadOS 26");
+  assert.deepEqual(
+    sections[0].themes.map((theme) => theme.name),
+    ["Light", "Dark"],
+  );
+  for (const theme of sections[0].themes) {
+    assert.deepEqual(
+      theme.groups.map((group) => group.browser),
+      ["Chrome 155.0.8059.37", "Safari 26.5"],
+    );
+    assert.equal(theme.groups[0].context, "webview");
+  }
+  assert.deepEqual([safari, chrome], original);
+});
 
 test("confirmed device batch uses Windows 11, one Chrome identifier, and unprefixed headed engine names", async () => {
   const directory = new URL("../data/", import.meta.url);

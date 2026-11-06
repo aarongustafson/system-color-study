@@ -396,3 +396,60 @@ export function comparisonGroups(captures) {
   });
   return [...groups.values()].map(({ group }) => group);
 }
+
+export function compactEnvironmentLabel(value) {
+  const match = value.match(
+    /^(.+?)\s+(\d+)(?:\.\d+)*(?:\s+(?:arm64|x86_64|x64|ia32|aarch64))?$/,
+  );
+  return match ? `${match[1]} ${match[2]}` : value;
+}
+
+export function comparisonSections(captures) {
+  const sections = new Map();
+  for (const group of comparisonGroups(captures)) {
+    const os = compactEnvironmentLabel(group.os);
+    if (!sections.has(os)) sections.set(os, { os, themes: new Map() });
+    const section = sections.get(os);
+    for (const column of group.columns) {
+      const capture = column.runs[0].capture;
+      const forced = capture.media.forcedColors;
+      const name = capture.environment.forcedColorTheme?.trim();
+      const mode = column.schemes[0] === "light" ? "Light" : "Dark";
+      const theme =
+        forced === true
+          ? name || "Unnamed theme"
+          : forced === null
+            ? `${name ? name + " (forced colors unknown)" : "Forced colors unknown"} · ${mode}`
+            : name
+              ? `${name} (forced colors inactive) · ${mode}`
+              : mode;
+      if (!section.themes.has(theme))
+        section.themes.set(theme, {
+          name: theme,
+          order: forced === true ? 2 : column.schemes[0] === "light" ? 0 : 1,
+          groups: new Map(),
+        });
+      const entry = section.themes.get(theme);
+      const key = JSON.stringify([group.browser, group.os, group.context]);
+      if (!entry.groups.has(key))
+        entry.groups.set(key, { ...group, columns: [] });
+      entry.groups.get(key).columns.push(column);
+    }
+  }
+  return [...sections.values()]
+    .sort((a, b) => a.os.localeCompare(b.os))
+    .map((section) => ({
+      os: section.os,
+      themes: [...section.themes.values()]
+        .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name))
+        .map((theme) => ({
+          name: theme.name,
+          groups: [...theme.groups.values()].sort(
+            (a, b) =>
+              a.browser.localeCompare(b.browser) ||
+              a.os.localeCompare(b.os) ||
+              a.context.localeCompare(b.context),
+          ),
+        })),
+    }));
+}
