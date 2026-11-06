@@ -1252,6 +1252,16 @@ test("the built homepage renders every actual committed capture", async ({
     sections.map((section) => section.os),
   );
   const ipad = sections.find((section) => section.os === "iPadOS 26");
+  const windows = sections.find((section) => section.os === "Windows 11");
+  expect(windows.themes.map((theme) => theme.name)).toEqual(["Light", "Dark"]);
+  for (const theme of windows.themes)
+    expect(theme.groups.map((group) => group.browser)).toEqual(
+      expect.arrayContaining([
+        "Chrome 157.0.0.0",
+        "Edge 156.0.0.0",
+        "Firefox 159.0",
+      ]),
+    );
   for (const theme of ipad.themes)
     expect(theme.groups.map((group) => [group.browser, group.context])).toEqual(
       expect.arrayContaining([
