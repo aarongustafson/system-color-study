@@ -113,7 +113,8 @@ column and a contrast result spanning both rows for each displayed mode.
 Each **Details** button opens a shared modal for its browser/OS/context group
 from any table. Its title shows the simplified browser and OS on separate lines.
 Metadata appears on separate labeled lines, including full versions, time,
-context, preferences, Notes, and user agent. Capture identifiers, scheme diagnostics,
+context, preferences, Notes when supplied, and user agent. Empty or whitespace-only
+Notes fields are omitted. Capture identifiers, scheme diagnostics,
 and data-format versions remain in the JSON rather than the dialog.
 Buttons use `commandfor`, with a JavaScript fallback. The Close button follows
 the metadata in the markup, but sits beside the title at the top inline end.
@@ -224,6 +225,8 @@ There are no invented results. The first committed observations are headed
 bundled Chromium 158.0.8127.18, Firefox 159.0, and WebKit 27.2 runs on
 macOS 27.0.1 arm64, collected November 5, 2026. Their Notes identify automation
 and source provenance; they aren’t claims about installed Chrome or Safari.
+The WebKit observation is labeled Safari 27.2 in the data; its bundled-engine
+provenance remains in Notes.
 The supplied Windows observations were confirmed as Windows 11. Their Chrome
 identifier is consistently `Chrome 157.0.8103.39`; file names and metadata
 reflect those corrections without changing measurements.

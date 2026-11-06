@@ -362,7 +362,6 @@ for (const fallback of [false, true]) {
       "OS color preference",
       "Contrast preference",
       "Display mode",
-      "Notes",
       "User agent",
     ]);
     const close = dialog.getByRole("button", {
@@ -435,6 +434,38 @@ for (const fallback of [false, true]) {
     }
   });
 }
+
+test("dialogs omit empty Notes but preserve supplied Notes for each observation", async ({
+  page,
+}) => {
+  const notes = ["", " \t ", "  Keep this observation note.  "];
+  await publish(
+    page,
+    notes.map((note, index) => {
+      const capture = fixture(`notes-${index}`);
+      capture.environment.notes = note;
+      return capture;
+    }),
+  );
+  await page.locator("#individual-table .details-button").first().click();
+  const metadata = page.locator("dialog[open] .capture-metadata");
+  await expect(metadata).toHaveCount(3);
+  for (const index of [0, 1])
+    await expect(
+      metadata
+        .nth(index)
+        .locator("dt")
+        .filter({ hasText: /^Notes$/ }),
+    ).toHaveCount(0);
+  const label = metadata
+    .nth(2)
+    .locator("dt")
+    .filter({ hasText: /^Notes$/ });
+  await expect(label).toHaveCount(1);
+  expect(
+    await label.evaluate((node) => node.nextElementSibling.textContent),
+  ).toBe(notes[2]);
+});
 
 test("Chrome iOS headers omit webview without hiding other contexts or changing metadata", async ({
   page,

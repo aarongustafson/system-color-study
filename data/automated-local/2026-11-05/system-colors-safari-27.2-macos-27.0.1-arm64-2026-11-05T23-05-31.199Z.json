@@ -8,7 +8,7 @@
       "id": "mw45lxr3-2ep5wsx8y9c",
       "capturedAt": "2026-11-05T23:05:31.167Z",
       "environment": {
-        "browser": "WebKit 27.2",
+        "browser": "Safari 27.2",
         "os": "macOS 27.0.1 arm64",
         "context": "normal",
         "notes": "Automated local observation using Playwright 1.65.0, headed bundled WebKit; media emulation disabled. Source b82d4780060006026439075a8bae6bc1f84e415d. Not an installed Chrome/Firefox/Safari release; verify separately in shipping browsers. OS version obtained from sw_vers, architecture from Node. OS accent and contrast-theme names were not manually verified.",

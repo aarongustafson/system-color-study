@@ -79,6 +79,15 @@ test("confirmed device batch uses Windows 11, one Chrome identifier, and unprefi
     headed.every((c) => !c.environment.browser.startsWith("Playwright ")),
   );
   assert.ok(headed.every((c) => c.environment.notes.includes("Playwright")));
+  const webkit = headed.find((c) =>
+    c.environment.notes.includes("bundled WebKit"),
+  );
+  assert.equal(webkit.environment.browser, "Safari 27.2");
+  assert.ok(
+    webkit.environment.notes.includes(
+      "Not an installed Chrome/Firefox/Safari release",
+    ),
+  );
 });
 
 test("catalog covers all modern and deprecated keywords without duplicates", () => {

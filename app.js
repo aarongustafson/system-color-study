@@ -86,7 +86,9 @@ function renderDialogs(groups) {
         ["OS color preference", capture.media.prefersColorScheme],
         ["Contrast preference", capture.media.prefersContrast],
         ["Display mode", capture.media.displayMode],
-        ["Notes", capture.environment.notes || "Not supplied"],
+        ...(capture.environment.notes.trim()
+          ? [["Notes", capture.environment.notes]]
+          : []),
         ["User agent", capture.environment.userAgent || "Not supplied"],
       ];
       for (const [name, value] of metadata)
