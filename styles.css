@@ -76,6 +76,9 @@ fieldset {
   min-inline-size: 0;
   border: 1px solid currentColor;
 }
+#capture {
+  margin-block-start: 1rem;
+}
 legend {
   font-weight: 600;
 }

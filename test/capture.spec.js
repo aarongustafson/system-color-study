@@ -7,6 +7,40 @@ test.beforeEach(async ({ page }) => {
   await page.getByLabel("OS and version").fill("macOS 27.0.1");
 });
 
+test("capture guidance stays with its controls without a redundant ready message", async ({
+  page,
+}) => {
+  await expect(page.locator("#status")).toBeEmpty();
+  await expect(page.locator("#metadata-help")).toContainText("inference");
+  await expect(page.locator("#capture-form > #capture")).toHaveCount(1);
+  await expect(page.locator("fieldset #capture")).toHaveCount(0);
+  const capture = page.getByRole("button", {
+    name: "Capture light and dark system colors",
+    exact: true,
+  });
+  await expect(capture).toHaveAttribute("aria-describedby", "capture-help");
+  await expect(capture).toHaveAccessibleDescription(
+    /both CSS light and dark schemes.*doesn’t change your OS settings/,
+  );
+  expect(await capture.evaluate((button) => button.nextElementSibling.id)).toBe(
+    "capture-help",
+  );
+  await expect(page.locator("details #environment")).toHaveCount(1);
+  await expect(page.locator("#environment")).toBeHidden();
+  await page.getByText("Optional context and notes", { exact: true }).click();
+  await expect(page.locator("#environment")).toBeVisible();
+  await expect(page.locator("#repeat-capture-help")).toContainText(
+    "macOS Increase Contrast",
+  );
+  await expect(page.locator("#repeat-capture-help")).toContainText(
+    "Save each snapshot separately",
+  );
+  await page.getByLabel("OS and version").press("Enter");
+  await expect(
+    page.getByRole("link", { name: "Download JSON", exact: true }),
+  ).toBeFocused();
+});
+
 test("capture probes both schemes independently and downloads exactly the recorded values", async ({
   page,
 }) => {

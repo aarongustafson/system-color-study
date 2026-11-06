@@ -161,8 +161,7 @@ try {
     !navigator.userAgentData?.getHighEntropyValues;
   syncEnvironment();
   byId("capture").disabled = false;
-  byId("status").textContent =
-    "Ready. Confirm the details, then capture both schemes.";
+  byId("status").textContent = "";
 } catch (error) {
   report(error);
 }

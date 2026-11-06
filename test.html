@@ -25,9 +25,8 @@
         <h2 id="capture-heading">Capture this browser</h2>
         <p id="metadata-help">
           Check the versions against your browser and OS “About” screens.
-          Correct any estimate that still says “verify.”
+          Correct any inference that still says “verify.”
         </p>
-        <p id="environment"></p>
         <p id="status" role="status">
           Loading measurement tools. If the button stays disabled, check
           JavaScript and reload.
@@ -79,6 +78,7 @@
             </div>
             <details>
               <summary>Optional context and notes</summary>
+              <p id="environment"></p>
               <label
                 >Context
                 <select id="context">
@@ -90,18 +90,31 @@
               >
               <label
                 >Notes: device, accent, or other changed settings
-                <textarea id="notes" rows="2" maxlength="2000"></textarea>
+                <textarea
+                  id="notes"
+                  rows="2"
+                  maxlength="2000"
+                  aria-describedby="notes-help"
+                ></textarea>
               </label>
+              <p id="notes-help">
+                Don’t include personal information in Notes.
+              </p>
             </details>
-            <p>
-              Don’t include personal information. This records both CSS light
-              and dark schemes, all 42 keywords, and your browser’s current
-              preferences; it doesn’t change your OS settings.
-            </p>
-            <button id="capture" type="submit" disabled>
-              Capture light and dark system colors
-            </button>
           </fieldset>
+          <button
+            id="capture"
+            type="submit"
+            aria-describedby="capture-help"
+            disabled
+          >
+            Capture light and dark system colors
+          </button>
+          <p id="capture-help">
+            This records both CSS light and dark schemes, all 42 keywords, and
+            your browser’s current preferences; it doesn’t change your OS
+            settings.
+          </p>
         </form>
       </section>
       <section id="capture-result" aria-labelledby="result-heading" hidden>
@@ -132,10 +145,12 @@
           </label>
         </details>
       </section>
-      <p>
-        Trying another preference? Change it in your OS or browser, then take a
-        new snapshot. The <a href="./">published comparisons</a> explain what to
-        look for.
+      <p id="repeat-capture-help">
+        To add data for another configuration, change one setting—for example,
+        macOS Increase Contrast or a Windows Contrast theme—then capture again.
+        Note what changed. Save each snapshot separately. You can see how these
+        settings affect system colors in the
+        <a href="./">published comparisons</a>.
       </p>
     </main>
     <footer class="site-footer">

@@ -51,7 +51,7 @@ alpha, unsupported keywords, and both requested-scheme reports remain in the JSO
    Open [the test page](./test.html).
 2. Verify the prefilled browser and OS names **against their About screens**.
    Prefills come from the user agent and may be reduced, frozen, or spoofed.
-   Where supported, **Fill available full versions** explicitly requests
+   Where supported, **Populate from browser** explicitly requests
    additional browser-provided version details. These are still reports, not
    proof of the installed versions; Windows platform versions aren’t Windows
    release names. All fields remain editable.
@@ -183,7 +183,8 @@ Yes: run the page in the actual Windows browser you want to measure.
 1. In Windows 11, open **Settings > Accessibility > Contrast themes**, choose
    a theme, and apply it. Windows 10 calls this High contrast under Ease of Access.
 2. Return to the page, or reload.
-   Confirm the environment line reports **forced colors: active**.
+   Open **Optional context and notes** and confirm the preference readout reports
+   **forced colors: active**.
 3. Enter the theme’s name in **Forced-color theme name** and any customized
    palette settings in Notes.
 4. Capture both modes and export. Repeat for each theme, then capture with
