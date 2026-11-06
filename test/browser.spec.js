@@ -1419,8 +1419,8 @@ test("the built homepage renders every actual committed capture", async ({
   for (const [browser, forcedColors] of [
     ["Firefox 160.0", true],
     ["Safari 27.0.1", false],
-    ["Google Chrome 157.0.8103.39", false],
-    ["Microsoft Edge 155.0.4283.62", false],
+    ["Chrome 157.0.8103.39", false],
+    ["Edge 155.0.4283.62", false],
   ]) {
     expect(data.captures).toEqual(
       expect.arrayContaining([
