@@ -158,7 +158,8 @@ headers scroll normally so they don’t cover the data. Printing removes that he
 limit and pinning.
 
 These are the original table cells, not duplicated headers. Native `th`, `scope`,
-and explicit `headers` associations remain in place. Focus a scroll region and
+and explicit `headers` associations remain in place. Each focusable scroll region
+is named by its section heading or table caption. Focus a scroll region and
 use the arrow keys to scroll; focused Details buttons stay clear of the pinned
 column, including in right-to-left layouts. Browser tests check these associations,
 geometry, and keyboard behavior; they don’t replace testing with a screen reader.
@@ -293,6 +294,10 @@ fetches the approval again and checks that it still belongs to this issue.
 Edits rerun validation but require a new approval comment before updating the
 same file and PR; closed PRs aren’t silently reopened. Errors are reported on
 the issue. The workflow never approves or merges the resulting PR.
+Both the issue publisher and maintainer command format repository copies with
+the project’s Prettier settings before committing them, so valid snapshots also
+pass CI’s formatting check. This changes formatting, not measurements or metadata;
+keep the original downloaded export for your archive.
 These checks confirm structure and consistency, not the browser’s identity or
 the accuracy of its measurements. Maintainers still review the provenance.
 

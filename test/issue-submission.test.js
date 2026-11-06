@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, mkdir, readFile, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { check, format } from "prettier";
 import { publicFiles } from "../scripts/build.js";
 import { versions } from "../model.js";
 import { fixture } from "./fixtures.js";
@@ -184,6 +185,14 @@ test("the complete issue flow validates a build before a separate publisher open
       assert.match(input.body, /Awaiting owner approval/);
     },
   });
+  assert.equal(
+    await check(
+      await readFile(join(validator, "data/submissions/issue-9.json"), "utf8"),
+      { parser: "json" },
+    ),
+    true,
+    "The validated checkout must contain CI-formatted JSON.",
+  );
   const artifact = await readFile(
     join(validator, ".submission/collection.json"),
   );
@@ -311,6 +320,12 @@ test("the issue publisher creates only a data file and review PR, then explicitl
   const result = await publishIssueSubmission(issue, [capture], api);
   assert.match(result, /pull\/43$/);
   const write = calls.find((c) => c.method === "PUT");
+  const text = Buffer.from(write.input.content, "base64").toString("utf8");
+  assert.equal(
+    await check(text, { parser: "json" }),
+    true,
+    "Issue-generated data must pass CI formatting.",
+  );
   assert.equal(
     write.path,
     "repos/aarongustafson/system-color-study/contents/data/submissions/issue-42.json",
@@ -369,7 +384,9 @@ test("repeat submissions reuse the open PR and only update changed data", async 
   };
   const path = "data/submissions/issue-42.json";
   let content = Buffer.from(
-    JSON.stringify({ ...versions, captures: [capture] }, null, 2) + "\n",
+    await format(JSON.stringify({ ...versions, captures: [capture] }), {
+      parser: "json",
+    }),
   ).toString("base64");
   const writes = [];
   const api = async (url, method, input) => {
@@ -412,6 +429,21 @@ test("repeat submissions reuse the open PR and only update changed data", async 
     "file-sha",
   );
   assert.equal(writes.filter((call) => call.url.endsWith("/pulls")).length, 0);
+  content = Buffer.from(
+    JSON.stringify({ ...versions, captures: [capture] }, null, 2) + "\n",
+  ).toString("base64");
+  await publishIssueSubmission(issue, [capture], api);
+  assert.equal(
+    writes.filter((call) => call.method === "PUT").length,
+    2,
+    "Repair an existing unformatted submission without creating another PR.",
+  );
+  assert.equal(
+    await check(Buffer.from(content, "base64").toString("utf8"), {
+      parser: "json",
+    }),
+    true,
+  );
 });
 
 test("closed issues, removed labels, renamed files, and symlinks cannot publish", async () => {

@@ -152,6 +152,16 @@ test("static comparisons retain both row groups, shared dialogs, safe text, and 
   );
   const ids = [...document.querySelectorAll("[id]")].map((node) => node.id);
   assert.equal(new Set(ids).size, ids.length);
+  for (const node of document.querySelectorAll(
+    "[aria-labelledby], [aria-describedby]",
+  )) {
+    for (const name of ["aria-labelledby", "aria-describedby"]) {
+      for (const id of (node.getAttribute(name) || "")
+        .split(/\s+/)
+        .filter(Boolean))
+        assert.ok(document.getElementById(id), `Missing ${name} target ${id}`);
+    }
+  }
   for (const table of document.querySelectorAll("table")) {
     const paired = table.id.endsWith("pair-table");
     assert.equal(table.hidden, false);

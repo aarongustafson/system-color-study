@@ -864,6 +864,47 @@ test("comparison tables group environments, show both modes, and retain split fo
   ).toBe(true);
 });
 
+test("forced-color scroll regions have caption-based names and keyboard focus with or without JavaScript", async ({
+  browser,
+  baseURL,
+  browserName,
+}) => {
+  const forced = fixture("named-forced-regions");
+  forced.media.forcedColors = true;
+  forced.environment.forcedColorTheme = "Aquatic";
+  for (const javaScriptEnabled of [true, false]) {
+    const context = await browser.newContext({ baseURL, javaScriptEnabled });
+    try {
+      const page = await context.newPage();
+      await publish(page, [fixture("normal-region"), forced]);
+      for (const [table, name] of [
+        [
+          "forced-individual-table",
+          "Forced-color values by theme, browser, and mode",
+        ],
+        [
+          "forced-pair-table",
+          "Forced-color pairs and contrast by theme, browser, and mode",
+        ],
+      ]) {
+        const region = page.locator(`#${table}`).locator("..");
+        await expect(region).toHaveAccessibleName(name);
+        await region.focus();
+        await expect(region).toBeFocused();
+        // Script-disabled WebKit test contexts suppress native arrow scrolling.
+        if (javaScriptEnabled || browserName !== "webkit") {
+          await region.press("ArrowDown");
+          await expect
+            .poll(() => region.evaluate((node) => node.scrollTop))
+            .toBeGreaterThan(0);
+        }
+      }
+    } finally {
+      await context.close();
+    }
+  }
+});
+
 test("verdict cells distinguish all, some, no, and unavailable thresholds with readable separate lines", async ({
   page,
   browserName,

@@ -4,11 +4,20 @@ import { createHash, randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
+import { format, resolveConfig } from "prettier";
 import { validateSubmission, mergeCaptures } from "../model.js";
 import { exportFilename } from "../environment.js";
 
 const repository = "aarongustafson/system-color-study";
 const endpoint = `repos/${repository}`;
+
+export async function formatSubmission(source, path) {
+  const filepath = resolve(import.meta.dirname, "..", path);
+  return format(source, {
+    ...(await resolveConfig(filepath, { editorconfig: true })),
+    filepath,
+  });
+}
 
 export function githubAPI(path, method, input) {
   const args = ["api", "--hostname", "github.com", path, "--method", method];
@@ -44,6 +53,9 @@ export async function submitCapture(
     `-${hash}.json`,
   );
   const path = `data/submissions/${filename}`;
+  const formatted = await formatSubmission(source.toString("utf8"), path);
+  if (Buffer.byteLength(formatted) > 5_000_000)
+    throw new Error("Formatted submissions must stay within 5 MB.");
   if (dryRun)
     return { repository, path, captures: captures.length, dryRun: true };
   const repo = await api(endpoint, "GET");
@@ -60,7 +72,7 @@ export async function submitCapture(
   try {
     await api(`${endpoint}/contents/${path}`, "PUT", {
       branch,
-      content: source.toString("base64"),
+      content: Buffer.from(formatted).toString("base64"),
       message:
         "Add reviewed system color captures\n\nCo-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>",
     });

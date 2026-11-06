@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { isDeepStrictEqual } from "node:util";
 import { versions, validateSubmission, mergeCaptures } from "../model.js";
 import { buildSite } from "./build.js";
-import { githubAPI } from "./submit.js";
+import { githubAPI, formatSubmission } from "./submit.js";
 
 const endpoint = "repos/aarongustafson/system-color-study";
 const marker = "<!-- system-color-snapshot-validation -->";
@@ -88,6 +88,10 @@ export async function publishIssueSubmission(issue, captures, api = githubAPI) {
     );
   const branch = `data/issue-${number}`;
   const path = `data/submissions/issue-${number}.json`;
+  const text = await formatSubmission(
+    JSON.stringify({ ...versions, captures }),
+    path,
+  );
   const pulls = await api(
     `${endpoint}/pulls?state=all&head=aarongustafson:${encodeURIComponent(branch)}`,
     "GET",
@@ -142,7 +146,6 @@ export async function publishIssueSubmission(issue, captures, api = githubAPI) {
       sha: base.object.sha,
     });
   }
-  const text = JSON.stringify({ ...versions, captures }, null, 2) + "\n";
   if (
     !existingFile ||
     Buffer.from(existingFile.content, "base64").toString("utf8") !== text
@@ -197,14 +200,11 @@ async function validateAgainstCheckout(captures, root) {
   const event = JSON.parse(
     await readFile(process.env.GITHUB_EVENT_PATH, "utf8"),
   );
-  const path = join(
-    root,
-    `data/submissions/issue-${issueNumber(event.issue)}.json`,
-  );
+  const path = `data/submissions/issue-${issueNumber(event.issue)}.json`;
   await mkdir(join(root, "data/submissions"), { recursive: true });
   await writeFile(
-    path,
-    JSON.stringify({ ...versions, captures }, null, 2) + "\n",
+    join(root, path),
+    await formatSubmission(JSON.stringify({ ...versions, captures }), path),
   );
   await buildSite(root);
 }
