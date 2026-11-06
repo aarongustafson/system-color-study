@@ -51,25 +51,29 @@ function renderDialogs(groups) {
     ids.set(environmentKey(group), id);
     const dialog = element("dialog");
     dialog.id = id;
-    const title = element("h2", `${group.browser} / ${group.os}`);
+    const title = element("h2");
+    title.append(
+      element("span", compactEnvironmentLabel(group.browser)),
+      " ",
+      element("span", compactEnvironmentLabel(group.os)),
+    );
     title.id = `${id}-title`;
     dialog.setAttribute("aria-labelledby", title.id);
-    const close = element("button", "Close details");
+    const close = element("button", "Close");
     close.type = "button";
     close.autofocus = true;
+    close.className = "dialog-close";
+    close.setAttribute("aria-label", "Close details");
     close.setAttribute("commandfor", id);
     close.setAttribute("command", "close");
     dialog.addEventListener("close", () =>
       byId(dialog.dataset.opener)?.focus(),
     );
-    dialog.append(title, close);
+    dialog.append(title);
     for (const { capture } of group.runs) {
-      const section = element("section");
-      const heading = element("h3", `Captured ${capture.capturedAt}`);
       const dl = element("dl");
       dl.className = "capture-metadata";
       const metadata = [
-        ["Capture identifier", capture.id],
         ["Captured at", capture.capturedAt],
         ["Browser", capture.environment.browser],
         ["OS", capture.environment.os],
@@ -84,26 +88,12 @@ function renderDialogs(groups) {
         ["Display mode", capture.media.displayMode],
         ["Notes", capture.environment.notes || "Not supplied"],
         ["User agent", capture.environment.userAgent || "Not supplied"],
-        ...["light", "dark"].flatMap((scheme) => [
-          [`${scheme} backdrop`, capture.schemes[scheme].backdrop],
-          [
-            `${scheme} scheme supported`,
-            capture.schemes[scheme].schemeSupported ? "Yes" : "No",
-          ],
-          [
-            `${scheme} computed scheme`,
-            capture.schemes[scheme].computedColorScheme || "Unsupported",
-          ],
-        ]),
-        ["Schema version", String(versions.schemaVersion)],
-        ["Protocol version", String(versions.protocolVersion)],
-        ["Catalog version", String(versions.catalogVersion)],
       ];
       for (const [name, value] of metadata)
         dl.append(element("dt", name), element("dd", value));
-      section.append(heading, dl);
-      dialog.append(section);
+      dialog.append(dl);
     }
+    dialog.append(close);
     fragment.append(dialog);
   });
   byId("capture-dialogs").replaceChildren(fragment);
@@ -122,14 +112,21 @@ function captureHeading(group, id, dialogId, forced = false) {
     line.className = `capture-${type}${forced && type === "os" ? " visually-hidden" : ""}`;
     heading.append(line);
   }
-  if (group.context !== "normal") {
+  const showContext =
+    group.context !== "normal" &&
+    !(
+      group.context === "webview" &&
+      /^Chrome(?:\s|$)/i.test(group.browser) &&
+      /^(?:iOS|iPadOS)(?:\s|$)/i.test(group.os)
+    );
+  if (showContext) {
     const context = element("p", group.context);
     context.id = `${id}-context`;
     heading.append(context);
   }
   heading.setAttribute(
     "aria-labelledby",
-    `${id}-browser${group.context !== "normal" ? ` ${id}-context` : ""}`,
+    `${id}-browser${showContext ? ` ${id}-context` : ""}`,
   );
   const button = element("button", "Details");
   button.type = "button";

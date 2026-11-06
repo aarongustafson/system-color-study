@@ -99,6 +99,8 @@ Table headers group **OS → theme → browser**, putting browsers beside each o
 within **Light** and **Dark**. OS headings use the major release; browser headings
 omit minor releases and architecture. Full labels remain in the Details dialog,
 and observations with different full versions or contexts stay distinct.
+Chrome headers on iOS and iPadOS omit the “webview” context label; the recorded
+context remains in Details and exports. Other non-default contexts stay visible.
 Ordinary observations always retain both themes, even when their values match.
 Separate forced-color tables group OS, named theme, browser, then requested mode.
 A forced-color observation shares one mode column,
@@ -109,11 +111,16 @@ columns. The test page’s Display mode control affects only its live grid.
 **Color pairs** has two rows per pair—background and foreground—with a value
 column and a contrast result spanning both rows for each displayed mode.
 Each **Details** button opens a shared modal for its browser/OS/context group
-from any table. Metadata appears on separate labeled lines, including full
-versions, time, both schemes’ backdrops and support, preferences, Notes, and user
-agent. Buttons use `commandfor`, with a JavaScript fallback. Close the modal
-with its close button or Escape; focus returns to the opener. Opening details
-doesn’t expand or reshape the table.
+from any table. Its title shows the simplified browser and OS on separate lines.
+Metadata appears on separate labeled lines, including full versions, time,
+context, preferences, Notes, and user agent. Capture identifiers, scheme diagnostics,
+and data-format versions remain in the JSON rather than the dialog.
+Buttons use `commandfor`, with a JavaScript fallback. The Close button follows
+the metadata in the markup, but sits beside the title at the top inline end.
+Flex layout reserves its space so it can’t overlap the title. When space is tight,
+the title wraps below the button rather than squeezing alongside it.
+Close the modal with that button or Escape; focus returns to the opener.
+Opening details doesn’t expand or reshape the table.
 
 Repeated runs with identical measurements and matching theme/media settings
 share columns, with every observation retained in the modal. Different measurements stay

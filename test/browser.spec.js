@@ -344,6 +344,75 @@ for (const fallback of [false, true]) {
     const before = await page.locator("#individual-table").boundingBox();
     await page.keyboard.press("Enter");
     await expect(dialog).toBeVisible();
+    await expect(dialog.locator("h2 > span")).toHaveText([
+      "Chrome 157",
+      "Windows 11",
+    ]);
+    await expect(dialog).toHaveAccessibleName("Chrome 157 Windows 11");
+    await expect(dialog.locator("h3")).toHaveCount(0);
+    await expect(
+      dialog.locator(".capture-metadata").first().locator("dt"),
+    ).toHaveText([
+      "Captured at",
+      "Browser",
+      "OS",
+      "Context",
+      "Forced-color theme",
+      "Forced colors",
+      "OS color preference",
+      "Contrast preference",
+      "Display mode",
+      "Notes",
+      "User agent",
+    ]);
+    const close = dialog.getByRole("button", {
+      name: "Close details",
+      exact: true,
+    });
+    await expect(close).toHaveText("Close");
+    await expect(dialog.locator(":scope > :last-child")).toHaveAttribute(
+      "command",
+      "close",
+    );
+    await expect(close).toBeFocused();
+    const originalViewport = page.viewportSize();
+    for (const width of [1400, 320]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const direction of ["ltr", "rtl"]) {
+        await page.evaluate((value) => {
+          document.documentElement.dir = value;
+        }, direction);
+        for (const fontSize of ["100%", "200%"]) {
+          await page.evaluate((value) => {
+            document.documentElement.style.fontSize = value;
+          }, fontSize);
+          const titleBox = await dialog.locator("h2").boundingBox(),
+            closeBox = await close.boundingBox(),
+            box = await dialog.boundingBox();
+          const inlineGap =
+            direction === "ltr"
+              ? closeBox.x - titleBox.x - titleBox.width
+              : titleBox.x - closeBox.x - closeBox.width;
+          expect(
+            closeBox.y + closeBox.height <= titleBox.y || inlineGap >= 8,
+          ).toBe(true);
+          const padding = await dialog.evaluate((node) =>
+            parseFloat(getComputedStyle(node).paddingBlockStart),
+          );
+          expect(Math.abs(closeBox.y - box.y - padding)).toBeLessThanOrEqual(3);
+          expect(
+            await dialog.evaluate((node) => node.scrollWidth),
+          ).toBeLessThanOrEqual(
+            await dialog.evaluate((node) => node.clientWidth),
+          );
+        }
+      }
+    }
+    await page.evaluate(() => {
+      document.documentElement.dir = "ltr";
+      document.documentElement.style.removeProperty("font-size");
+    });
+    await page.setViewportSize(originalViewport);
     expect(await dialog.evaluate((node) => node.matches(":modal"))).toBe(true);
     await expect(dialog.locator("dd")).toContainText([
       "Chrome 157.0.8103.39",
@@ -366,6 +435,52 @@ for (const fallback of [false, true]) {
     }
   });
 }
+
+test("Chrome iOS headers omit webview without hiding other contexts or changing metadata", async ({
+  page,
+}) => {
+  const cases = [
+    ["Chrome 155", "iPadOS 26.5", "webview", false],
+    ["Chrome 156", "iOS 26.5", "webview", false],
+    ["Chrome 157", "Android 17", "webview", true],
+    ["Safari 26", "iPadOS 26.5", "webview", true],
+    ["Chrome 158", "iPadOS 26.5", "private", true],
+  ];
+  await publish(
+    page,
+    cases.map(([browser, os, context], index) => {
+      const capture = fixture(`context-${index}`);
+      Object.assign(capture.environment, { browser, os, context });
+      return capture;
+    }),
+  );
+  for (const [browser, , context, shown] of cases) {
+    const headings = page
+      .locator("table .capture-heading")
+      .filter({ has: page.getByText(browser, { exact: true }) });
+    for (const heading of await headings.all()) {
+      await expect(heading.getByText(context, { exact: true })).toHaveCount(
+        shown ? 1 : 0,
+      );
+      await expect(heading).toHaveAccessibleName(
+        `${browser}${shown ? ` ${context}` : ""}`,
+      );
+    }
+    await headings
+      .first()
+      .getByRole("button", { name: /Details$/ })
+      .click();
+    const dialog = page.locator("dialog[open]");
+    await expect(dialog).toBeVisible();
+    expect(
+      await dialog
+        .locator("dt")
+        .filter({ hasText: /^Context$/ })
+        .evaluate((node) => node.nextElementSibling.textContent),
+    ).toBe(context);
+    await page.keyboard.press("Escape");
+  }
+});
 
 test("forced tables organize theme, browser, and mode without leaking into ordinary tables", async ({
   page,
@@ -668,7 +783,7 @@ test("compact headers keep full provenance in keyboard-accessible details and pr
   await page.keyboard.press("Enter");
   await expect(details).toHaveAttribute("open", "");
   await expect(details).toContainText("2000-01-01T00:00:00.000Z");
-  await expect(details.locator("dd")).toContainText(["white"]);
+  await expect(details.locator("dt")).not.toContainText(["light backdrop"]);
 });
 
 test("an authored OS theme does not overwrite an inactive browser media report", async ({
