@@ -10,7 +10,9 @@ import {
   pairResult,
   validateCollection,
   mergeCaptures,
+  versions,
 } from "../model.js";
+import { fixture } from "./fixtures.js";
 
 test("catalog covers all modern and deprecated keywords without duplicates", () => {
   assert.equal(keywords.filter((item) => !item.deprecated).length, 19);
@@ -145,4 +147,30 @@ test("complete captures validate, but forged hex and missing modes are rejected"
   const missing = structuredClone(data);
   delete missing.captures[0].schemes.dark;
   assert.throws(() => validateCollection(missing), /Missing capture dark/);
+});
+
+test("theme metadata is optional for legacy captures, typed, and independent of browser media detection", () => {
+  const capture = fixture("theme");
+  const data = { ...versions, captures: [capture] };
+  assert.equal(validateCollection(data)[0], capture);
+  capture.media.forcedColors = true;
+  assert.equal(validateCollection(data)[0], capture);
+  capture.environment.forcedColorTheme = "Aquatic";
+  assert.equal(
+    validateCollection(data)[0].environment.forcedColorTheme,
+    "Aquatic",
+  );
+  for (const name of [null, 42, "x".repeat(161)]) {
+    capture.environment.forcedColorTheme = name;
+    assert.throws(() => validateCollection(data), /theme/i);
+  }
+  capture.environment.forcedColorTheme = "Aquatic";
+  capture.media.forcedColors = false;
+  assert.equal(
+    validateCollection(data)[0].environment.forcedColorTheme,
+    "Aquatic",
+  );
+  assert.equal(capture.media.forcedColors, false);
+  capture.environment.forcedColorTheme = "";
+  assert.equal(validateCollection(data)[0], capture);
 });

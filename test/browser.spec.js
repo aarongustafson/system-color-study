@@ -1,4 +1,6 @@
 import { test, expect } from "@playwright/test";
+import { fixture } from "./fixtures.js";
+import { versions, hex, contrast } from "../model.js";
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/published.json", (route) =>
@@ -13,6 +15,171 @@ test.beforeEach(async ({ page }) => {
     }),
   );
   await page.goto("./test.html");
+});
+
+test("verdict cells distinguish all, some, no, and unavailable thresholds with readable separate lines", async ({
+  page,
+  browserName,
+}) => {
+  const capture = fixture("verdicts");
+  for (const snapshot of Object.values(capture.schemes)) {
+    for (const [name, rgba] of [
+      ["Canvas", [255, 255, 255, 255]],
+      ["Field", [255, 255, 255, 255]],
+      ["FieldText", [119, 119, 119, 255]],
+    ]) {
+      snapshot.colors[name] = {
+        supported: true,
+        computed: `rgb(${rgba.slice(0, 3).join(", ")})`,
+        rgba,
+        hex: hex(rgba),
+        conversion: "rgb-serialization",
+      };
+    }
+    snapshot.colors.Mark = {
+      supported: false,
+      computed: null,
+      rgba: null,
+      hex: null,
+    };
+  }
+  await page.route("**/published.json", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ ...versions, captures: [capture] }),
+    }),
+  );
+  await page.goto("./");
+  const verdict = (name) =>
+    page
+      .locator("#pair-table tbody tr")
+      .filter({
+        has: page.getByRole("rowheader", {
+          name: `${name} (background)`,
+          exact: true,
+        }),
+      })
+      .first()
+      .locator("td[rowspan='2']");
+  const success = verdict("Canvas");
+  const mixed = verdict("Field");
+  const failure = verdict("ButtonFace");
+  const unavailable = verdict("Mark");
+  for (const [cell, status] of [
+    [success, "pass"],
+    [mixed, "mixed"],
+    [failure, "fail"],
+    [unavailable, "unavailable"],
+  ]) {
+    await expect(cell).toHaveAttribute("data-verdict", status);
+  }
+  await expect(success.locator(":scope > p > strong")).toHaveText([
+    "21.00:1",
+    "Normal AA:",
+    "Normal AAA:",
+    "Large AA:",
+    "Large AAA:",
+    "Non-text:",
+  ]);
+  await expect(mixed.locator(":scope > p")).toHaveText([
+    "4.48:1",
+    "Normal AA: fail",
+    "Normal AAA: fail",
+    "Large AA: pass",
+    "Large AAA: fail",
+    "Non-text: pass",
+  ]);
+  await expect(unavailable).toContainText("Not measured:");
+  for (const mode of ["light", "dark"]) {
+    await page.emulateMedia({ colorScheme: mode });
+    const backgrounds = [];
+    for (const cell of [success, mixed, failure, unavailable]) {
+      const style = await cell.evaluate((node) => ({
+        foreground: getComputedStyle(node).color,
+        background: getComputedStyle(node).backgroundColor,
+      }));
+      const channels = (value) => value.match(/\d+/g).map(Number);
+      expect(
+        contrast(channels(style.foreground), channels(style.background)),
+      ).toBeGreaterThanOrEqual(4.5);
+      backgrounds.push(style.background);
+    }
+    expect(new Set(backgrounds).size).toBe(4);
+  }
+  if (browserName === "chromium") {
+    await page.emulateMedia({ forcedColors: "active" });
+    const forcedStyle = await success.evaluate((node) => ({
+      color: getComputedStyle(node).color,
+      background: getComputedStyle(node).backgroundColor,
+      canvas: getComputedStyle(document.documentElement).backgroundColor,
+      text: getComputedStyle(document.body).color,
+    }));
+    expect(forcedStyle.background).toBe(forcedStyle.canvas);
+    expect(forcedStyle.color).toBe(forcedStyle.text);
+  }
+});
+
+test("compact headers keep full provenance in keyboard-accessible details and preserve unknown theme states", async ({
+  page,
+}) => {
+  const captures = [
+    fixture("none"),
+    fixture("named"),
+    fixture("legacy"),
+    fixture("unknown"),
+    fixture("named-inactive"),
+  ];
+  captures[1].media.forcedColors = true;
+  captures[1].environment.forcedColorTheme = "Aquatic";
+  captures[2].media.forcedColors = true;
+  captures[3].media.forcedColors = null;
+  captures[4].environment.forcedColorTheme = "Desert";
+  await page.route("**/published.json", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ ...versions, captures }),
+    }),
+  );
+  await page.goto("./");
+  const headings = page.locator("#individual-table .capture-heading");
+  await expect(headings.locator(".capture-theme")).toHaveText([
+    "No forced colors",
+    "Aquatic",
+    "Forced colors (unnamed)",
+    "Forced colors unknown",
+    "Desert (forced colors inactive)",
+  ]);
+  const first = headings.first();
+  await expect(first.locator(":scope > p")).toHaveText([
+    "Unit fixture",
+    "Fixture",
+    "No forced colors",
+  ]);
+  const details = first.locator("details");
+  await expect(details.locator("p")).toBeHidden();
+  await details.locator("summary").focus();
+  await page.keyboard.press("Enter");
+  await expect(details).toHaveAttribute("open", "");
+  await expect(details).toContainText("2000-01-01T00:00:00.000Z");
+  await expect(details).toContainText("white backdrop");
+});
+
+test("an authored OS theme does not overwrite an inactive browser media report", async ({
+  page,
+}) => {
+  await page
+    .getByLabel("Forced-color theme name", { exact: true })
+    .fill("Reported OS theme");
+  await page.getByRole("button", { name: "Capture light and dark" }).click();
+  await page.getByRole("button", { name: "Export JSON" }).click();
+  const data = JSON.parse(await page.getByLabel("Exported JSON").inputValue());
+  expect(data.captures[0].environment.forcedColorTheme).toBe(
+    "Reported OS theme",
+  );
+  expect(data.captures[0].media.forcedColors).toBe(false);
+  await expect(page.locator("#individual-table .capture-theme")).toHaveText(
+    "Reported OS theme (forced colors inactive)",
+  );
 });
 
 test("one capture measures both schemes independently and shows both recorded grids", async ({
@@ -191,6 +358,9 @@ test("JSON import builds independent columns and round-trips original captures",
   );
   await page.getByLabel("Display mode").selectOption("dark");
   await expect(page.locator("#individual-table thead tr th")).toHaveCount(3);
+  await page
+    .getByText("Optional: change the contrast backdrop", { exact: true })
+    .click();
   await page.getByLabel("Opaque backdrop for contrast").selectOption("white");
   await expect(page.locator("#individual-table thead tr th")).toHaveCount(3);
 });
@@ -248,6 +418,9 @@ test("narrow screens retain keyboard operation and contained table scrolling", a
 test("table swatches use each capture backdrop, not the viewing page background", async ({
   page,
 }) => {
+  await page
+    .getByText("Optional: change the contrast backdrop", { exact: true })
+    .click();
   await page.getByLabel("Opaque backdrop for contrast").selectOption("black");
   await page.getByLabel("Browser and version").fill("Backdrop test");
   await page.getByLabel("OS and version").fill("OS");
@@ -293,10 +466,22 @@ test("forced-color emulation is recorded as a distinct environment, not normal m
   await page
     .getByLabel("OS and version")
     .fill("Fixture, not a real Windows run");
+  const theme = page.getByLabel("Forced-color theme name", { exact: true });
+  await expect(theme).toBeEditable();
+  await expect(theme).toHaveAttribute("required", "");
+  await page.getByRole("button", { name: "Capture light and dark" }).click();
+  await expect(page.locator("#captures li")).toHaveCount(0);
+  await theme.fill("   ");
+  await page.getByRole("button", { name: "Capture light and dark" }).click();
+  await expect(page.locator("#captures li")).toHaveCount(0);
+  await theme.fill("Emulated contrast theme");
   await page.getByRole("button", { name: "Capture light and dark" }).click();
   await page.getByRole("button", { name: "Export JSON" }).click();
   const data = JSON.parse(await page.getByLabel("Exported JSON").inputValue());
   expect(data.captures[0].media.forcedColors).toBe(true);
+  expect(data.captures[0].environment.forcedColorTheme).toBe(
+    "Emulated contrast theme",
+  );
   expect(data.captures[0].media.prefersColorScheme).toBe("dark");
   expect(data.captures[0].schemes.light.computedColorScheme).toBeTruthy();
   await expect(page.locator("#individual-table thead")).toContainText(

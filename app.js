@@ -32,7 +32,47 @@ const snapshotFor = (capture) => capture.schemes[byId("scheme").value];
 const forcedLabel = (value) =>
   value === null ? "unknown" : value ? "active" : "inactive";
 const label = (capture) =>
-  `${capture.environment.browser} / ${capture.environment.os} · ${capture.environment.context} · ${capture.capturedAt} · ${snapshotFor(capture).backdrop} backdrop · OS preference: ${capture.media.prefersColorScheme} · contrast preference: ${capture.media.prefersContrast} · forced colors: ${forcedLabel(capture.media.forcedColors)}${snapshotFor(capture).schemeSupported ? "" : " · requested CSS scheme unsupported"}`;
+  `${capture.environment.browser} / ${capture.environment.os} · ${capture.environment.context} · ${capture.capturedAt} · ${snapshotFor(capture).backdrop} backdrop · OS preference: ${capture.media.prefersColorScheme} · contrast preference: ${capture.media.prefersContrast} · forced colors: ${forcedLabel(capture.media.forcedColors)}${capture.environment.forcedColorTheme?.trim() ? " · theme: " + capture.environment.forcedColorTheme.trim() : ""}${snapshotFor(capture).schemeSupported ? "" : " · requested CSS scheme unsupported"}`;
+
+function captureHeading(capture, index) {
+  const heading = element("th");
+  heading.className = "capture-heading";
+  const name = capture.environment.forcedColorTheme?.trim();
+  const theme =
+    capture.media.forcedColors === false
+      ? name
+        ? `${name} (forced colors inactive)`
+        : "No forced colors"
+      : capture.media.forcedColors === true
+        ? name || "Forced colors (unnamed)"
+        : name
+          ? `${name} (forced colors unknown)`
+          : "Forced colors unknown";
+  for (const [type, text] of [
+    ["browser", capture.environment.browser],
+    ["os", capture.environment.os],
+    ["theme", theme],
+  ]) {
+    const line = element("p", text);
+    line.className = `capture-${type}`;
+    heading.append(line);
+  }
+  if (!snapshotFor(capture).schemeSupported)
+    heading.append(element("p", "Requested scheme unsupported"));
+  const details = element("details");
+  details.append(
+    element("summary", `Run ${index + 1} details`),
+    element("p", label(capture)),
+  );
+  if (capture.environment.notes)
+    details.append(element("p", "Notes: " + capture.environment.notes));
+  if (capture.environment.userAgent)
+    details.append(
+      element("p", "User agent: " + capture.environment.userAgent),
+    );
+  heading.append(details);
+  return heading;
+}
 
 function report(error) {
   console.error("System color study:", error);
@@ -44,8 +84,31 @@ function report(error) {
 function clearError() {
   byId("error").hidden = true;
 }
-function gradeText(result) {
-  return `Normal AA: ${result.grades.normalAA ? "pass" : "fail"}; AAA: ${result.grades.normalAAA ? "pass" : "fail"}. Large AA: ${result.grades.largeAA ? "pass" : "fail"}; AAA: ${result.grades.largeAAA ? "pass" : "fail"}.`;
+function renderVerdict(target, result) {
+  target.classList.add("contrast-result");
+  if (result.ratio === null) {
+    target.dataset.verdict = "unavailable";
+    target.append(element("p", "Not measured: " + result.reason));
+    return;
+  }
+  const thresholds = [
+    ["Normal AA", result.grades.normalAA],
+    ["Normal AAA", result.grades.normalAAA],
+    ["Large AA", result.grades.largeAA],
+    ["Large AAA", result.grades.largeAAA],
+    ["Non-text", result.nonTextThreshold],
+  ];
+  const passes = thresholds.filter(([, pass]) => pass).length;
+  target.dataset.verdict =
+    passes === thresholds.length ? "pass" : passes === 0 ? "fail" : "mixed";
+  const ratio = element("p");
+  ratio.append(element("strong", `${result.ratio.toFixed(2)}:1`));
+  target.append(ratio);
+  for (const [name, pass] of thresholds) {
+    const line = element("p");
+    line.append(element("strong", name + ":"), pass ? " pass" : " fail");
+    target.append(line);
+  }
 }
 function colorCell(color, snapshot) {
   const cell = element("td");
@@ -124,12 +187,11 @@ function renderPalette(
       text.style.backgroundColor = snapshot.colors[pair.background].hex;
       text.style.color = snapshot.colors[pair.foreground].hex;
       sample.append(text);
-      card.append(
-        sample,
-        element("p", `${result.ratio.toFixed(2)}:1`),
-        element("p", gradeText(result)),
-      );
-    } else card.append(element("p", "Not measured: " + result.reason));
+      card.append(sample);
+    }
+    const verdict = element("div");
+    renderVerdict(verdict, result);
+    card.append(verdict);
     cards.append(card);
   }
   pairTarget.replaceChildren(cards);
@@ -171,7 +233,7 @@ function renderTables() {
   keywordHeading.scope = "col";
   heading.append(keywordHeading);
   captures.forEach((capture, index) => {
-    const th = element("th", label(capture));
+    const th = captureHeading(capture, index);
     th.scope = "col";
     th.id = `individual-column-${index}`;
     heading.append(th);
@@ -201,7 +263,7 @@ function renderTables() {
   first.scope = "col";
   firstHeader.append(first);
   captures.forEach((capture, index) => {
-    const column = element("th", label(capture));
+    const column = captureHeading(capture, index);
     column.colSpan = 2;
     column.scope = "colgroup";
     column.id = `pair-column-${index}`;
@@ -248,18 +310,7 @@ function renderTables() {
         "headers",
         `${bg.id} ${fg.id} pair-column-${index} contrast-column-${index}`,
       );
-      if (result.ratio === null) {
-        cell.textContent = "Not measured: " + result.reason;
-      } else {
-        cell.append(
-          element("strong", `${result.ratio.toFixed(2)}:1`),
-          element("p", gradeText(result)),
-          element(
-            "p",
-            `Non-text 3:1 threshold: ${result.nonTextThreshold ? "pass" : "fail"}.`,
-          ),
-        );
-      }
+      renderVerdict(cell, result);
       background.append(cell);
     });
     pairRows.append(background, foreground);
@@ -292,10 +343,16 @@ function renderTables() {
   byId("captures").replaceChildren(list);
 }
 
+function syncThemeField(media) {
+  byId("forced-color-theme").disabled = false;
+  byId("forced-color-theme").required = media.forcedColors === true;
+}
+
 function refresh() {
   if (isTestPage) {
     live = measureScheme(byId("scheme").value, byId("backdrop").value);
     const media = mediaSnapshot();
+    syncThemeField(media);
     byId("environment").textContent =
       `OS preference: ${media.prefersColorScheme}; forced colors: ${forcedLabel(media.forcedColors)}; contrast preference: ${media.prefersContrast}. Requested scheme: ${byId("scheme").value}; computed scheme: ${live.schemeSupported ? live.computedColorScheme : "unsupported"}.`;
     renderPalette();
@@ -303,25 +360,34 @@ function refresh() {
   renderTables();
 }
 
+function refreshWithStatus() {
+  clearError();
+  try {
+    refresh();
+    byId("status").textContent = isTestPage
+      ? "Live values resampled. Saved captures are unchanged."
+      : `Showing ${captures.length} published captures in ${byId("scheme").value} mode.`;
+  } catch (error) {
+    report(error);
+  }
+}
+
 for (const id of [
   "scheme",
   "deprecated",
   ...(isTestPage ? ["backdrop", "refresh"] : []),
 ]) {
-  byId(id).addEventListener(id === "refresh" ? "click" : "change", () => {
-    clearError();
-    try {
-      refresh();
-      byId("status").textContent = isTestPage
-        ? "Live values resampled. Saved captures are unchanged."
-        : `Showing ${captures.length} published captures in ${byId("scheme").value} mode.`;
-    } catch (error) {
-      report(error);
-    }
-  });
+  byId(id).addEventListener(
+    id === "refresh" ? "click" : "change",
+    refreshWithStatus,
+  );
 }
 
 if (isTestPage) {
+  matchMedia("(forced-colors: active)").addEventListener(
+    "change",
+    refreshWithStatus,
+  );
   byId("detect-versions").addEventListener("click", async () => {
     clearError();
     const button = byId("detect-versions");
@@ -350,6 +416,11 @@ if (isTestPage) {
     event.preventDefault();
     clearError();
     try {
+      const media = mediaSnapshot();
+      syncThemeField(media);
+      byId("forced-color-theme").value =
+        byId("forced-color-theme").value.trim();
+      if (!byId("capture-form").reportValidity()) return;
       const capturedAt = new Date().toISOString();
       const capture = {
         id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
@@ -357,11 +428,12 @@ if (isTestPage) {
         environment: {
           browser: byId("browser").value.trim(),
           os: byId("os").value.trim(),
+          forcedColorTheme: byId("forced-color-theme").value,
           context: byId("context").value,
           notes: byId("notes").value,
           userAgent: navigator.userAgent,
         },
-        media: mediaSnapshot(),
+        media,
         schemes: Object.fromEntries(
           ["light", "dark"].map((scheme) => [
             scheme,
