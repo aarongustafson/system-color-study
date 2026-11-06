@@ -8,7 +8,7 @@ body:
       value: |
         Capture your browser at https://aarongustafson.github.io/system-color-study/test.html.
         Download the JSON for your own copy, then use Copy JSON and paste it below.
-        The workflow validates one snapshot before opening a data-only pull request for review.
+        The workflow validates one snapshot. After the owner comments /approve-snapshot, it revalidates the data and opens a data-only pull request for review.
         Do not include personal information or credentials.
   - type: textarea
     id: snapshot

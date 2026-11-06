@@ -5,9 +5,11 @@ if useful. The build validates and combines every `.json` file with the legacy
 root `published.json` collection.
 
 Contributors can use the snapshot issue form linked from the capture page.
-The issue workflow validates one snapshot and the combined build before opening
+The issue workflow validates one snapshot and the combined build. After the owner
+posts `/approve-snapshot`, it revalidates the data before opening
 a data-only review PR under `data/submissions/issue-<number>.json`. Issue edits
-update the same submission; maintainers still review before merging.
+need a new owner approval to update the same submission; maintainers still
+review before merging.
 
 The first observations are under `automated-local/2026-11-05/`: three headed
 Playwright bundled engines on macOS 27.0.1 arm64, with media emulation disabled.

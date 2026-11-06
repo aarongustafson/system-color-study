@@ -1075,9 +1075,7 @@ test("full version hints are requested only after an explicit action", async ({
   });
   await page.reload();
   expect(await page.evaluate(() => window.hintRequests)).toBe(0);
-  await page
-    .getByRole("button", { name: "Fill available full versions" })
-    .click();
+  await page.getByRole("button", { name: "Populate from browser" }).click();
   await expect(page.getByLabel("Browser and version")).toHaveValue(
     "Chromium 156.1.2.3",
   );
@@ -1101,15 +1099,13 @@ test("refused version hints preserve entered metadata and report the failure", a
   });
   await page.reload();
   await page.getByLabel("Browser and version").fill("Verified browser");
-  await page
-    .getByRole("button", { name: "Fill available full versions" })
-    .click();
+  await page.getByRole("button", { name: "Populate from browser" }).click();
   await expect(page.locator("#error")).toContainText("Version details denied");
   await expect(page.getByLabel("Browser and version")).toHaveValue(
     "Verified browser",
   );
   await expect(
-    page.getByRole("button", { name: "Fill available full versions" }),
+    page.getByRole("button", { name: "Populate from browser" }),
   ).toBeEnabled();
 });
 
@@ -1309,7 +1305,10 @@ test("study pages explain color preferences and invite designers to contribute s
   await page.getByLabel("Browser and version").fill("Confirmed browser");
   await page.getByLabel("OS and version").fill("Confirmed OS");
   await page
-    .getByRole("button", { name: "Capture light and dark", exact: true })
+    .getByRole("button", {
+      name: "Capture light and dark system colors",
+      exact: true,
+    })
     .click();
   await expect(
     page.getByRole("link", {
@@ -1321,7 +1320,10 @@ test("study pages explain color preferences and invite designers to contribute s
     "https://github.com/aarongustafson/system-color-study/issues/new?template=color-snapshot.yml",
   );
   await expect(
-    page.getByRole("button", { name: "Capture light and dark", exact: true }),
+    page.getByRole("button", {
+      name: "Capture light and dark system colors",
+      exact: true,
+    }),
   ).toBeEnabled();
   expect(
     await page

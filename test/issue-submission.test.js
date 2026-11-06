@@ -11,10 +11,116 @@ import {
   publishIssueSubmission,
   checkNewCapture,
   runIssueSubmission,
+  verifyApproval,
 } from "../scripts/issue-submission.js";
 
 const body = (data) =>
   `### Snapshot data\n\n\`\`\`json\n${JSON.stringify(data)}\n\`\`\`\n`;
+
+const approvalEvent = (issue) => ({
+  action: "created",
+  sender: { login: "aarongustafson" },
+  issue,
+  comment: {
+    id: 7,
+    user: { login: "aarongustafson" },
+    author_association: "OWNER",
+    body: "/approve-snapshot",
+    issue_url: `https://api.github.com/repos/aarongustafson/system-color-study/issues/${issue.number}`,
+  },
+});
+
+test("publishing rejects non-approval events before reading data or contacting GitHub", async (t) => {
+  const root = await checkout(t);
+  const issue = { number: 42 };
+  const approved = approvalEvent(issue);
+  const events = [
+    { issue, action: "opened" },
+    { ...approved, action: "edited" },
+    { ...approved, sender: { login: "someone-else" } },
+    { ...approved, issue: { ...issue, pull_request: {} } },
+    {
+      ...approved,
+      comment: { ...approved.comment, user: { login: "someone-else" } },
+    },
+    {
+      ...approved,
+      comment: { ...approved.comment, author_association: "COLLABORATOR" },
+    },
+    {
+      ...approved,
+      comment: { ...approved.comment, body: "I approve /approve-snapshot" },
+    },
+  ];
+  const eventPath = join(root, "event.json");
+  const previous = process.env.GITHUB_EVENT_PATH;
+  const previousName = process.env.GITHUB_EVENT_NAME;
+  process.env.GITHUB_EVENT_PATH = eventPath;
+  process.env.GITHUB_EVENT_NAME = "issue_comment";
+  t.after(() => {
+    if (previous === undefined) delete process.env.GITHUB_EVENT_PATH;
+    else process.env.GITHUB_EVENT_PATH = previous;
+    if (previousName === undefined) delete process.env.GITHUB_EVENT_NAME;
+    else process.env.GITHUB_EVENT_NAME = previousName;
+  });
+  for (const event of events) {
+    await writeFile(eventPath, JSON.stringify(event));
+    await assert.rejects(
+      runIssueSubmission("publish", {
+        root,
+        api: () => assert.fail("Unapproved events must not contact GitHub"),
+      }),
+      /approval/i,
+    );
+  }
+});
+
+test("approval is fetched again and must still belong to the owner and this issue", async () => {
+  const event = approvalEvent({ number: 42 });
+  await verifyApproval(event, async (path, method) => {
+    assert.match(path, /issues\/comments\/7$/);
+    assert.equal(method, "GET");
+    return event.comment;
+  });
+  for (const change of [
+    { body: "Approval withdrawn" },
+    { user: { login: "someone-else" } },
+    { author_association: "COLLABORATOR" },
+    {
+      issue_url:
+        "https://api.github.com/repos/aarongustafson/system-color-study/issues/43",
+    },
+  ])
+    await assert.rejects(
+      verifyApproval(event, async () => ({ ...event.comment, ...change })),
+      /approval/i,
+    );
+  await assert.rejects(
+    verifyApproval(event, async () => {
+      throw new Error("Deleted approval");
+    }),
+    /Deleted approval/,
+  );
+});
+
+test("the write-scoped workflow job requires the owner's exact approval comment", async () => {
+  const source = await readFile(
+    new URL("../.github/workflows/snapshot-issues.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(source, /issue_comment:\s*\n\s*types: \[created\]/);
+  const publish = source.slice(source.indexOf("  publish:"));
+  for (const condition of [
+    "github.event_name == 'issue_comment'",
+    "github.event.comment.user.login == 'aarongustafson'",
+    "github.actor == 'aarongustafson'",
+    "github.event.comment.author_association == 'OWNER'",
+    "github.event.comment.body == '/approve-snapshot'",
+    "!github.event.issue.pull_request",
+  ])
+    assert.ok(publish.includes(condition), condition);
+  assert.ok(publish.indexOf("if:") < publish.indexOf("permissions:"));
+});
 
 test("issue submissions accept one complete snapshot and reject malformed or unconfirmed data", () => {
   const capture = fixture("issue");
@@ -72,7 +178,11 @@ test("the complete issue flow validates a build before a separate publisher open
   });
   await runIssueSubmission("validate", {
     root: validator,
-    api: () => assert.fail("Successful validation needs no GitHub write"),
+    api: async (path, method, input) => {
+      if (method === "GET") return [];
+      assert.match(path, /issues\/9\/comments$/);
+      assert.match(input.body, /Awaiting owner approval/);
+    },
   });
   const artifact = await readFile(
     join(validator, ".submission/collection.json"),
@@ -80,11 +190,20 @@ test("the complete issue flow validates a build before a separate publisher open
   assert.deepEqual(JSON.parse(artifact).captures, [capture]);
   await mkdir(join(publisher, ".submission"));
   await writeFile(join(publisher, ".submission/collection.json"), artifact);
+  const approved = approvalEvent(issue);
+  await writeFile(eventPath, JSON.stringify(approved));
+  const previousName = process.env.GITHUB_EVENT_NAME;
+  process.env.GITHUB_EVENT_NAME = "issue_comment";
+  t.after(() => {
+    if (previousName === undefined) delete process.env.GITHUB_EVENT_NAME;
+    else process.env.GITHUB_EVENT_NAME = previousName;
+  });
   const calls = [];
   await runIssueSubmission("publish", {
     root: publisher,
     api: async (path, method, input) => {
       calls.push({ path, method, input });
+      if (path.endsWith("/issues/comments/7")) return approved.comment;
       if (path.endsWith("/issues/9")) return issue;
       if (
         path.includes("/pulls?") ||

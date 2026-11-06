@@ -40,6 +40,38 @@ export function checkNewCapture(existing, incoming) {
     );
 }
 
+function ownerApproval(comment) {
+  return (
+    comment?.user?.login === "aarongustafson" &&
+    comment.author_association === "OWNER" &&
+    comment.body === "/approve-snapshot"
+  );
+}
+
+export async function verifyApproval(event, api = githubAPI) {
+  if (
+    event.action !== "created" ||
+    event.sender?.login !== "aarongustafson" ||
+    event.issue?.pull_request ||
+    !ownerApproval(event.comment) ||
+    !Number.isSafeInteger(event.comment.id) ||
+    event.comment.id < 1
+  )
+    throw new Error(
+      "Publishing requires a new owner approval comment: /approve-snapshot.",
+    );
+  const number = issueNumber(event.issue);
+  const current = await api(
+    `${endpoint}/issues/comments/${event.comment.id}`,
+    "GET",
+  );
+  if (
+    !ownerApproval(current) ||
+    current.issue_url !== `https://api.github.com/${endpoint}/issues/${number}`
+  )
+    throw new Error("The owner approval is no longer valid for this issue.");
+}
+
 export async function publishIssueSubmission(issue, captures, api = githubAPI) {
   const number = issueNumber(issue);
   const current = await api(`${endpoint}/issues/${number}`, "GET");
@@ -52,7 +84,7 @@ export async function publishIssueSubmission(issue, captures, api = githubAPI) {
     );
   if (!isDeepStrictEqual(parseIssueSubmission(current.body), captures))
     throw new Error(
-      "The issue data changed during validation. Its next workflow run will handle the edit.",
+      "The issue data changed during validation. Revalidate it and post a new owner approval comment.",
     );
   const branch = `data/issue-${number}`;
   const path = `data/submissions/issue-${number}.json`;
@@ -188,6 +220,11 @@ export async function runIssueSubmission(
   );
   const issue = event.issue;
   issueNumber(issue);
+  if (mode === "publish") {
+    if (process.env.GITHUB_EVENT_NAME !== "issue_comment")
+      throw new Error("Publishing requires an owner approval comment event.");
+    await verifyApproval(event, api);
+  }
   try {
     const captures =
       mode === "validate"
@@ -204,6 +241,12 @@ export async function runIssueSubmission(
         join(root, ".submission/collection.json"),
         JSON.stringify({ ...versions, captures }),
       );
+      if (process.env.GITHUB_EVENT_NAME !== "issue_comment")
+        await comment(
+          issue,
+          "Validation passed. Awaiting owner approval: Aaron can post a new `/approve-snapshot` comment to revalidate this data and create or update its review PR. Editing the issue does not publish it.",
+          api,
+        );
     } else if (mode === "publish") {
       const url = await publishIssueSubmission(issue, captures, api);
       await comment(
@@ -216,7 +259,7 @@ export async function runIssueSubmission(
     console.error("Snapshot validation/submission failed:", error);
     await comment(
       issue,
-      `Validation or submission failed. Correct the issue data and save the issue to retry.\n\n\`\`\`text\n${error.message.slice(0, 2000).replaceAll("```", "'''")}\n\`\`\`\n\nSee the workflow run for details.`,
+      `Validation or submission failed. Correct and save the issue data to revalidate. The owner must post a new /approve-snapshot comment to retry PR creation.\n\n\`\`\`text\n${error.message.slice(0, 2000).replaceAll("```", "'''")}\n\`\`\`\n\nSee the workflow run for details.`,
       api,
     );
     throw error;

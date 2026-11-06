@@ -91,6 +91,8 @@ an actual installed context and suitable HTTPS hosting/installation setup.
    numeric color measurement.
 10. Submit one reviewed snapshot through the GitHub issue form. Compare the
     resulting published columns under equivalent settings after review.
+    Validation runs automatically; Aaron posts `/approve-snapshot` to revalidate
+    the data and authorize a review PR. Edits require a new approval.
 
 Settings can change while a capture runs. Don’t change them mid-capture.
 The tool performs bounded synchronous measurements in isolated scheme probes;

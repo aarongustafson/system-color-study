@@ -278,17 +278,22 @@ to the [snapshot issue form](https://github.com/aarongustafson/system-color-stud
 The issue workflow runs after an issue is opened or edited. It accepts one
 complete snapshot, rejects unconfirmed metadata, duplicate/conflicting IDs,
 incompatible data, and collection limits, then validates the complete site build.
-A separate publishing job rechecks the data, writes only
-`data/submissions/issue-<number>.json`, and opens a review PR. Edits update that
-same file and PR; closed PRs aren’t silently reopened. Errors are reported on the
-issue. The workflow never approves, merges, or publishes a contribution.
+Successful validation leaves a comment asking for owner approval. Aaron can
+post a new comment containing exactly `/approve-snapshot` on the issue.
+This reruns validation before a separate publishing job rechecks the data,
+writes only `data/submissions/issue-<number>.json`, and opens a review PR.
+Only Aaron’s owner account can authorize repository writes. The publisher
+fetches the approval again and checks that it still belongs to this issue.
+Edits rerun validation but require a new approval comment before updating the
+same file and PR; closed PRs aren’t silently reopened. Errors are reported on
+the issue. The workflow never approves or merges the resulting PR.
 These checks confirm structure and consistency, not the browser’s identity or
 the accuracy of its measurements. Maintainers still review the provenance.
 
 The browser sends no data to GitHub automatically: contributors copy and paste
 it deliberately. Issue data is parsed as bounded JSON, not executed or interpolated
 into shell scripts. Validation has no repository-write permission. Only the
-publisher receives contents, pull-request, and Actions write permissions; the
+owner-gated publisher receives contents, pull-request, and Actions write permissions; the
 repository’s default token remains read-only. Repository settings must allow
 Actions to create pull requests. Bot-created PRs don’t automatically trigger
 ordinary PR workflows, so the publisher explicitly dispatches the existing
