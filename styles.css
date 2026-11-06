@@ -21,6 +21,9 @@ footer {
   margin-inline: auto;
   padding: 1rem;
 }
+[data-study-page="protocol"] :is(header, main, footer) {
+  max-inline-size: 72ch;
+}
 section {
   margin-block-end: 3rem;
 }

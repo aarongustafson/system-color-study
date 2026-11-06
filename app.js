@@ -9,7 +9,35 @@ import {
 
 const byId = (id) => document.getElementById(id);
 const fields = ["browser", "os", "notes", "forced-color-theme"];
+const metadataSources = { browser: "not-reported", os: "not-reported" };
 let downloadURL;
+
+function reportMetadataSources() {
+  const labels = {
+    "user-agent": "inferred from the user-agent string",
+    "client-hints": "reported through Client Hints",
+    edited: "edited by you",
+    "not-reported": "not reported",
+  };
+  const messages = [
+    metadataSources.browser === metadataSources.os
+      ? `Browser and OS: ${labels[metadataSources.browser]}.`
+      : `Browser: ${labels[metadataSources.browser]}. OS: ${labels[metadataSources.os]}.`,
+  ];
+  const sources = Object.values(metadataSources);
+  if (sources.includes("user-agent"))
+    messages.push(
+      "Browsers may freeze or shorten user-agent values to reduce fingerprinting.",
+    );
+  if (sources.includes("client-hints"))
+    messages.push(
+      "Client Hints can disclose fuller versions or a different browser brand, so they may differ from the starting values.",
+    );
+  if (sources.includes("not-reported"))
+    messages.push("Enter any missing values from your About screens.");
+  messages.push("Confirm both versions in the About screens.");
+  byId("metadata-source").textContent = messages.join(" ");
+}
 
 function validateField(field) {
   field.setCustomValidity(
@@ -35,7 +63,12 @@ function syncEnvironment() {
 for (const id of [...fields, "context"])
   byId(id).addEventListener("input", () => {
     if (id !== "context") validateField(byId(id));
+    if (id === "browser" || id === "os") {
+      metadataSources[id] = "edited";
+      reportMetadataSources();
+    }
     byId("capture-result").hidden = true;
+    byId("status").textContent = "";
   });
 for (const query of [
   "(forced-colors: active)",
@@ -46,6 +79,7 @@ for (const query of [
   matchMedia(query).addEventListener("change", () => {
     syncEnvironment();
     byId("capture-result").hidden = true;
+    byId("status").textContent = "";
   });
 
 byId("detect-versions").addEventListener("click", async () => {
@@ -63,11 +97,14 @@ byId("detect-versions").addEventListener("click", async () => {
         "The browser did not disclose full versions. Enter confirmed versions manually.",
       );
     for (const id of ["browser", "os"])
-      if (detected[id]) byId(id).value = detected[id];
+      if (detected[id]) {
+        byId(id).value = detected[id];
+        metadataSources[id] = "client-hints";
+      }
+    reportMetadataSources();
     syncEnvironment();
     byId("capture-result").hidden = true;
-    byId("status").textContent =
-      "Reported versions filled. Confirm them in the About screens before capturing.";
+    byId("status").textContent = "";
   } catch (error) {
     report(error);
   } finally {
@@ -156,7 +193,11 @@ window.addEventListener("pagehide", (event) => {
 
 try {
   const detected = detectEnvironment(navigator.userAgent);
-  for (const id of ["browser", "os"]) byId(id).value = detected[id] || "";
+  for (const id of ["browser", "os"]) {
+    byId(id).value = detected[id] || "";
+    metadataSources[id] = detected[id] ? "user-agent" : "not-reported";
+  }
+  reportMetadataSources();
   byId("detect-versions").hidden =
     !navigator.userAgentData?.getHighEntropyValues;
   syncEnvironment();

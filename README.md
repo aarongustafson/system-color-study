@@ -47,7 +47,7 @@ alpha, unsupported keywords, and both requested-scheme reports remain in the JSO
 
 ## Gather a capture
 
-1. Read [the protocol](./PLAN.md), including the environment and privacy checks.
+1. Read [the protocol](./protocol.html), including the environment and privacy checks.
    Open [the test page](./test.html).
 2. Verify the prefilled browser and OS names **against their About screens**.
    Prefills come from the user agent and may be reduced, frozen, or spoofed.
@@ -55,6 +55,11 @@ alpha, unsupported keywords, and both requested-scheme reports remain in the JSO
    additional browser-provided version details. These are still reports, not
    proof of the installed versions; Windows platform versions aren’t Windows
    release names. All fields remain editable.
+   The status below the fields identifies each value’s source: user-agent
+   inference, Client Hints, or your edits. User-agent versions can be frozen or
+   shortened to reduce fingerprinting; Client Hints may supply fuller versions
+   or a different browser brand. If only one field is disclosed, the other
+   keeps its value and source. Failed requests leave both unchanged.
    Record relevant device, accent, and experimental settings in Notes.
    When forced colors are active, enter the actual name in **Forced-color theme
    name**. Don’t include personal information.

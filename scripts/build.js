@@ -17,7 +17,7 @@ export const publicFiles = [
   "environment.js",
   "styles.css",
   "README.md",
-  "PLAN.md",
+  "protocol.html",
 ];
 
 export function renderIndex(source, captures) {

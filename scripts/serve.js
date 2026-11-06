@@ -28,7 +28,7 @@ const files = new Map([
     "styles.css",
     "published.json",
     "README.md",
-    "PLAN.md",
+    "protocol.html",
   ].map((file) => [
     "/" + file,
     [

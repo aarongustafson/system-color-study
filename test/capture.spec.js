@@ -134,6 +134,7 @@ test("editing metadata hides the stale download until another capture", async ({
   await expect(page.locator("#capture-result")).toBeVisible();
   await page.getByLabel("Browser and version").fill("Browser 2");
   await expect(page.locator("#capture-result")).toBeHidden();
+  await expect(page.locator("#status")).toBeEmpty();
   await page.getByRole("button", { name: "Capture light and dark" }).click();
   const data = JSON.parse(await page.getByLabel("Exported JSON").inputValue());
   expect(data.captures).toHaveLength(1);

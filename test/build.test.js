@@ -77,7 +77,7 @@ test("build merges every committed JSON collection and publishes only allowed st
       "styles.css",
       "published.json",
       "README.md",
-      "PLAN.md",
+      "protocol.html",
     ].sort(),
   );
 });

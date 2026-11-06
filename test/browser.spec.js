@@ -1075,6 +1075,10 @@ test("full version hints are requested only after an explicit action", async ({
   });
   await page.reload();
   expect(await page.evaluate(() => window.hintRequests)).toBe(0);
+  await expect(page.locator("#metadata-source")).toContainText("user-agent");
+  await expect(page.locator("#metadata-source")).toContainText(
+    "freeze or shorten",
+  );
   await page.getByRole("button", { name: "Populate from browser" }).click();
   await expect(page.getByLabel("Browser and version")).toHaveValue(
     "Chromium 156.1.2.3",
@@ -1082,6 +1086,11 @@ test("full version hints are requested only after an explicit action", async ({
   await expect(page.getByLabel("OS and version")).toHaveValue(
     "macOS 26.4.2 (reported; verify)",
   );
+  await expect(page.locator("#metadata-source")).toContainText("Client Hints");
+  await expect(page.locator("#metadata-source")).toContainText(
+    "different browser brand",
+  );
+  await expect(page.locator("#status")).toBeEmpty();
 });
 
 test("refused version hints preserve entered metadata and report the failure", async ({
@@ -1099,6 +1108,7 @@ test("refused version hints preserve entered metadata and report the failure", a
   });
   await page.reload();
   await page.getByLabel("Browser and version").fill("Verified browser");
+  const source = await page.locator("#metadata-source").textContent();
   await page.getByRole("button", { name: "Populate from browser" }).click();
   await expect(page.locator("#error")).toContainText("Version details denied");
   await expect(page.getByLabel("Browser and version")).toHaveValue(
@@ -1107,6 +1117,88 @@ test("refused version hints preserve entered metadata and report the failure", a
   await expect(
     page.getByRole("button", { name: "Populate from browser" }),
   ).toBeEnabled();
+  await expect(page.locator("#metadata-source")).toHaveText(source);
+});
+
+test("partial Client Hints describe only the fields they replace", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "userAgentData", {
+      configurable: true,
+      value: {
+        async getHighEntropyValues() {
+          return { platform: "macOS", platformVersion: "27.0.1" };
+        },
+      },
+    });
+  });
+  await page.reload();
+  await page.getByLabel("Browser and version").fill("Confirmed browser");
+  await page.getByLabel("OS and version").fill("Confirmed OS");
+  await page.getByRole("button", { name: "Capture light and dark" }).click();
+  await expect(page.locator("#status")).toContainText("download is ready");
+  await page.getByRole("button", { name: "Populate from browser" }).click();
+  await expect(page.getByLabel("Browser and version")).toHaveValue(
+    "Confirmed browser",
+  );
+  await expect(page.locator("#metadata-source")).toContainText(
+    "Browser: edited by you",
+  );
+  await expect(page.locator("#metadata-source")).toContainText(
+    "OS: reported through Client Hints",
+  );
+  await expect(page.locator("#status")).toBeEmpty();
+  await page.getByLabel("OS and version").fill("Confirmed OS");
+  await expect(page.locator("#metadata-source")).toContainText(
+    "Browser and OS: edited by you",
+  );
+  await expect(page.locator("#metadata-source")).not.toContainText(
+    "reported through Client Hints",
+  );
+});
+
+test("the study protocol is a linked, readable HTML page without JavaScript", async ({
+  browser,
+  baseURL,
+}) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  try {
+    const page = await context.newPage();
+    await page.goto(baseURL);
+    await page
+      .getByRole("link", { name: "Study protocol", exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/protocol\.html$/);
+    await expect(
+      page.getByRole("heading", { name: "Study protocol", level: 1 }),
+    ).toBeVisible();
+    await expect(page.locator("main")).toContainText("/approve-snapshot");
+    await expect(page.locator("main")).toContainText("42");
+    await expect(page.locator("main")).toContainText("100");
+    await expect(page.locator("main")).toContainText("5 MB");
+    await expect(page.locator("script")).toHaveCount(0);
+    await expect(page.locator('a[href*="PLAN.md"]')).toHaveCount(0);
+    await expect(page.locator("footer")).toContainText("Aaron Gustafson");
+    await page.setViewportSize({ width: 320, height: 900 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await page
+      .getByRole("link", { name: "Take a snapshot", exact: true })
+      .first()
+      .click();
+    await expect(
+      page.getByRole("heading", {
+        name: "Take a system color snapshot",
+        level: 1,
+      }),
+    ).toBeVisible();
+  } finally {
+    await context.close();
+  }
 });
 
 test("narrow screens retain keyboard operation and contained table scrolling", async ({

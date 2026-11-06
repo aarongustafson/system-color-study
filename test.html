@@ -17,7 +17,7 @@
       </p>
       <p>
         <a href="./">Published results</a> ·
-        <a href="./PLAN.md">Research protocol</a>
+        <a href="./protocol.html">Research protocol</a>
       </p>
     </header>
     <main>
@@ -46,7 +46,7 @@
                 >Browser and version
                 <input
                   id="browser"
-                  aria-describedby="metadata-help"
+                  aria-describedby="metadata-help metadata-source"
                   required
                   maxlength="160"
               /></label>
@@ -54,7 +54,7 @@
                 >OS and version
                 <input
                   id="os"
-                  aria-describedby="metadata-help"
+                  aria-describedby="metadata-help metadata-source"
                   required
                   maxlength="160"
               /></label>
@@ -62,6 +62,10 @@
                 Populate from browser
               </button>
             </div>
+            <p id="metadata-source" role="status">
+              Browser-reported values can be incomplete or frozen. Confirm the
+              versions in the About screens.
+            </p>
             <div id="forced-color-fields" hidden>
               <label
                 >Forced-color theme name
