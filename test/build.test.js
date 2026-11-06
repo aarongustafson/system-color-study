@@ -232,7 +232,16 @@ test("paired examples reuse shared SVG faces for the overall measured verdict", 
     }
     verdicts.add(verdict);
     assert.equal(face.namespaceURI, "http://www.w3.org/2000/svg");
-    assert.equal(face.getAttribute("aria-hidden"), "true");
+    assert.equal(face.hasAttribute("aria-hidden"), false);
+    assert.equal(face.getAttribute("role"), "img");
+    assert.equal(
+      face.getAttribute("aria-label"),
+      {
+        pass: "Smiling face: all five contrast thresholds pass",
+        mixed: "Neutral face: some contrast thresholds pass",
+        fail: "Frowning face: no contrast thresholds pass",
+      }[verdict],
+    );
     assert.equal(face.getAttribute("focusable"), "false");
     const reference = face.querySelector("use").getAttribute("href");
     assert.equal(reference, `#contrast-face-${verdict}`);

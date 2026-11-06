@@ -119,8 +119,9 @@ Each measured example also includes a filled SVG face in the recorded foreground
 One shared symbol per expression supplies the instances through `use`: a smile
 means all five thresholds pass, a neutral face means some pass, and a frown means
 none pass. The holes for the eyes and mouth reveal the recorded background rather
-than an added color. Unavailable examples have no face. The faces are hidden from
-assistive technology and can’t receive focus; the adjacent text carries the verdict.
+than an added color. Unavailable examples have no face. Each face has an image
+role and an accessible name describing its expression and contrast verdict.
+The faces can’t receive keyboard focus; the adjacent text lists the individual results.
 Use the non-text result when evaluating the pairing for icons.
 Hex values remain in the individual tables. Some examples are hard to read—that’s
 the contrast they’re illustrating, not a substitute color chosen for legibility.

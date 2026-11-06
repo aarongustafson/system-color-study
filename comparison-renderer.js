@@ -275,7 +275,15 @@ export function createComparisonRenderer(document) {
     face.setAttribute("viewBox", "0 0 24 24");
     face.setAttribute("width", "48");
     face.setAttribute("height", "48");
-    face.setAttribute("aria-hidden", "true");
+    face.setAttribute("role", "img");
+    face.setAttribute(
+      "aria-label",
+      {
+        pass: "Smiling face: all five contrast thresholds pass",
+        mixed: "Neutral face: some contrast thresholds pass",
+        fail: "Frowning face: no contrast thresholds pass",
+      }[verdict],
+    );
     face.setAttribute("focusable", "false");
     const use = svgElement("use");
     use.setAttribute("href", `#contrast-face-${verdict}`);

@@ -85,7 +85,15 @@ test("SVG faces share definitions, inherit the recorded foreground, and match th
       }),
     });
     for (const face of await row.locator(".sample-face").all()) {
-      await expect(face).toHaveAttribute("aria-hidden", "true");
+      await expect(face).not.toHaveAttribute("aria-hidden");
+      await expect(face).toHaveRole("img");
+      await expect(face).toHaveAccessibleName(
+        {
+          pass: "Smiling face: all five contrast thresholds pass",
+          mixed: "Neutral face: some contrast thresholds pass",
+          fail: "Frowning face: no contrast thresholds pass",
+        }[verdict],
+      );
       await expect(face).toHaveAttribute("focusable", "false");
       await expect(face.locator("use")).toHaveAttribute(
         "href",
@@ -96,6 +104,7 @@ test("SVG faces share definitions, inherit the recorded foreground, and match th
       await expect(face).toHaveCSS("height", "48px");
     }
     await expect(row.locator(".sample-face")).toHaveCount(2);
+    await expect(row.getByRole("img")).toHaveCount(2);
     await expect(row.locator(".contrast-result").first()).toHaveAttribute(
       "data-verdict",
       verdict,
