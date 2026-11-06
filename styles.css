@@ -147,7 +147,8 @@ code,
   margin-block: 1rem;
 }
 table {
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   inline-size: 100%;
 }
 caption {
@@ -200,16 +201,6 @@ td p {
 }
 .table-scroll thead tr:first-child > th:first-child {
   z-index: 2;
-}
-/* Collapsed table borders don't move with sticky cells. */
-.table-scroll tbody th[scope="row"]::after,
-.table-scroll thead tr:first-child > th:first-child::after {
-  content: "";
-  position: absolute;
-  inset-block: 0;
-  inset-inline-end: 0;
-  border-inline-end: 1px solid CanvasText;
-  pointer-events: none;
 }
 .capture-heading > p,
 .mode-heading > p {

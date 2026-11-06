@@ -50,6 +50,8 @@ test("the header hierarchy sticks as a group during vertical scrolling only when
     for (const table of await page.locator("table").all()) {
       const region = table.locator(".."),
         head = table.locator("thead");
+      await expect(table).toHaveCSS("border-collapse", "separate");
+      await expect(table).toHaveCSS("border-spacing", "0px");
       await expect(head).toHaveCSS("position", "sticky");
       await region.evaluate((node) => {
         node.scrollTop = 0;

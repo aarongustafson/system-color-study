@@ -129,7 +129,8 @@ keeps its hex value and says “Preview unavailable.” Unsupported keywords rem
 N/A. These reference cells retain their colors in forced-color mode.
 
 The native keyword/role headers stay pinned at the inline start while the other
-columns scroll. The entire header hierarchy stays pinned during vertical scrolling
+columns scroll. Tables use separate borders with zero spacing so borders stay
+with their cells during scrolling. The entire header hierarchy stays pinned during vertical scrolling
 within each table’s bounded scroll region. Where `ResizeObserver` is available,
 pinning is enabled only when at least 128 CSS pixels remain for the body; otherwise,
 headers scroll normally so they don’t cover the data. Printing removes that height
