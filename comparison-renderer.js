@@ -23,6 +23,41 @@ export function createComparisonRenderer(document) {
   };
   const environmentKey = (group) =>
     JSON.stringify([group.browser, group.os, group.context]);
+  const svgElement = (tag) =>
+    document.createElementNS("http://www.w3.org/2000/svg", tag);
+
+  function ensureFaceSymbols() {
+    if (byId("contrast-face-symbols")) return;
+    const library = svgElement("svg");
+    library.id = "contrast-face-symbols";
+    library.setAttribute("class", "contrast-face-symbols");
+    library.setAttribute("width", "0");
+    library.setAttribute("height", "0");
+    library.setAttribute("aria-hidden", "true");
+    library.setAttribute("focusable", "false");
+    const definitions = svgElement("defs");
+    const head =
+      "M12 1a11 11 0 1 0 0 22a11 11 0 1 0 0-22Z" +
+      "M7.5 7a1.5 1.5 0 1 0 0 3a1.5 1.5 0 1 0 0-3Z" +
+      "M16.5 7a1.5 1.5 0 1 0 0 3a1.5 1.5 0 1 0 0-3Z";
+    for (const [verdict, mouth] of [
+      ["pass", "M6 13h2c0 5 8 5 8 0h2c0 8-12 8-12 0Z"],
+      ["mixed", "M6 14h12v2H6Z"],
+      ["fail", "M6 18h2c0-5 8-5 8 0h2c0-8-12-8-12 0Z"],
+    ]) {
+      const symbol = svgElement("symbol");
+      symbol.id = `contrast-face-${verdict}`;
+      symbol.setAttribute("viewBox", "0 0 24 24");
+      const path = svgElement("path");
+      path.setAttribute("d", head + mouth);
+      path.setAttribute("fill", "currentColor");
+      path.setAttribute("fill-rule", "evenodd");
+      symbol.append(path);
+      definitions.append(symbol);
+    }
+    library.append(definitions);
+    document.body.prepend(library);
+  }
 
   function renderDialogs(groups) {
     const fragment = document.createDocumentFragment();
@@ -220,7 +255,7 @@ export function createComparisonRenderer(document) {
     return [current, deprecated];
   }
 
-  function pairedExample(pair, snapshot, result) {
+  function pairedExample(pair, snapshot, result, verdict) {
     const cell = element("td");
     cell.className = "paired-example";
     if (result.ratio === null) {
@@ -235,7 +270,17 @@ export function createComparisonRenderer(document) {
     normal.className = "sample-normal";
     const large = element("p", "Large");
     large.className = "sample-large";
-    cell.append(normal, large);
+    const face = svgElement("svg");
+    face.setAttribute("class", "sample-face");
+    face.setAttribute("viewBox", "0 0 24 24");
+    face.setAttribute("width", "48");
+    face.setAttribute("height", "48");
+    face.setAttribute("aria-hidden", "true");
+    face.setAttribute("focusable", "false");
+    const use = svgElement("use");
+    use.setAttribute("href", `#contrast-face-${verdict}`);
+    face.append(use);
+    cell.append(normal, large, face);
     return cell;
   }
 
@@ -401,18 +446,23 @@ export function createComparisonRenderer(document) {
       row.append(heading);
       columns.forEach(({ snapshot, groupIndex }, index) => {
         const result = pairResult(pair, snapshot);
-        const example = pairedExample(pair, snapshot, result);
+        const cell = element("td");
+        renderVerdict(cell, result);
+        const example = pairedExample(
+          pair,
+          snapshot,
+          result,
+          cell.dataset.verdict,
+        );
         example.setAttribute(
           "headers",
           `${heading.id} ${columnHeaders(table.id, groupIndex)}${forced ? ` ${prefix}pair-column-${index}` : ""} ${prefix}example-column-${index}`,
         );
         row.append(example);
-        const cell = element("td");
         cell.setAttribute(
           "headers",
           `${heading.id} ${columnHeaders(table.id, groupIndex)}${forced ? ` ${prefix}pair-column-${index}` : ""} ${prefix}contrast-column-${index}`,
         );
-        renderVerdict(cell, result);
         row.append(cell);
       });
       (pair.deprecated ? deprecatedPairRows : pairRows).append(row);
@@ -421,6 +471,7 @@ export function createComparisonRenderer(document) {
   }
 
   function renderTables(captures) {
+    ensureFaceSymbols();
     const dialogs = renderDialogs(comparisonGroups(captures));
     renderComparisonTables(
       comparisonSections(

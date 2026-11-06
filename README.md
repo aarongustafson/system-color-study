@@ -115,6 +115,13 @@ the recorded background. Normal starts at 16px and Large at 24px, both regular
 weight; larger font preferences can increase those sizes. Translucent backgrounds
 are layered over the recorded opaque backdrop, and foreground alpha is preserved.
 Missing colors or backdrops produce an explicit unavailable preview and verdict.
+Each measured example also includes a filled SVG face in the recorded foreground.
+One shared symbol per expression supplies the instances through `use`: a smile
+means all five thresholds pass, a neutral face means some pass, and a frown means
+none pass. The holes for the eyes and mouth reveal the recorded background rather
+than an added color. Unavailable examples have no face. The faces are hidden from
+assistive technology and can’t receive focus; the adjacent text carries the verdict.
+Use the non-text result when evaluating the pairing for icons.
 Hex values remain in the individual tables. Some examples are hard to read—that’s
 the contrast they’re illustrating, not a substitute color chosen for legibility.
 Each **Details** button opens a shared modal for its browser/OS/context group
@@ -143,7 +150,7 @@ the exported color and alpha remain unchanged. Without that backdrop, the cell
 keeps its hex value and says “Preview unavailable.” Unsupported keywords remain
 N/A. These reference cells retain their colors in forced-color mode.
 
-The native keyword/role headers stay pinned at the inline start while the other
+The native keyword/color-pair headers stay pinned at the inline start while the other
 columns scroll. Tables use separate borders with zero spacing so borders stay
 with their cells during scrolling. The entire header hierarchy stays pinned during vertical scrolling
 within each table’s bounded scroll region. Pinning is checked immediately, after

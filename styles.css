@@ -144,6 +144,16 @@ code,
   forced-color-adjust: none;
   font-weight: 400;
 }
+.contrast-face-symbols {
+  position: absolute;
+}
+.paired-example .sample-face {
+  display: block;
+  inline-size: 3rem;
+  block-size: 3rem;
+  margin-block: 0.5rem;
+  fill: currentColor;
+}
 .paired-example .sample-normal {
   font-size: 16px;
   font-size: max(1rem, 16px);

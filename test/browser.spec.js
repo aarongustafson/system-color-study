@@ -52,6 +52,59 @@ test("prebuilt headers initialize and resize even when observer callbacks are de
     await expect(table.locator("thead")).toHaveCSS("position", "static");
 });
 
+test("SVG faces share definitions, inherit the recorded foreground, and match the text verdict", async ({
+  page,
+}) => {
+  const capture = fixture("faces");
+  for (const snapshot of Object.values(capture.schemes)) {
+    snapshot.colors = { ...snapshot.colors };
+    for (const [name, value] of [
+      ["Canvas", 255],
+      ["LinkText", 128],
+      ["VisitedText", 255],
+    ])
+      snapshot.colors[name] = {
+        ...snapshot.colors[name],
+        rgba: [value, value, value, 255],
+        hex: "#" + value.toString(16).padStart(2, "0").repeat(3),
+        computed: `rgb(${value}, ${value}, ${value})`,
+      };
+  }
+  await publish(page, [capture]);
+  await expect(page.locator("#contrast-face-symbols")).toHaveCount(1);
+  await expect(page.locator("#contrast-face-symbols symbol")).toHaveCount(3);
+  for (const [foreground, verdict, value] of [
+    ["CanvasText", "pass", 0],
+    ["LinkText", "mixed", 128],
+    ["VisitedText", "fail", 255],
+  ]) {
+    const row = page.locator("#pair-table tbody tr").filter({
+      has: page.getByRole("rowheader", {
+        name: `${foreground} on Canvas`,
+        exact: true,
+      }),
+    });
+    for (const face of await row.locator(".sample-face").all()) {
+      await expect(face).toHaveAttribute("aria-hidden", "true");
+      await expect(face).toHaveAttribute("focusable", "false");
+      await expect(face.locator("use")).toHaveAttribute(
+        "href",
+        `#contrast-face-${verdict}`,
+      );
+      await expect(face).toHaveCSS("fill", `rgb(${value}, ${value}, ${value})`);
+      await expect(face).toHaveCSS("width", "48px");
+      await expect(face).toHaveCSS("height", "48px");
+    }
+    await expect(row.locator(".sample-face")).toHaveCount(2);
+    await expect(row.locator(".contrast-result").first()).toHaveAttribute(
+      "data-verdict",
+      verdict,
+    );
+  }
+  await page.locator("#deprecated").check();
+  await expect(page.locator("#contrast-face-symbols")).toHaveCount(1);
+});
+
 test("single-row paired examples preserve recorded alpha, text sizes, thresholds, and unavailable states", async ({
   page,
   browserName,
@@ -121,6 +174,10 @@ test("single-row paired examples preserve recorded alpha, text sizes, thresholds
         const computed = getComputedStyle(node);
         return { background: computed.backgroundImage, color: computed.color };
       });
+      await expect(sample.locator(".sample-face")).toHaveCSS(
+        "fill",
+        style.color,
+      );
       expect(style.background).toMatch(/rgba\(51,\s*181,\s*229,\s*0\.4\)/);
       const rgba = style.color.match(/[\d.]+/g).map(Number);
       expect(rgba.slice(0, 3)).toEqual([230, 20, 120]);
@@ -138,11 +195,19 @@ test("single-row paired examples preserve recorded alpha, text sizes, thresholds
       );
     }
     if (browserName === "chromium") {
-      const before = await samples
-        .first()
-        .evaluate((node) => getComputedStyle(node).backgroundImage);
+      const before = await samples.first().evaluate((node) => {
+        const style = getComputedStyle(node);
+        return { background: style.backgroundImage, color: style.color };
+      });
       await page.emulateMedia({ forcedColors: "active" });
-      await expect(samples.first()).toHaveCSS("background-image", before);
+      await expect(samples.first()).toHaveCSS(
+        "background-image",
+        before.background,
+      );
+      await expect(samples.first().locator(".sample-face")).toHaveCSS(
+        "fill",
+        before.color,
+      );
       await page.emulateMedia({ forcedColors: "none" });
     }
   }
@@ -161,6 +226,7 @@ test("single-row paired examples preserve recorded alpha, text sizes, thresholds
   await expect(
     page.locator("#pair-table .sample-normal, #pair-table .sample-large"),
   ).toHaveCount(0);
+  await expect(page.locator("#pair-table .sample-face")).toHaveCount(0);
   await expect(
     page.locator("#pair-table .paired-example").first(),
   ).toContainText("Preview unavailable");

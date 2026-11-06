@@ -185,6 +185,71 @@ test("static comparisons retain both row groups, shared dialogs, safe text, and 
   }
 });
 
+test("paired examples reuse shared SVG faces for the overall measured verdict", async (t) => {
+  const root = await setup(t);
+  const capture = fixture("faces");
+  for (const snapshot of Object.values(capture.schemes)) {
+    snapshot.colors = { ...snapshot.colors };
+    for (const [name, value] of [
+      ["Canvas", 255],
+      ["LinkText", 128],
+      ["VisitedText", 255],
+    ]) {
+      snapshot.colors[name] = {
+        ...snapshot.colors[name],
+        rgba: [value, value, value, 255],
+        hex: "#" + value.toString(16).padStart(2, "0").repeat(3),
+        computed: `rgb(${value}, ${value}, ${value})`,
+      };
+    }
+    snapshot.colors.FieldText = {
+      supported: false,
+      rgba: null,
+      hex: null,
+      computed: null,
+    };
+  }
+  await writeFile(
+    join(root, "data/faces.json"),
+    JSON.stringify({ ...versions, captures: [capture] }),
+  );
+  await buildSite(root);
+  const dom = new JSDOM(await readFile(join(root, "dist/index.html"), "utf8"));
+  t.after(() => dom.window.close());
+  const document = dom.window.document;
+  assert.equal(document.querySelectorAll("#contrast-face-symbols").length, 1);
+  assert.equal(
+    document.querySelectorAll("#contrast-face-symbols symbol").length,
+    3,
+  );
+  const verdicts = new Set();
+  for (const example of document.querySelectorAll(".paired-example")) {
+    const verdict = example.nextElementSibling.dataset.verdict;
+    const face = example.querySelector("svg");
+    if (verdict === "unavailable") {
+      assert.equal(face, null);
+      continue;
+    }
+    verdicts.add(verdict);
+    assert.equal(face.namespaceURI, "http://www.w3.org/2000/svg");
+    assert.equal(face.getAttribute("aria-hidden"), "true");
+    assert.equal(face.getAttribute("focusable"), "false");
+    const reference = face.querySelector("use").getAttribute("href");
+    assert.equal(reference, `#contrast-face-${verdict}`);
+    const symbol = document.querySelector(reference);
+    assert.equal(symbol.tagName, "symbol");
+    assert.equal(
+      symbol.querySelector("path").getAttribute("fill"),
+      "currentColor",
+    );
+    assert.equal(
+      symbol.querySelector("path").getAttribute("fill-rule"),
+      "evenodd",
+    );
+  }
+  assert.deepEqual(verdicts, new Set(["pass", "mixed", "fail"]));
+});
+
 test("build rejects capture and input-size limits instead of publishing a partial dataset", async (t) => {
   const root = await setup(t);
   const path = join(root, "data/large.json");
