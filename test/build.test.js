@@ -156,8 +156,8 @@ test("static comparisons retain both row groups, shared dialogs, safe text, and 
     const paired = table.id.endsWith("pair-table");
     assert.equal(table.hidden, false);
     assert.equal(table.tBodies.length, 2);
-    assert.equal(table.tBodies[0].rows.length, paired ? 20 : 19);
-    assert.equal(table.tBodies[1].rows.length, paired ? 10 : 23);
+    assert.equal(table.tBodies[0].rows.length, paired ? 10 : 19);
+    assert.equal(table.tBodies[1].rows.length, paired ? 5 : 23);
     assert.ok(table.tBodies[1].hasAttribute("data-deprecated"));
     assert.equal(table.tBodies[1].hidden, true);
     for (const cell of table.querySelectorAll("td")) {
@@ -166,7 +166,15 @@ test("static comparisons retain both row groups, shared dialogs, safe text, and 
         assert.equal(heading?.tagName, "TH");
         assert.equal(heading.closest("table"), table);
       }
-      if (cell.rowSpan === 2) assert.ok(cell.parentElement.nextElementSibling);
+      assert.equal(cell.rowSpan, 1);
+      if (paired && cell.classList.contains("paired-example")) {
+        assert.equal(
+          cell.querySelector(".sample-normal").textContent,
+          "Normal",
+        );
+        assert.equal(cell.querySelector(".sample-large").textContent, "Large");
+        assert.ok(cell.style.backgroundImage.startsWith("linear-gradient("));
+      }
     }
     for (const button of table.querySelectorAll("button[commandfor]")) {
       const dialog = document.getElementById(button.getAttribute("commandfor"));

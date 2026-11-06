@@ -220,6 +220,25 @@ export function createComparisonRenderer(document) {
     return [current, deprecated];
   }
 
+  function pairedExample(pair, snapshot, result) {
+    const cell = element("td");
+    cell.className = "paired-example";
+    if (result.ratio === null) {
+      cell.textContent = "Preview unavailable: " + result.reason;
+      return cell;
+    }
+    const background = snapshot.colors[pair.background].hex;
+    cell.style.backgroundColor = hex([...backdropRGB(snapshot), 255]);
+    cell.style.backgroundImage = `linear-gradient(${background}, ${background})`;
+    cell.style.color = snapshot.colors[pair.foreground].hex;
+    const normal = element("p", "Normal");
+    normal.className = "sample-normal";
+    const large = element("p", "Large");
+    large.className = "sample-large";
+    cell.append(normal, large);
+    return cell;
+  }
+
   function renderComparisonTables(sections, dialogs, forced = false) {
     const prefix = forced ? "forced-" : "";
     const groups = sections.flatMap((section, osIndex) =>
@@ -331,7 +350,7 @@ export function createComparisonRenderer(document) {
     const firstHeader = element("tr");
     const secondHeader = element("tr");
     const thirdHeader = element("tr");
-    const first = element("th", "Keyword and role");
+    const first = element("th", "Color pair");
     first.rowSpan = forced ? 5 : 4;
     first.scope = "col";
     const pairOS = osHeadings(2, table.id);
@@ -357,7 +376,7 @@ export function createComparisonRenderer(document) {
       column.id = `${prefix}pair-column-${index}`;
       secondHeader.append(column);
       for (const [type, text] of [
-        ["color", "Resolved hex"],
+        ["example", "Paired example"],
         ["contrast", "Contrast thresholds"],
       ]) {
         const th = element("th", text);
@@ -375,41 +394,28 @@ export function createComparisonRenderer(document) {
     );
     const [pairRows, deprecatedPairRows] = rowGroups(table);
     pairs.forEach((pair, rowIndex) => {
-      const background = element("tr"),
-        foreground = element("tr");
-      const bg = element("th", `${pair.background} (background)`);
-      const fg = element("th", `${pair.foreground} (foreground)`);
-      bg.scope = fg.scope = "row";
-      bg.id = `${prefix}background-${rowIndex}`;
-      fg.id = `${prefix}foreground-${rowIndex}`;
-      background.append(bg);
-      foreground.append(fg);
+      const row = element("tr");
+      const heading = element("th", `${pair.foreground} on ${pair.background}`);
+      heading.scope = "row";
+      heading.id = `${prefix}pair-${rowIndex}`;
+      row.append(heading);
       columns.forEach(({ snapshot, groupIndex }, index) => {
-        for (const [row, name, header] of [
-          [background, pair.background, bg],
-          [foreground, pair.foreground, fg],
-        ]) {
-          const cell = colorCell(snapshot.colors[name], snapshot);
-          cell.setAttribute(
-            "headers",
-            `${header.id} ${columnHeaders(table.id, groupIndex)}${forced ? ` ${prefix}pair-column-${index}` : ""} ${prefix}color-column-${index}`,
-          );
-          row.append(cell);
-        }
         const result = pairResult(pair, snapshot);
+        const example = pairedExample(pair, snapshot, result);
+        example.setAttribute(
+          "headers",
+          `${heading.id} ${columnHeaders(table.id, groupIndex)}${forced ? ` ${prefix}pair-column-${index}` : ""} ${prefix}example-column-${index}`,
+        );
+        row.append(example);
         const cell = element("td");
-        cell.rowSpan = 2;
         cell.setAttribute(
           "headers",
-          `${bg.id} ${fg.id} ${columnHeaders(table.id, groupIndex)}${forced ? ` ${prefix}pair-column-${index}` : ""} ${prefix}contrast-column-${index}`,
+          `${heading.id} ${columnHeaders(table.id, groupIndex)}${forced ? ` ${prefix}pair-column-${index}` : ""} ${prefix}contrast-column-${index}`,
         );
         renderVerdict(cell, result);
-        background.append(cell);
+        row.append(cell);
       });
-      (pair.deprecated ? deprecatedPairRows : pairRows).append(
-        background,
-        foreground,
-      );
+      (pair.deprecated ? deprecatedPairRows : pairRows).append(row);
     });
     individual.hidden = table.hidden = columns.length === 0;
   }

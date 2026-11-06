@@ -8,6 +8,8 @@ import {
   contrast,
   comparisonSections,
   composite,
+  pairResult,
+  pairs,
 } from "../model.js";
 
 const indexSource = await readFile(
@@ -29,6 +31,143 @@ async function publish(page, captures) {
   );
   await page.goto("./");
 }
+
+test("prebuilt headers initialize and resize even when observer callbacks are delayed", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    window.ResizeObserver = class {
+      observe() {}
+      disconnect() {}
+    };
+  });
+  await page.setViewportSize({ width: 1400, height: 900 });
+  const forced = fixture("delayed-forced");
+  forced.media.forcedColors = true;
+  await publish(page, [fixture("delayed-normal"), forced]);
+  for (const table of await page.locator("table").all())
+    await expect(table.locator("thead")).toHaveCSS("position", "sticky");
+  await page.setViewportSize({ width: 320, height: 240 });
+  for (const table of await page.locator("table").all())
+    await expect(table.locator("thead")).toHaveCSS("position", "static");
+});
+
+test("single-row paired examples preserve recorded alpha, text sizes, thresholds, and unavailable states", async ({
+  page,
+  browserName,
+}) => {
+  const normal = fixture("paired-normal");
+  for (const [scheme, snapshot] of Object.entries(normal.schemes)) {
+    snapshot.backdrop = scheme === "light" ? "white" : "black";
+    snapshot.colors = { ...snapshot.colors };
+    for (const [name, rgba] of [
+      ["Field", [51, 181, 229, 102]],
+      ["FieldText", [230, 20, 120, scheme === "light" ? 128 : 129]],
+    ])
+      snapshot.colors[name] = {
+        supported: true,
+        rgba,
+        hex: hex(rgba),
+        computed: `rgba(${rgba.slice(0, 3).join(", ")}, ${rgba[3] / 255})`,
+        conversion: "rgb-serialization",
+      };
+  }
+  const forced = structuredClone(normal);
+  forced.id = "paired-forced";
+  forced.media.forcedColors = true;
+  await publish(page, [normal, forced]);
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = "12px";
+  });
+  const forcedAdjustmentSupported = await page.evaluate(() =>
+    CSS.supports("forced-color-adjust", "none"),
+  );
+  const pair = pairs.find((item) => item.background === "Field");
+  for (const id of ["pair-table", "forced-pair-table"]) {
+    const table = page.locator(`#${id}`);
+    await expect(table.locator("tbody:not([hidden]) tr")).toHaveCount(10);
+    await expect(table.locator("tbody td[rowspan], tbody code")).toHaveCount(0);
+    await expect(table.locator("thead")).toContainText("Paired example");
+    const row = table.locator("tbody tr").filter({
+      has: page.getByRole("rowheader", {
+        name: "FieldText on Field",
+        exact: true,
+      }),
+    });
+    const samples = row.locator(".paired-example");
+    for (const [index, scheme] of ["light", "dark"].entries()) {
+      const sample = samples.nth(index);
+      await expect(sample.locator(".sample-normal")).toHaveText("Normal");
+      await expect(sample.locator(".sample-large")).toHaveText("Large");
+      await expect(sample.locator(".sample-normal")).toHaveCSS(
+        "font-size",
+        "16px",
+      );
+      await expect(sample.locator(".sample-large")).toHaveCSS(
+        "font-size",
+        "24px",
+      );
+      await expect(sample.locator(".sample-large")).toHaveCSS(
+        "font-weight",
+        "400",
+      );
+      await expect(sample).toHaveCSS(
+        "background-color",
+        scheme === "light" ? "rgb(255, 255, 255)" : "rgb(0, 0, 0)",
+      );
+      if (forcedAdjustmentSupported)
+        await expect(sample).toHaveCSS("forced-color-adjust", "none");
+      const style = await sample.evaluate((node) => {
+        const computed = getComputedStyle(node);
+        return { background: computed.backgroundImage, color: computed.color };
+      });
+      expect(style.background).toMatch(/rgba\(51,\s*181,\s*229,\s*0\.4\)/);
+      const rgba = style.color.match(/[\d.]+/g).map(Number);
+      expect(rgba.slice(0, 3)).toEqual([230, 20, 120]);
+      // CSS can serialize byte 128 as 0.5 rather than 128/255.
+      expect(Math.round(rgba[3] * 255)).toBe(
+        normal.schemes[scheme].colors.FieldText.rgba[3],
+      );
+      await expect(
+        row
+          .locator(".contrast-result strong")
+          .filter({ hasText: ":1" })
+          .nth(index),
+      ).toHaveText(
+        `${pairResult(pair, normal.schemes[scheme]).ratio.toFixed(2)}:1`,
+      );
+    }
+    if (browserName === "chromium") {
+      const before = await samples
+        .first()
+        .evaluate((node) => getComputedStyle(node).backgroundImage);
+      await page.emulateMedia({ forcedColors: "active" });
+      await expect(samples.first()).toHaveCSS("background-image", before);
+      await page.emulateMedia({ forcedColors: "none" });
+    }
+  }
+  const unknown = fixture("paired-unknown-backdrop");
+  for (const snapshot of Object.values(unknown.schemes)) {
+    snapshot.backdrop = "canvas";
+    snapshot.colors.Canvas = {
+      supported: true,
+      rgba: [0, 0, 0, 128],
+      hex: "#00000080",
+      computed: "rgba(0, 0, 0, 0.502)",
+      conversion: "rgb-serialization",
+    };
+  }
+  await publish(page, [unknown]);
+  await expect(
+    page.locator("#pair-table .sample-normal, #pair-table .sample-large"),
+  ).toHaveCount(0);
+  await expect(
+    page.locator("#pair-table .paired-example").first(),
+  ).toContainText("Preview unavailable");
+  await expect(
+    page.locator("#pair-table .contrast-result[data-verdict='unavailable']"),
+  ).toHaveCount(30);
+});
 
 test("the header hierarchy sticks as a group during vertical scrolling only when body space remains", async ({
   page,
@@ -624,7 +763,7 @@ test("comparison tables group environments, show both modes, and retain split fo
     .locator("#pair-table tbody tr")
     .filter({
       has: page.getByRole("rowheader", {
-        name: "Canvas (background)",
+        name: "CanvasText on Canvas",
         exact: true,
       }),
     })
@@ -682,12 +821,11 @@ test("verdict cells distinguish all, some, no, and unavailable thresholds with r
       .locator("#pair-table tbody tr")
       .filter({
         has: page.getByRole("rowheader", {
-          name: `${name} (background)`,
-          exact: true,
+          name: new RegExp(` on ${name}$`),
         }),
       })
       .first()
-      .locator("td[rowspan='2']")
+      .locator(".contrast-result")
       .first();
   const success = verdict("Canvas");
   const mixed = verdict("Field");
@@ -938,7 +1076,7 @@ test("live page samples every keyword, captures both modes, and exports portable
     "Test browser 1",
   );
   await expect(
-    page.locator('#pair-table tbody:not([hidden]) td[rowspan="2"]'),
+    page.locator("#pair-table tbody:not([hidden]) .contrast-result"),
   ).toHaveCount(30);
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export JSON" }).click();
@@ -982,7 +1120,7 @@ test("JSON import builds independent columns and round-trips original captures",
   await expect(page.locator("#individual-table .mode-heading")).toHaveCount(4);
   await expect(page.locator("#pair-table .mode-heading")).toHaveCount(4);
   await expect(
-    page.locator('#pair-table tbody:not([hidden]) td[rowspan="2"]'),
+    page.locator("#pair-table tbody:not([hidden]) .contrast-result"),
   ).toHaveCount(40);
   await page.getByLabel("Display mode").selectOption("dark");
   await expect(page.locator("#individual-table .mode-heading")).toHaveCount(4);
@@ -1099,7 +1237,7 @@ test("without JavaScript, instructions remain and measurement controls are disab
     page.locator("#individual-table tbody:not([hidden]) tr"),
   ).toHaveCount(19);
   await expect(page.locator("#pair-table tbody:not([hidden]) tr")).toHaveCount(
-    20,
+    10,
   );
   await expect(
     page.locator("#individual-table tbody:not([hidden]) td code").first(),
@@ -1140,7 +1278,7 @@ test("deprecated controls only toggle the prebuilt row groups without replacing 
     ]) {
       const body = page.locator(`#${id} tbody[data-deprecated]`);
       await expect(body.locator("tr")).toHaveCount(
-        id.endsWith("pair-table") ? 10 : 23,
+        id.endsWith("pair-table") ? 5 : 23,
       );
       if (checked) await expect(body).toBeVisible();
       else await expect(body).toBeHidden();
@@ -1201,7 +1339,7 @@ test("a published collection populates comparison tables without uploading local
     "Published fixture",
   );
   await expect(
-    page.locator("#pair-table tbody:not([hidden]) td[rowspan='2']"),
+    page.locator("#pair-table tbody:not([hidden]) .contrast-result"),
   ).toHaveCount(20);
   await expect(page.getByLabel("Display mode")).toHaveCount(0);
   const capture = JSON.parse(body).captures[0];
@@ -1449,7 +1587,7 @@ test("the built homepage renders every actual committed capture", async ({
       ]),
     );
   await expect(
-    page.locator("#pair-table tbody:not([hidden]) td[rowspan='2']"),
+    page.locator("#pair-table tbody:not([hidden]) .contrast-result"),
   ).toHaveCount(columns * 10);
   for (const capture of data.captures) {
     await expect(page.locator("#capture-dialogs")).toContainText(

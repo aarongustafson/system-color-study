@@ -108,8 +108,15 @@ marked **Light & Dark**, only when all 42 keyword records, backdrop settings, an
 scheme-support flags match. Otherwise, the theme has separate light and dark
 columns. The test page’s Display mode control affects only its live grid.
 
-**Color pairs** has two rows per pair—background and foreground—with a value
-column and a contrast result spanning both rows for each displayed mode.
+**Color pairs** uses one row per pair, named “foreground on background.”
+Each displayed mode has a **Paired example** and **Contrast thresholds** column.
+The example shows “Normal” and “Large” text in the recorded foreground color on
+the recorded background. Normal starts at 16px and Large at 24px, both regular
+weight; larger font preferences can increase those sizes. Translucent backgrounds
+are layered over the recorded opaque backdrop, and foreground alpha is preserved.
+Missing colors or backdrops produce an explicit unavailable preview and verdict.
+Hex values remain in the individual tables. Some examples are hard to read—that’s
+the contrast they’re illustrating, not a substitute color chosen for legibility.
 Each **Details** button opens a shared modal for its browser/OS/context group
 from any table. Its title shows the simplified browser and OS on separate lines.
 Metadata appears on separate labeled lines, including full versions, time,
@@ -129,7 +136,7 @@ separate, even when the browser and theme labels match. No records are removed
 from exports or the published dataset, and different version/OS labels aren’t
 silently treated as the same environment.
 
-Each color cell uses the recorded color as its background and displays the raw
+Each individual color cell uses the recorded color as its background and displays the raw
 hex value in whichever of black or white provides higher contrast. Translucent
 colors are composited over the capture’s recorded opaque backdrop for the preview;
 the exported color and alpha remain unchanged. Without that backdrop, the cell
@@ -139,8 +146,9 @@ N/A. These reference cells retain their colors in forced-color mode.
 The native keyword/role headers stay pinned at the inline start while the other
 columns scroll. Tables use separate borders with zero spacing so borders stay
 with their cells during scrolling. The entire header hierarchy stays pinned during vertical scrolling
-within each table’s bounded scroll region. Where `ResizeObserver` is available,
-pinning is enabled only when at least 128 CSS pixels remain for the body; otherwise,
+within each table’s bounded scroll region. Pinning is checked immediately, after
+data or visibility toggles change, and on window resize. `ResizeObserver` also
+tracks table and region geometry. It is enabled only when at least 128 CSS pixels remain for the body; otherwise,
 headers scroll normally so they don’t cover the data. Printing removes that height
 limit and pinning.
 
@@ -150,6 +158,10 @@ use the arrow keys to scroll; focused Details buttons stay clear of the pinned
 column, including in right-to-left layouts. Browser tests check these associations,
 geometry, and keyboard behavior; they don’t replace testing with a screen reader.
 Rows and columns no longer change appearance on hover or focus.
+
+Restart the local preview after source updates. A running server can retain an
+old asset allowlist: the static tables may still display while new enhancement
+modules return 404, leaving vertical pinning and the deprecated toggle inactive.
 
 Contrast cells show a bold ratio followed by five separate, labeled pass/fail
 lines. Green means all five thresholds pass; amber means some pass; red means

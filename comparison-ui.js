@@ -1,4 +1,28 @@
 const byId = (id) => document.getElementById(id);
+const tableIds = [
+  "individual-table",
+  "pair-table",
+  "forced-individual-table",
+  "forced-pair-table",
+];
+
+function updateHeaders(tables) {
+  const states = tables.map((table) => [
+    table,
+    String(
+      table.parentElement.clientHeight -
+        table.tHead.getBoundingClientRect().height >=
+        128,
+    ),
+  ]);
+  for (const [table, state] of states)
+    if (table.dataset.stickyHeader !== state)
+      table.dataset.stickyHeader = state;
+}
+
+export function updateComparisonHeaders() {
+  updateHeaders(tableIds.map(byId));
+}
 
 export function report(error) {
   console.error("System color study:", error);
@@ -16,6 +40,7 @@ export function enhanceComparisons() {
   const toggleDeprecated = () => {
     for (const body of document.querySelectorAll("tbody[data-deprecated]"))
       body.hidden = !byId("deprecated").checked;
+    updateComparisonHeaders();
   };
   byId("deprecated").addEventListener("change", toggleDeprecated);
   toggleDeprecated();
@@ -30,21 +55,10 @@ export function enhanceComparisons() {
                 : target.querySelector("table"),
             ),
           );
-          for (const table of tables) {
-            table.dataset.stickyHeader = String(
-              table.parentElement.clientHeight -
-                table.tHead.getBoundingClientRect().height >=
-                128,
-            );
-          }
+          updateHeaders([...tables]);
         })
       : null;
-  for (const id of [
-    "individual-table",
-    "pair-table",
-    "forced-individual-table",
-    "forced-pair-table",
-  ]) {
+  for (const id of tableIds) {
     const table = byId(id);
     headerObserver?.observe(table.tHead);
     headerObserver?.observe(table.parentElement);
@@ -87,6 +101,7 @@ export function enhanceComparisons() {
       });
     });
   }
+  window.addEventListener("resize", updateComparisonHeaders);
 
   document.addEventListener(
     "close",

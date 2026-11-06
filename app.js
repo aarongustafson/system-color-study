@@ -12,7 +12,12 @@ import {
   createComparisonRenderer,
   forcedLabel,
 } from "./comparison-renderer.js";
-import { enhanceComparisons, report, clearError } from "./comparison-ui.js";
+import {
+  enhanceComparisons,
+  updateComparisonHeaders,
+  report,
+  clearError,
+} from "./comparison-ui.js";
 import { measureScheme, mediaSnapshot } from "./sampler.js";
 import {
   detectEnvironment,
@@ -139,7 +144,10 @@ function renderTables() {
   const deprecated = byId("deprecated").checked;
   const changed = renderedCaptures !== captures;
   if (!changed && renderedDeprecated === deprecated) return;
-  if (changed) renderComparisons(captures);
+  if (changed) {
+    renderComparisons(captures);
+    updateComparisonHeaders();
+  }
   renderedCaptures = captures;
   renderedDeprecated = deprecated;
   if (!isTestPage) return;

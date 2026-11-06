@@ -140,6 +140,18 @@ code,
   display: block;
   padding: 0.75rem;
 }
+.paired-example {
+  forced-color-adjust: none;
+  font-weight: 400;
+}
+.paired-example .sample-normal {
+  font-size: 16px;
+  font-size: max(1rem, 16px);
+}
+.paired-example .sample-large {
+  font-size: 24px;
+  font-size: max(1.5rem, 24px);
+}
 .table-scroll {
   --keyword-column-width: clamp(8rem, 20vi, 12rem);
   max-inline-size: 100%;
