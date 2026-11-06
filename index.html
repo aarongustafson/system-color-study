@@ -30,10 +30,9 @@
         browser. Each column preserves its browser, OS, date, backdrop, and
         user-preference metadata. Local test data is never uploaded. Headers
         group browser, OS, and context, with light and dark side by side.
-        Identical forced-color palettes share one theme column; differing
-        palettes retain both modes. Identical repeat measurements share columns,
-        not records. Expand “Run details” for the date, backdrop, preferences,
-        and provenance.
+        Forced-color observations appear in separate tables. Identical repeat
+        measurements share columns, not records. Select “Details” for the full
+        versions, date, backdrop, preferences, and provenance.
       </p>
       <div class="settings">
         <label class="check"
@@ -110,6 +109,44 @@
           against the actual surrounding surfaces.
         </p>
       </section>
+      <section id="forced-section" aria-labelledby="forced-heading" hidden>
+        <h2 id="forced-heading">Forced colors</h2>
+        <p>
+          Compare themes, then browsers and requested modes. Light &amp; Dark
+          means both snapshots match across the complete catalog.
+        </p>
+        <h3 id="forced-individual-heading">Individual system colors</h3>
+        <div
+          class="table-scroll"
+          tabindex="0"
+          role="region"
+          aria-labelledby="forced-individual-heading"
+        >
+          <table id="forced-individual-table" hidden>
+            <caption>
+              Forced-color values by theme, browser, and mode
+            </caption>
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <h3 id="forced-pair-heading">Color pairs</h3>
+        <div
+          class="table-scroll"
+          tabindex="0"
+          role="region"
+          aria-labelledby="forced-pair-heading"
+        >
+          <table id="forced-pair-table" hidden>
+            <caption>
+              Forced-color pairs and contrast by theme, browser, and mode
+            </caption>
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+      <div id="capture-dialogs"></div>
     </main>
     <footer>
       <p>

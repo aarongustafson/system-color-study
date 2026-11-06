@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readdir, readFile } from "node:fs/promises";
 import {
   keywords,
   pairs,
@@ -14,6 +15,44 @@ import {
   comparisonGroups,
 } from "../model.js";
 import { fixture } from "./fixtures.js";
+
+test("confirmed device batch uses Windows 11, one Chrome identifier, and unprefixed headed engine names", async () => {
+  const directory = new URL("../data/", import.meta.url);
+  const paths = (await readdir(directory, { recursive: true })).filter((path) =>
+    path.endsWith(".json"),
+  );
+  const captures = (
+    await Promise.all(
+      paths.map(async (path) =>
+        validateCollection(
+          JSON.parse(await readFile(new URL(path, directory), "utf8")),
+        ),
+      ),
+    )
+  ).flat();
+  const windows = captures.filter(
+    (c) =>
+      c.capturedAt >= "2026-11-06T00:50:00.000Z" &&
+      c.capturedAt <= "2026-11-06T01:20:00.000Z" &&
+      c.environment.os.startsWith("Windows"),
+  );
+  assert.equal(windows.length, 16);
+  assert.ok(windows.every((c) => c.environment.os === "Windows 11"));
+  const chrome = windows.filter((c) => /Chrome/.test(c.environment.browser));
+  assert.equal(chrome.length, 4);
+  assert.deepEqual(
+    [...new Set(chrome.map((c) => c.environment.browser))],
+    ["Chrome 157.0.8103.39"],
+  );
+  const headed = captures.filter((c) =>
+    c.environment.notes.includes("headed bundled"),
+  );
+  assert.equal(headed.length, 3);
+  assert.ok(
+    headed.every((c) => !c.environment.browser.startsWith("Playwright ")),
+  );
+  assert.ok(headed.every((c) => c.environment.notes.includes("Playwright")));
+});
 
 test("catalog covers all modern and deprecated keywords without duplicates", () => {
   assert.equal(keywords.filter((item) => !item.deprecated).length, 19);

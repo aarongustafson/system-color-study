@@ -239,11 +239,10 @@
         <h3 id="individual-heading">Individual system colors</h3>
         <p>
           Includes individual values for paired keywords too. Each browser/OS
-          group shows light and dark together. Identical forced-color palettes
-          share one theme column; differing palettes retain both modes.
-          Identical repeat measurements share columns, with every run preserved
-          in the header details. The Display mode control affects only the live
-          grid.
+          group shows light and dark together. Forced-color observations appear
+          in separate tables. Identical repeat measurements share columns, with
+          every observation preserved in the Details dialog. The Display mode
+          control affects only the live grid.
         </p>
         <div
           class="table-scroll"
@@ -272,8 +271,8 @@
           Verdict fills: green means all five thresholds pass; amber means some
           pass; red means none pass; neutral means unavailable. These are UI
           indicators, not recorded system colors. Every result also says pass or
-          fail in text; forced-color modes retain your chosen palette. Expand a
-          header’s “Run details” for its full measurement conditions.
+          fail in text; forced-color modes retain your chosen palette. Select
+          “Details” for the full measurement conditions.
         </p>
         <div
           class="table-scroll"
@@ -295,6 +294,44 @@
           against their actual adjacent surfaces.
         </p>
       </section>
+      <section id="forced-section" aria-labelledby="forced-heading" hidden>
+        <h2 id="forced-heading">Forced colors</h2>
+        <p>
+          Compare themes, then browsers and requested modes. Light &amp; Dark
+          means both snapshots match across the complete catalog.
+        </p>
+        <h3 id="forced-individual-heading">Individual system colors</h3>
+        <div
+          class="table-scroll"
+          tabindex="0"
+          role="region"
+          aria-labelledby="forced-individual-heading"
+        >
+          <table id="forced-individual-table" hidden>
+            <caption>
+              Forced-color values by theme, browser, and mode
+            </caption>
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <h3 id="forced-pair-heading">Color pairs</h3>
+        <div
+          class="table-scroll"
+          tabindex="0"
+          role="region"
+          aria-labelledby="forced-pair-heading"
+        >
+          <table id="forced-pair-table" hidden>
+            <caption>
+              Forced-color pairs and contrast by theme, browser, and mode
+            </caption>
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+      <div id="capture-dialogs"></div>
     </main>
     <footer>
       <p>

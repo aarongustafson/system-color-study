@@ -2,18 +2,18 @@
   "schemaVersion": 1,
   "protocolVersion": 1,
   "catalogVersion": 1,
-  "exportedAt": "2026-11-06T01:03:38.908Z",
+  "exportedAt": "2026-11-06T01:08:46.656Z",
   "captures": [
     {
-      "id": "mw49to61-5anmc9sr89s",
-      "capturedAt": "2026-11-06T01:03:30.457Z",
+      "id": "mw4a0cng-8zkmqthkxrp",
+      "capturedAt": "2026-11-06T01:08:42.124Z",
       "environment": {
-        "browser": "Edge 156.0.0.0",
-        "os": "Windows (NT 10.0; verify release)",
-        "forcedColorTheme": "Night sky",
+        "browser": "Firefox 159.0",
+        "os": "Windows 11",
+        "forcedColorTheme": "Dusk",
         "context": "normal",
         "notes": "",
-        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36 Edg/156.0.0.0"
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:159.0) Gecko/20100101 Firefox/159.0"
       },
       "media": {
         "prefersColorScheme": "dark",
@@ -29,52 +29,52 @@
           "colors": {
             "AccentColor": {
               "supported": true,
-              "computed": "rgb(0, 117, 255)",
-              "rgba": [0, 117, 255, 255],
+              "computed": "rgb(161, 191, 222)",
+              "rgba": [161, 191, 222, 255],
               "conversion": "rgb-serialization",
-              "hex": "#0075ff"
+              "hex": "#a1bfde"
             },
             "AccentColorText": {
               "supported": true,
-              "computed": "rgb(255, 255, 255)",
-              "rgba": [255, 255, 255, 255],
+              "computed": "rgb(0, 0, 0)",
+              "rgba": [0, 0, 0, 255],
               "conversion": "rgb-serialization",
-              "hex": "#ffffff"
+              "hex": "#000000"
             },
             "ActiveText": {
               "supported": true,
-              "computed": "rgb(128, 128, 255)",
-              "rgba": [128, 128, 255, 255],
+              "computed": "rgb(238, 0, 0)",
+              "rgba": [238, 0, 0, 255],
               "conversion": "rgb-serialization",
-              "hex": "#8080ff"
+              "hex": "#ee0000"
             },
             "ButtonBorder": {
               "supported": true,
-              "computed": "rgb(255, 238, 50)",
-              "rgba": [255, 238, 50, 255],
+              "computed": "rgb(182, 246, 240)",
+              "rgba": [182, 246, 240, 255],
               "conversion": "rgb-serialization",
-              "hex": "#ffee32"
+              "hex": "#b6f6f0"
             },
             "ButtonFace": {
               "supported": true,
-              "computed": "rgb(0, 0, 0)",
-              "rgba": [0, 0, 0, 255],
+              "computed": "rgb(45, 50, 54)",
+              "rgba": [45, 50, 54, 255],
               "conversion": "rgb-serialization",
-              "hex": "#000000"
+              "hex": "#2d3236"
             },
             "ButtonText": {
               "supported": true,
-              "computed": "rgb(255, 238, 50)",
-              "rgba": [255, 238, 50, 255],
+              "computed": "rgb(182, 246, 240)",
+              "rgba": [182, 246, 240, 255],
               "conversion": "rgb-serialization",
-              "hex": "#ffee32"
+              "hex": "#b6f6f0"
             },
             "Canvas": {
               "supported": true,
-              "computed": "rgb(0, 0, 0)",
-              "rgba": [0, 0, 0, 255],
+              "computed": "rgb(45, 50, 54)",
+              "rgba": [45, 50, 54, 255],
               "conversion": "rgb-serialization",
-              "hex": "#000000"
+              "hex": "#2d3236"
             },
             "CanvasText": {
               "supported": true,
@@ -85,17 +85,17 @@
             },
             "Field": {
               "supported": true,
-              "computed": "rgb(0, 0, 0)",
-              "rgba": [0, 0, 0, 255],
+              "computed": "rgb(45, 50, 54)",
+              "rgba": [45, 50, 54, 255],
               "conversion": "rgb-serialization",
-              "hex": "#000000"
+              "hex": "#2d3236"
             },
             "FieldText": {
               "supported": true,
-              "computed": "rgb(255, 255, 255)",
-              "rgba": [255, 255, 255, 255],
+              "computed": "rgb(182, 246, 240)",
+              "rgba": [182, 246, 240, 255],
               "conversion": "rgb-serialization",
-              "hex": "#ffffff"
+              "hex": "#b6f6f0"
             },
             "GrayText": {
               "supported": true,
@@ -106,24 +106,24 @@
             },
             "Highlight": {
               "supported": true,
-              "computed": "rgb(214, 180, 253)",
-              "rgba": [214, 180, 253, 255],
+              "computed": "rgb(161, 191, 222)",
+              "rgba": [161, 191, 222, 255],
               "conversion": "rgb-serialization",
-              "hex": "#d6b4fd"
+              "hex": "#a1bfde"
             },
             "HighlightText": {
               "supported": true,
-              "computed": "rgb(43, 43, 43)",
-              "rgba": [43, 43, 43, 255],
+              "computed": "rgb(33, 45, 59)",
+              "rgba": [33, 45, 59, 255],
               "conversion": "rgb-serialization",
-              "hex": "#2b2b2b"
+              "hex": "#212d3b"
             },
             "LinkText": {
               "supported": true,
-              "computed": "rgb(128, 128, 255)",
-              "rgba": [128, 128, 255, 255],
+              "computed": "rgb(112, 235, 222)",
+              "rgba": [112, 235, 222, 255],
               "conversion": "rgb-serialization",
-              "hex": "#8080ff"
+              "hex": "#70ebde"
             },
             "Mark": {
               "supported": true,
@@ -141,38 +141,38 @@
             },
             "SelectedItem": {
               "supported": true,
-              "computed": "rgb(25, 103, 210)",
-              "rgba": [25, 103, 210, 255],
+              "computed": "rgb(161, 191, 222)",
+              "rgba": [161, 191, 222, 255],
               "conversion": "rgb-serialization",
-              "hex": "#1967d2"
+              "hex": "#a1bfde"
             },
             "SelectedItemText": {
               "supported": true,
-              "computed": "rgb(255, 255, 255)",
-              "rgba": [255, 255, 255, 255],
+              "computed": "rgb(33, 45, 59)",
+              "rgba": [33, 45, 59, 255],
               "conversion": "rgb-serialization",
-              "hex": "#ffffff"
+              "hex": "#212d3b"
             },
             "VisitedText": {
               "supported": true,
-              "computed": "rgb(128, 128, 255)",
-              "rgba": [128, 128, 255, 255],
+              "computed": "rgb(150, 255, 155)",
+              "rgba": [150, 255, 155, 255],
               "conversion": "rgb-serialization",
-              "hex": "#8080ff"
+              "hex": "#96ff9b"
             },
             "ActiveBorder": {
               "supported": true,
-              "computed": "rgb(255, 238, 50)",
-              "rgba": [255, 238, 50, 255],
+              "computed": "rgb(255, 255, 0)",
+              "rgba": [255, 255, 0, 255],
               "conversion": "rgb-serialization",
-              "hex": "#ffee32"
+              "hex": "#ffff00"
             },
             "ActiveCaption": {
               "supported": true,
-              "computed": "rgb(0, 0, 0)",
-              "rgba": [0, 0, 0, 255],
+              "computed": "rgb(218, 253, 255)",
+              "rgba": [218, 253, 255, 255],
               "conversion": "rgb-serialization",
-              "hex": "#000000"
+              "hex": "#dafdff"
             },
             "AppWorkspace": {
               "supported": true,
@@ -183,52 +183,52 @@
             },
             "Background": {
               "supported": true,
-              "computed": "rgb(0, 0, 0)",
-              "rgba": [0, 0, 0, 255],
+              "computed": "rgb(45, 50, 54)",
+              "rgba": [45, 50, 54, 255],
               "conversion": "rgb-serialization",
-              "hex": "#000000"
+              "hex": "#2d3236"
             },
             "ButtonHighlight": {
               "supported": true,
-              "computed": "rgb(0, 0, 0)",
-              "rgba": [0, 0, 0, 255],
+              "computed": "rgb(192, 192, 192)",
+              "rgba": [192, 192, 192, 255],
               "conversion": "rgb-serialization",
-              "hex": "#000000"
+              "hex": "#c0c0c0"
             },
             "ButtonShadow": {
-              "supported": true,
-              "computed": "rgb(0, 0, 0)",
-              "rgba": [0, 0, 0, 255],
-              "conversion": "rgb-serialization",
-              "hex": "#000000"
-            },
-            "CaptionText": {
-              "supported": true,
-              "computed": "rgb(255, 255, 255)",
-              "rgba": [255, 255, 255, 255],
-              "conversion": "rgb-serialization",
-              "hex": "#ffffff"
-            },
-            "InactiveBorder": {
-              "supported": true,
-              "computed": "rgb(255, 238, 50)",
-              "rgba": [255, 238, 50, 255],
-              "conversion": "rgb-serialization",
-              "hex": "#ffee32"
-            },
-            "InactiveCaption": {
-              "supported": true,
-              "computed": "rgb(0, 0, 0)",
-              "rgba": [0, 0, 0, 255],
-              "conversion": "rgb-serialization",
-              "hex": "#000000"
-            },
-            "InactiveCaptionText": {
               "supported": true,
               "computed": "rgb(128, 128, 128)",
               "rgba": [128, 128, 128, 255],
               "conversion": "rgb-serialization",
               "hex": "#808080"
+            },
+            "CaptionText": {
+              "supported": true,
+              "computed": "rgb(0, 0, 0)",
+              "rgba": [0, 0, 0, 255],
+              "conversion": "rgb-serialization",
+              "hex": "#000000"
+            },
+            "InactiveBorder": {
+              "supported": true,
+              "computed": "rgb(0, 128, 0)",
+              "rgba": [0, 128, 0, 255],
+              "conversion": "rgb-serialization",
+              "hex": "#008000"
+            },
+            "InactiveCaption": {
+              "supported": true,
+              "computed": "rgb(166, 166, 166)",
+              "rgba": [166, 166, 166, 255],
+              "conversion": "rgb-serialization",
+              "hex": "#a6a6a6"
+            },
+            "InactiveCaptionText": {
+              "supported": true,
+              "computed": "rgb(0, 0, 0)",
+              "rgba": [0, 0, 0, 255],
+              "conversion": "rgb-serialization",
+              "hex": "#000000"
             },
             "InfoBackground": {
               "supported": true,
@@ -246,10 +246,10 @@
             },
             "Menu": {
               "supported": true,
-              "computed": "rgb(0, 0, 0)",
-              "rgba": [0, 0, 0, 255],
+              "computed": "rgb(45, 50, 54)",
+              "rgba": [45, 50, 54, 255],
               "conversion": "rgb-serialization",
-              "hex": "#000000"
+              "hex": "#2d3236"
             },
             "MenuText": {
               "supported": true,
@@ -267,52 +267,52 @@
             },
             "ThreeDDarkShadow": {
               "supported": true,
-              "computed": "rgb(255, 238, 50)",
-              "rgba": [255, 238, 50, 255],
+              "computed": "rgb(255, 255, 255)",
+              "rgba": [255, 255, 255, 255],
               "conversion": "rgb-serialization",
-              "hex": "#ffee32"
+              "hex": "#ffffff"
             },
             "ThreeDFace": {
               "supported": true,
-              "computed": "rgb(0, 0, 0)",
-              "rgba": [0, 0, 0, 255],
+              "computed": "rgb(45, 50, 54)",
+              "rgba": [45, 50, 54, 255],
               "conversion": "rgb-serialization",
-              "hex": "#000000"
+              "hex": "#2d3236"
             },
             "ThreeDHighlight": {
               "supported": true,
-              "computed": "rgb(255, 238, 50)",
-              "rgba": [255, 238, 50, 255],
+              "computed": "rgb(192, 192, 192)",
+              "rgba": [192, 192, 192, 255],
               "conversion": "rgb-serialization",
-              "hex": "#ffee32"
+              "hex": "#c0c0c0"
             },
             "ThreeDLightShadow": {
               "supported": true,
-              "computed": "rgb(255, 238, 50)",
-              "rgba": [255, 238, 50, 255],
+              "computed": "rgb(255, 255, 255)",
+              "rgba": [255, 255, 255, 255],
               "conversion": "rgb-serialization",
-              "hex": "#ffee32"
+              "hex": "#ffffff"
             },
             "ThreeDShadow": {
               "supported": true,
-              "computed": "rgb(255, 238, 50)",
-              "rgba": [255, 238, 50, 255],
+              "computed": "rgb(128, 128, 128)",
+              "rgba": [128, 128, 128, 255],
               "conversion": "rgb-serialization",
-              "hex": "#ffee32"
+              "hex": "#808080"
             },
             "Window": {
               "supported": true,
-              "computed": "rgb(0, 0, 0)",
-              "rgba": [0, 0, 0, 255],
+              "computed": "rgb(45, 50, 54)",
+              "rgba": [45, 50, 54, 255],
               "conversion": "rgb-serialization",
-              "hex": "#000000"
+              "hex": "#2d3236"
             },
             "WindowFrame": {
               "supported": true,
-              "computed": "rgb(255, 238, 50)",
-              "rgba": [255, 238, 50, 255],
+              "computed": "rgb(255, 255, 255)",
+              "rgba": [255, 255, 255, 255],
               "conversion": "rgb-serialization",
-              "hex": "#ffee32"
+              "hex": "#ffffff"
             },
             "WindowText": {
               "supported": true,
@@ -325,7 +325,7 @@
           "pairs": [
             {
               "id": "Canvas/CanvasText",
-              "ratio": 21,
+              "ratio": 12.954271614661916,
               "grades": {
                 "normalAA": true,
                 "normalAAA": true,
@@ -333,112 +333,112 @@
                 "largeAAA": true
               },
               "nonTextThreshold": true,
-              "paintedBackground": [0, 0, 0],
+              "paintedBackground": [45, 50, 54],
               "paintedForeground": [255, 255, 255]
             },
             {
               "id": "Canvas/LinkText",
-              "ratio": 6.449507440113514,
+              "ratio": 9.022999655814068,
               "grades": {
                 "normalAA": true,
-                "normalAAA": false,
+                "normalAAA": true,
                 "largeAA": true,
                 "largeAAA": true
               },
               "nonTextThreshold": true,
-              "paintedBackground": [0, 0, 0],
-              "paintedForeground": [128, 128, 255]
+              "paintedBackground": [45, 50, 54],
+              "paintedForeground": [112, 235, 222]
             },
             {
               "id": "Canvas/VisitedText",
-              "ratio": 6.449507440113514,
+              "ratio": 10.532512257086381,
               "grades": {
                 "normalAA": true,
-                "normalAAA": false,
+                "normalAAA": true,
                 "largeAA": true,
                 "largeAAA": true
               },
               "nonTextThreshold": true,
-              "paintedBackground": [0, 0, 0],
-              "paintedForeground": [128, 128, 255]
+              "paintedBackground": [45, 50, 54],
+              "paintedForeground": [150, 255, 155]
             },
             {
               "id": "Canvas/ActiveText",
-              "ratio": 6.449507440113514,
-              "grades": {
-                "normalAA": true,
-                "normalAAA": false,
-                "largeAA": true,
-                "largeAAA": true
-              },
-              "nonTextThreshold": true,
-              "paintedBackground": [0, 0, 0],
-              "paintedForeground": [128, 128, 255]
-            },
-            {
-              "id": "ButtonFace/ButtonText",
-              "ratio": 17.52787213836647,
-              "grades": {
-                "normalAA": true,
-                "normalAAA": true,
-                "largeAA": true,
-                "largeAAA": true
-              },
-              "nonTextThreshold": true,
-              "paintedBackground": [0, 0, 0],
-              "paintedForeground": [255, 238, 50]
-            },
-            {
-              "id": "Field/FieldText",
-              "ratio": 21,
-              "grades": {
-                "normalAA": true,
-                "normalAAA": true,
-                "largeAA": true,
-                "largeAAA": true
-              },
-              "nonTextThreshold": true,
-              "paintedBackground": [0, 0, 0],
-              "paintedForeground": [255, 255, 255]
-            },
-            {
-              "id": "Highlight/HighlightText",
-              "ratio": 7.9601390873931965,
-              "grades": {
-                "normalAA": true,
-                "normalAAA": true,
-                "largeAA": true,
-                "largeAAA": true
-              },
-              "nonTextThreshold": true,
-              "paintedBackground": [214, 180, 253],
-              "paintedForeground": [43, 43, 43]
-            },
-            {
-              "id": "SelectedItem/SelectedItemText",
-              "ratio": 5.368012501563936,
-              "grades": {
-                "normalAA": true,
-                "normalAAA": false,
-                "largeAA": true,
-                "largeAAA": true
-              },
-              "nonTextThreshold": true,
-              "paintedBackground": [25, 103, 210],
-              "paintedForeground": [255, 255, 255]
-            },
-            {
-              "id": "AccentColor/AccentColorText",
-              "ratio": 4.209668849730067,
+              "ratio": 2.859457178230034,
               "grades": {
                 "normalAA": false,
                 "normalAAA": false,
-                "largeAA": true,
+                "largeAA": false,
                 "largeAAA": false
               },
+              "nonTextThreshold": false,
+              "paintedBackground": [45, 50, 54],
+              "paintedForeground": [238, 0, 0]
+            },
+            {
+              "id": "ButtonFace/ButtonText",
+              "ratio": 10.751784931853713,
+              "grades": {
+                "normalAA": true,
+                "normalAAA": true,
+                "largeAA": true,
+                "largeAAA": true
+              },
               "nonTextThreshold": true,
-              "paintedBackground": [0, 117, 255],
-              "paintedForeground": [255, 255, 255]
+              "paintedBackground": [45, 50, 54],
+              "paintedForeground": [182, 246, 240]
+            },
+            {
+              "id": "Field/FieldText",
+              "ratio": 10.751784931853713,
+              "grades": {
+                "normalAA": true,
+                "normalAAA": true,
+                "largeAA": true,
+                "largeAAA": true
+              },
+              "nonTextThreshold": true,
+              "paintedBackground": [45, 50, 54],
+              "paintedForeground": [182, 246, 240]
+            },
+            {
+              "id": "Highlight/HighlightText",
+              "ratio": 7.332827932655725,
+              "grades": {
+                "normalAA": true,
+                "normalAAA": true,
+                "largeAA": true,
+                "largeAAA": true
+              },
+              "nonTextThreshold": true,
+              "paintedBackground": [161, 191, 222],
+              "paintedForeground": [33, 45, 59]
+            },
+            {
+              "id": "SelectedItem/SelectedItemText",
+              "ratio": 7.332827932655725,
+              "grades": {
+                "normalAA": true,
+                "normalAAA": true,
+                "largeAA": true,
+                "largeAAA": true
+              },
+              "nonTextThreshold": true,
+              "paintedBackground": [161, 191, 222],
+              "paintedForeground": [33, 45, 59]
+            },
+            {
+              "id": "AccentColor/AccentColorText",
+              "ratio": 11.022519400714105,
+              "grades": {
+                "normalAA": true,
+                "normalAAA": true,
+                "largeAA": true,
+                "largeAAA": true
+              },
+              "nonTextThreshold": true,
+              "paintedBackground": [161, 191, 222],
+              "paintedForeground": [0, 0, 0]
             },
             {
               "id": "Mark/MarkText",
@@ -455,7 +455,7 @@
             },
             {
               "id": "ActiveCaption/CaptionText",
-              "ratio": 21,
+              "ratio": 19.47519711646391,
               "grades": {
                 "normalAA": true,
                 "normalAAA": true,
@@ -463,21 +463,21 @@
                 "largeAAA": true
               },
               "nonTextThreshold": true,
-              "paintedBackground": [0, 0, 0],
-              "paintedForeground": [255, 255, 255]
+              "paintedBackground": [218, 253, 255],
+              "paintedForeground": [0, 0, 0]
             },
             {
               "id": "InactiveCaption/InactiveCaptionText",
-              "ratio": 5.317210002277984,
+              "ratio": 8.626520228650602,
               "grades": {
                 "normalAA": true,
-                "normalAAA": false,
+                "normalAAA": true,
                 "largeAA": true,
                 "largeAAA": true
               },
               "nonTextThreshold": true,
-              "paintedBackground": [0, 0, 0],
-              "paintedForeground": [128, 128, 128]
+              "paintedBackground": [166, 166, 166],
+              "paintedForeground": [0, 0, 0]
             },
             {
               "id": "InfoBackground/InfoText",
@@ -494,7 +494,7 @@
             },
             {
               "id": "Menu/MenuText",
-              "ratio": 21,
+              "ratio": 12.954271614661916,
               "grades": {
                 "normalAA": true,
                 "normalAAA": true,
@@ -502,12 +502,12 @@
                 "largeAAA": true
               },
               "nonTextThreshold": true,
-              "paintedBackground": [0, 0, 0],
+              "paintedBackground": [45, 50, 54],
               "paintedForeground": [255, 255, 255]
             },
             {
               "id": "Window/WindowText",
-              "ratio": 21,
+              "ratio": 12.954271614661916,
               "grades": {
                 "normalAA": true,
                 "normalAAA": true,
@@ -515,7 +515,7 @@
                 "largeAAA": true
               },
               "nonTextThreshold": true,
-              "paintedBackground": [0, 0, 0],
+              "paintedBackground": [45, 50, 54],
               "paintedForeground": [255, 255, 255]
             }
           ]
@@ -527,52 +527,52 @@
           "colors": {
             "AccentColor": {
               "supported": true,
-              "computed": "rgb(0, 117, 255)",
-              "rgba": [0, 117, 255, 255],
+              "computed": "rgb(161, 191, 222)",
+              "rgba": [161, 191, 222, 255],
               "conversion": "rgb-serialization",
-              "hex": "#0075ff"
+              "hex": "#a1bfde"
             },
             "AccentColorText": {
               "supported": true,
-              "computed": "rgb(255, 255, 255)",
-              "rgba": [255, 255, 255, 255],
+              "computed": "rgb(0, 0, 0)",
+              "rgba": [0, 0, 0, 255],
               "conversion": "rgb-serialization",
-              "hex": "#ffffff"
+              "hex": "#000000"
             },
             "ActiveText": {
               "supported": true,
-              "computed": "rgb(128, 128, 255)",
-              "rgba": [128, 128, 255, 255],
+              "computed": "rgb(238, 0, 0)",
+              "rgba": [238, 0, 0, 255],
               "conversion": "rgb-serialization",
-              "hex": "#8080ff"
+              "hex": "#ee0000"
             },
             "ButtonBorder": {
               "supported": true,
-              "computed": "rgb(255, 238, 50)",
-              "rgba": [255, 238, 50, 255],
+              "computed": "rgb(182, 246, 240)",
+              "rgba": [182, 246, 240, 255],
               "conversion": "rgb-serialization",
-              "hex": "#ffee32"
+              "hex": "#b6f6f0"
             },
             "ButtonFace": {
               "supported": true,
-              "computed": "rgb(0, 0, 0)",
-              "rgba": [0, 0, 0, 255],
+              "computed": "rgb(45, 50, 54)",
+              "rgba": [45, 50, 54, 255],
               "conversion": "rgb-serialization",
-              "hex": "#000000"
+              "hex": "#2d3236"
             },
             "ButtonText": {
               "supported": true,
-              "computed": "rgb(255, 238, 50)",
-              "rgba": [255, 238, 50, 255],
+              "computed": "rgb(182, 246, 240)",
+              "rgba": [182, 246, 240, 255],
               "conversion": "rgb-serialization",
-              "hex": "#ffee32"
+              "hex": "#b6f6f0"
             },
             "Canvas": {
               "supported": true,
-              "computed": "rgb(0, 0, 0)",
-              "rgba": [0, 0, 0, 255],
+              "computed": "rgb(45, 50, 54)",
+              "rgba": [45, 50, 54, 255],
               "conversion": "rgb-serialization",
-              "hex": "#000000"
+              "hex": "#2d3236"
             },
             "CanvasText": {
               "supported": true,
@@ -583,17 +583,17 @@
             },
             "Field": {
               "supported": true,
-              "computed": "rgb(0, 0, 0)",
-              "rgba": [0, 0, 0, 255],
+              "computed": "rgb(45, 50, 54)",
+              "rgba": [45, 50, 54, 255],
               "conversion": "rgb-serialization",
-              "hex": "#000000"
+              "hex": "#2d3236"
             },
             "FieldText": {
               "supported": true,
-              "computed": "rgb(255, 255, 255)",
-              "rgba": [255, 255, 255, 255],
+              "computed": "rgb(182, 246, 240)",
+              "rgba": [182, 246, 240, 255],
               "conversion": "rgb-serialization",
-              "hex": "#ffffff"
+              "hex": "#b6f6f0"
             },
             "GrayText": {
               "supported": true,
@@ -604,24 +604,24 @@
             },
             "Highlight": {
               "supported": true,
-              "computed": "rgb(214, 180, 253)",
-              "rgba": [214, 180, 253, 255],
+              "computed": "rgb(161, 191, 222)",
+              "rgba": [161, 191, 222, 255],
               "conversion": "rgb-serialization",
-              "hex": "#d6b4fd"
+              "hex": "#a1bfde"
             },
             "HighlightText": {
               "supported": true,
-              "computed": "rgb(43, 43, 43)",
-              "rgba": [43, 43, 43, 255],
+              "computed": "rgb(33, 45, 59)",
+              "rgba": [33, 45, 59, 255],
               "conversion": "rgb-serialization",
-              "hex": "#2b2b2b"
+              "hex": "#212d3b"
             },
             "LinkText": {
               "supported": true,
-              "computed": "rgb(128, 128, 255)",
-              "rgba": [128, 128, 255, 255],
+              "computed": "rgb(112, 235, 222)",
+              "rgba": [112, 235, 222, 255],
               "conversion": "rgb-serialization",
-              "hex": "#8080ff"
+              "hex": "#70ebde"
             },
             "Mark": {
               "supported": true,
@@ -639,38 +639,38 @@
             },
             "SelectedItem": {
               "supported": true,
-              "computed": "rgb(153, 200, 255)",
-              "rgba": [153, 200, 255, 255],
+              "computed": "rgb(161, 191, 222)",
+              "rgba": [161, 191, 222, 255],
               "conversion": "rgb-serialization",
-              "hex": "#99c8ff"
+              "hex": "#a1bfde"
             },
             "SelectedItemText": {
               "supported": true,
-              "computed": "rgb(59, 59, 59)",
-              "rgba": [59, 59, 59, 255],
+              "computed": "rgb(33, 45, 59)",
+              "rgba": [33, 45, 59, 255],
               "conversion": "rgb-serialization",
-              "hex": "#3b3b3b"
+              "hex": "#212d3b"
             },
             "VisitedText": {
               "supported": true,
-              "computed": "rgb(128, 128, 255)",
-              "rgba": [128, 128, 255, 255],
+              "computed": "rgb(150, 255, 155)",
+              "rgba": [150, 255, 155, 255],
               "conversion": "rgb-serialization",
-              "hex": "#8080ff"
+              "hex": "#96ff9b"
             },
             "ActiveBorder": {
               "supported": true,
-              "computed": "rgb(255, 238, 50)",
-              "rgba": [255, 238, 50, 255],
+              "computed": "rgb(255, 255, 0)",
+              "rgba": [255, 255, 0, 255],
               "conversion": "rgb-serialization",
-              "hex": "#ffee32"
+              "hex": "#ffff00"
             },
             "ActiveCaption": {
               "supported": true,
-              "computed": "rgb(0, 0, 0)",
-              "rgba": [0, 0, 0, 255],
+              "computed": "rgb(218, 253, 255)",
+              "rgba": [218, 253, 255, 255],
               "conversion": "rgb-serialization",
-              "hex": "#000000"
+              "hex": "#dafdff"
             },
             "AppWorkspace": {
               "supported": true,
@@ -681,52 +681,52 @@
             },
             "Background": {
               "supported": true,
-              "computed": "rgb(0, 0, 0)",
-              "rgba": [0, 0, 0, 255],
+              "computed": "rgb(45, 50, 54)",
+              "rgba": [45, 50, 54, 255],
               "conversion": "rgb-serialization",
-              "hex": "#000000"
+              "hex": "#2d3236"
             },
             "ButtonHighlight": {
               "supported": true,
-              "computed": "rgb(0, 0, 0)",
-              "rgba": [0, 0, 0, 255],
+              "computed": "rgb(192, 192, 192)",
+              "rgba": [192, 192, 192, 255],
               "conversion": "rgb-serialization",
-              "hex": "#000000"
+              "hex": "#c0c0c0"
             },
             "ButtonShadow": {
-              "supported": true,
-              "computed": "rgb(0, 0, 0)",
-              "rgba": [0, 0, 0, 255],
-              "conversion": "rgb-serialization",
-              "hex": "#000000"
-            },
-            "CaptionText": {
-              "supported": true,
-              "computed": "rgb(255, 255, 255)",
-              "rgba": [255, 255, 255, 255],
-              "conversion": "rgb-serialization",
-              "hex": "#ffffff"
-            },
-            "InactiveBorder": {
-              "supported": true,
-              "computed": "rgb(255, 238, 50)",
-              "rgba": [255, 238, 50, 255],
-              "conversion": "rgb-serialization",
-              "hex": "#ffee32"
-            },
-            "InactiveCaption": {
-              "supported": true,
-              "computed": "rgb(0, 0, 0)",
-              "rgba": [0, 0, 0, 255],
-              "conversion": "rgb-serialization",
-              "hex": "#000000"
-            },
-            "InactiveCaptionText": {
               "supported": true,
               "computed": "rgb(128, 128, 128)",
               "rgba": [128, 128, 128, 255],
               "conversion": "rgb-serialization",
               "hex": "#808080"
+            },
+            "CaptionText": {
+              "supported": true,
+              "computed": "rgb(0, 0, 0)",
+              "rgba": [0, 0, 0, 255],
+              "conversion": "rgb-serialization",
+              "hex": "#000000"
+            },
+            "InactiveBorder": {
+              "supported": true,
+              "computed": "rgb(0, 128, 0)",
+              "rgba": [0, 128, 0, 255],
+              "conversion": "rgb-serialization",
+              "hex": "#008000"
+            },
+            "InactiveCaption": {
+              "supported": true,
+              "computed": "rgb(166, 166, 166)",
+              "rgba": [166, 166, 166, 255],
+              "conversion": "rgb-serialization",
+              "hex": "#a6a6a6"
+            },
+            "InactiveCaptionText": {
+              "supported": true,
+              "computed": "rgb(0, 0, 0)",
+              "rgba": [0, 0, 0, 255],
+              "conversion": "rgb-serialization",
+              "hex": "#000000"
             },
             "InfoBackground": {
               "supported": true,
@@ -744,10 +744,10 @@
             },
             "Menu": {
               "supported": true,
-              "computed": "rgb(0, 0, 0)",
-              "rgba": [0, 0, 0, 255],
+              "computed": "rgb(45, 50, 54)",
+              "rgba": [45, 50, 54, 255],
               "conversion": "rgb-serialization",
-              "hex": "#000000"
+              "hex": "#2d3236"
             },
             "MenuText": {
               "supported": true,
@@ -765,52 +765,52 @@
             },
             "ThreeDDarkShadow": {
               "supported": true,
-              "computed": "rgb(255, 238, 50)",
-              "rgba": [255, 238, 50, 255],
+              "computed": "rgb(255, 255, 255)",
+              "rgba": [255, 255, 255, 255],
               "conversion": "rgb-serialization",
-              "hex": "#ffee32"
+              "hex": "#ffffff"
             },
             "ThreeDFace": {
               "supported": true,
-              "computed": "rgb(0, 0, 0)",
-              "rgba": [0, 0, 0, 255],
+              "computed": "rgb(45, 50, 54)",
+              "rgba": [45, 50, 54, 255],
               "conversion": "rgb-serialization",
-              "hex": "#000000"
+              "hex": "#2d3236"
             },
             "ThreeDHighlight": {
               "supported": true,
-              "computed": "rgb(255, 238, 50)",
-              "rgba": [255, 238, 50, 255],
+              "computed": "rgb(192, 192, 192)",
+              "rgba": [192, 192, 192, 255],
               "conversion": "rgb-serialization",
-              "hex": "#ffee32"
+              "hex": "#c0c0c0"
             },
             "ThreeDLightShadow": {
               "supported": true,
-              "computed": "rgb(255, 238, 50)",
-              "rgba": [255, 238, 50, 255],
+              "computed": "rgb(255, 255, 255)",
+              "rgba": [255, 255, 255, 255],
               "conversion": "rgb-serialization",
-              "hex": "#ffee32"
+              "hex": "#ffffff"
             },
             "ThreeDShadow": {
               "supported": true,
-              "computed": "rgb(255, 238, 50)",
-              "rgba": [255, 238, 50, 255],
+              "computed": "rgb(128, 128, 128)",
+              "rgba": [128, 128, 128, 255],
               "conversion": "rgb-serialization",
-              "hex": "#ffee32"
+              "hex": "#808080"
             },
             "Window": {
               "supported": true,
-              "computed": "rgb(0, 0, 0)",
-              "rgba": [0, 0, 0, 255],
+              "computed": "rgb(45, 50, 54)",
+              "rgba": [45, 50, 54, 255],
               "conversion": "rgb-serialization",
-              "hex": "#000000"
+              "hex": "#2d3236"
             },
             "WindowFrame": {
               "supported": true,
-              "computed": "rgb(255, 238, 50)",
-              "rgba": [255, 238, 50, 255],
+              "computed": "rgb(255, 255, 255)",
+              "rgba": [255, 255, 255, 255],
               "conversion": "rgb-serialization",
-              "hex": "#ffee32"
+              "hex": "#ffffff"
             },
             "WindowText": {
               "supported": true,
@@ -823,7 +823,7 @@
           "pairs": [
             {
               "id": "Canvas/CanvasText",
-              "ratio": 21,
+              "ratio": 12.954271614661916,
               "grades": {
                 "normalAA": true,
                 "normalAAA": true,
@@ -831,112 +831,112 @@
                 "largeAAA": true
               },
               "nonTextThreshold": true,
-              "paintedBackground": [0, 0, 0],
+              "paintedBackground": [45, 50, 54],
               "paintedForeground": [255, 255, 255]
             },
             {
               "id": "Canvas/LinkText",
-              "ratio": 6.449507440113514,
+              "ratio": 9.022999655814068,
               "grades": {
                 "normalAA": true,
-                "normalAAA": false,
+                "normalAAA": true,
                 "largeAA": true,
                 "largeAAA": true
               },
               "nonTextThreshold": true,
-              "paintedBackground": [0, 0, 0],
-              "paintedForeground": [128, 128, 255]
+              "paintedBackground": [45, 50, 54],
+              "paintedForeground": [112, 235, 222]
             },
             {
               "id": "Canvas/VisitedText",
-              "ratio": 6.449507440113514,
+              "ratio": 10.532512257086381,
               "grades": {
                 "normalAA": true,
-                "normalAAA": false,
+                "normalAAA": true,
                 "largeAA": true,
                 "largeAAA": true
               },
               "nonTextThreshold": true,
-              "paintedBackground": [0, 0, 0],
-              "paintedForeground": [128, 128, 255]
+              "paintedBackground": [45, 50, 54],
+              "paintedForeground": [150, 255, 155]
             },
             {
               "id": "Canvas/ActiveText",
-              "ratio": 6.449507440113514,
-              "grades": {
-                "normalAA": true,
-                "normalAAA": false,
-                "largeAA": true,
-                "largeAAA": true
-              },
-              "nonTextThreshold": true,
-              "paintedBackground": [0, 0, 0],
-              "paintedForeground": [128, 128, 255]
-            },
-            {
-              "id": "ButtonFace/ButtonText",
-              "ratio": 17.52787213836647,
-              "grades": {
-                "normalAA": true,
-                "normalAAA": true,
-                "largeAA": true,
-                "largeAAA": true
-              },
-              "nonTextThreshold": true,
-              "paintedBackground": [0, 0, 0],
-              "paintedForeground": [255, 238, 50]
-            },
-            {
-              "id": "Field/FieldText",
-              "ratio": 21,
-              "grades": {
-                "normalAA": true,
-                "normalAAA": true,
-                "largeAA": true,
-                "largeAAA": true
-              },
-              "nonTextThreshold": true,
-              "paintedBackground": [0, 0, 0],
-              "paintedForeground": [255, 255, 255]
-            },
-            {
-              "id": "Highlight/HighlightText",
-              "ratio": 7.9601390873931965,
-              "grades": {
-                "normalAA": true,
-                "normalAAA": true,
-                "largeAA": true,
-                "largeAAA": true
-              },
-              "nonTextThreshold": true,
-              "paintedBackground": [214, 180, 253],
-              "paintedForeground": [43, 43, 43]
-            },
-            {
-              "id": "SelectedItem/SelectedItemText",
-              "ratio": 6.433118768988058,
-              "grades": {
-                "normalAA": true,
-                "normalAAA": false,
-                "largeAA": true,
-                "largeAAA": true
-              },
-              "nonTextThreshold": true,
-              "paintedBackground": [153, 200, 255],
-              "paintedForeground": [59, 59, 59]
-            },
-            {
-              "id": "AccentColor/AccentColorText",
-              "ratio": 4.209668849730067,
+              "ratio": 2.859457178230034,
               "grades": {
                 "normalAA": false,
                 "normalAAA": false,
-                "largeAA": true,
+                "largeAA": false,
                 "largeAAA": false
               },
+              "nonTextThreshold": false,
+              "paintedBackground": [45, 50, 54],
+              "paintedForeground": [238, 0, 0]
+            },
+            {
+              "id": "ButtonFace/ButtonText",
+              "ratio": 10.751784931853713,
+              "grades": {
+                "normalAA": true,
+                "normalAAA": true,
+                "largeAA": true,
+                "largeAAA": true
+              },
               "nonTextThreshold": true,
-              "paintedBackground": [0, 117, 255],
-              "paintedForeground": [255, 255, 255]
+              "paintedBackground": [45, 50, 54],
+              "paintedForeground": [182, 246, 240]
+            },
+            {
+              "id": "Field/FieldText",
+              "ratio": 10.751784931853713,
+              "grades": {
+                "normalAA": true,
+                "normalAAA": true,
+                "largeAA": true,
+                "largeAAA": true
+              },
+              "nonTextThreshold": true,
+              "paintedBackground": [45, 50, 54],
+              "paintedForeground": [182, 246, 240]
+            },
+            {
+              "id": "Highlight/HighlightText",
+              "ratio": 7.332827932655725,
+              "grades": {
+                "normalAA": true,
+                "normalAAA": true,
+                "largeAA": true,
+                "largeAAA": true
+              },
+              "nonTextThreshold": true,
+              "paintedBackground": [161, 191, 222],
+              "paintedForeground": [33, 45, 59]
+            },
+            {
+              "id": "SelectedItem/SelectedItemText",
+              "ratio": 7.332827932655725,
+              "grades": {
+                "normalAA": true,
+                "normalAAA": true,
+                "largeAA": true,
+                "largeAAA": true
+              },
+              "nonTextThreshold": true,
+              "paintedBackground": [161, 191, 222],
+              "paintedForeground": [33, 45, 59]
+            },
+            {
+              "id": "AccentColor/AccentColorText",
+              "ratio": 11.022519400714105,
+              "grades": {
+                "normalAA": true,
+                "normalAAA": true,
+                "largeAA": true,
+                "largeAAA": true
+              },
+              "nonTextThreshold": true,
+              "paintedBackground": [161, 191, 222],
+              "paintedForeground": [0, 0, 0]
             },
             {
               "id": "Mark/MarkText",
@@ -953,7 +953,7 @@
             },
             {
               "id": "ActiveCaption/CaptionText",
-              "ratio": 21,
+              "ratio": 19.47519711646391,
               "grades": {
                 "normalAA": true,
                 "normalAAA": true,
@@ -961,21 +961,21 @@
                 "largeAAA": true
               },
               "nonTextThreshold": true,
-              "paintedBackground": [0, 0, 0],
-              "paintedForeground": [255, 255, 255]
+              "paintedBackground": [218, 253, 255],
+              "paintedForeground": [0, 0, 0]
             },
             {
               "id": "InactiveCaption/InactiveCaptionText",
-              "ratio": 5.317210002277984,
+              "ratio": 8.626520228650602,
               "grades": {
                 "normalAA": true,
-                "normalAAA": false,
+                "normalAAA": true,
                 "largeAA": true,
                 "largeAAA": true
               },
               "nonTextThreshold": true,
-              "paintedBackground": [0, 0, 0],
-              "paintedForeground": [128, 128, 128]
+              "paintedBackground": [166, 166, 166],
+              "paintedForeground": [0, 0, 0]
             },
             {
               "id": "InfoBackground/InfoText",
@@ -992,7 +992,7 @@
             },
             {
               "id": "Menu/MenuText",
-              "ratio": 21,
+              "ratio": 12.954271614661916,
               "grades": {
                 "normalAA": true,
                 "normalAAA": true,
@@ -1000,12 +1000,12 @@
                 "largeAAA": true
               },
               "nonTextThreshold": true,
-              "paintedBackground": [0, 0, 0],
+              "paintedBackground": [45, 50, 54],
               "paintedForeground": [255, 255, 255]
             },
             {
               "id": "Window/WindowText",
-              "ratio": 21,
+              "ratio": 12.954271614661916,
               "grades": {
                 "normalAA": true,
                 "normalAAA": true,
@@ -1013,7 +1013,7 @@
                 "largeAAA": true
               },
               "nonTextThreshold": true,
-              "paintedBackground": [0, 0, 0],
+              "paintedBackground": [45, 50, 54],
               "paintedForeground": [255, 255, 255]
             }
           ]

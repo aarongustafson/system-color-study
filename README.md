@@ -95,24 +95,38 @@ keyword)` returned false; inherited colors are never substituted for a rejected
 keyword. Acceptance does not prove native OS integration or a distinct value:
 aliases and privacy-preserving fixed colors are legitimate findings.
 
-Both tables group observations by their exact browser, OS, and context labels.
+Ordinary tables group observations by their exact browser, OS, and context labels.
+Visible headers show major releases without architecture; full labels remain
+in the Details dialog.
 Ordinary observations always show **Light** and **Dark** side by side, even when
-the values happen to match. A forced-color observation shares one theme column,
-marked **Light = dark**, only when all 42 keyword records, backdrop settings, and
+the values happen to match. Separate forced-color tables group themes, then
+browsers and modes. A forced-color observation shares one mode column,
+marked **Light & Dark**, only when all 42 keyword records, backdrop settings, and
 scheme-support flags match. Otherwise, the theme has separate light and dark
 columns. The test page’s Display mode control affects only its live grid.
 
 **Color pairs** has two rows per pair—background and foreground—with a value
 column and a contrast result spanning both rows for each displayed mode.
-Each numbered **Run details** disclosure preserves time, context, both schemes’
-backdrops and support, native preferences, Notes, and supporting user-agent data.
-It works with the keyboard.
+Each **Details** button opens a shared modal for its browser/OS/context group
+from any table. Metadata appears on separate labeled lines, including full
+versions, time, both schemes’ backdrops and support, preferences, Notes, and user
+agent. Buttons use `commandfor`, with a JavaScript fallback. Close the modal
+with its close button or Escape; focus returns to the opener. Opening details
+doesn’t expand or reshape the table.
 
 Repeated runs with identical measurements and matching theme/media settings
-share columns labeled with every run number. Different measurements stay
+share columns, with every observation retained in the modal. Different measurements stay
 separate, even when the browser and theme labels match. No records are removed
 from exports or the published dataset, and different version/OS labels aren’t
 silently treated as the same environment.
+
+Pointer and keyboard focus on table controls highlight the corresponding rows
+and columns. Span-aware highlighting includes paired contrast cells, without
+changing measured swatch colors or verdict fills.
+The native keyword/role headers stay pinned at the inline start while the other
+columns scroll. Table semantics and header associations are unchanged.
+Focus a scroll region and use Left/Right Arrow to scroll horizontally; focused
+Details buttons stay clear of the pinned column, including in right-to-left layouts.
 
 Contrast cells show a bold ratio followed by five separate, labeled pass/fail
 lines. Green means all five thresholds pass; amber means some pass; red means
@@ -185,9 +199,12 @@ per comparison, with a combined input and generated dataset limit of 5 MB each.
 Nothing is silently truncated; curate a comparison subset if the archive outgrows
 those bounds. Keep private archival exports in the ignored `captures/` directory.
 There are no invented results. The first committed observations are headed
-Playwright Chromium 158.0.8127.18, Firefox 159.0, and WebKit 27.2 runs on
+bundled Chromium 158.0.8127.18, Firefox 159.0, and WebKit 27.2 runs on
 macOS 27.0.1 arm64, collected November 5, 2026. Their Notes identify automation
 and source provenance; they aren’t claims about installed Chrome or Safari.
+The supplied Windows observations were confirmed as Windows 11. Their Chrome
+identifier is consistently `Chrome 157.0.8103.39`; file names and metadata
+reflect those corrections without changing measurements.
 
 The results page reads the generated same-origin JSON asset. A loading or
 validation failure produces a visible error, not substitute browser results.

@@ -2,18 +2,18 @@
   "schemaVersion": 1,
   "protocolVersion": 1,
   "catalogVersion": 1,
-  "exportedAt": "2026-11-06T01:10:48.381Z",
+  "exportedAt": "2026-11-06T00:59:54.827Z",
   "captures": [
     {
-      "id": "mw4a2xp5-muqvau2flp",
-      "capturedAt": "2026-11-06T01:10:42.713Z",
+      "id": "mw49okrz-46463y4q3tg",
+      "capturedAt": "2026-11-06T00:59:32.783Z",
       "environment": {
-        "browser": "Chrome 157.0.0.0",
-        "os": "Windows (NT 10.0; verify release)",
+        "browser": "Edge 156.0.0.0",
+        "os": "Windows 11",
         "forcedColorTheme": "Aquatic",
         "context": "normal",
         "notes": "",
-        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36 Edg/156.0.0.0"
       },
       "media": {
         "prefersColorScheme": "dark",

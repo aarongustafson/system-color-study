@@ -17,6 +17,252 @@ test.beforeEach(async ({ page }) => {
   await page.goto("./test.html");
 });
 
+async function publish(page, captures) {
+  await page.route("**/published.json", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ ...versions, captures }),
+    }),
+  );
+  await page.goto("./");
+}
+
+test("sticky keyword headers preserve native associations and keyboard-visible controls while tables scroll", async ({
+  page,
+}) => {
+  const ordinary = fixture("sticky-normal");
+  const forced = fixture("sticky-forced");
+  forced.environment.os = "Windows 11";
+  forced.media.forcedColors = true;
+  forced.environment.forcedColorTheme = "Aquatic";
+  await publish(page, [ordinary, forced]);
+  for (const direction of ["ltr", "rtl"]) {
+    await page.evaluate((value) => {
+      document.documentElement.dir = value;
+    }, direction);
+    for (const width of [320, 1400]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const id of [
+        "individual-table",
+        "pair-table",
+        "forced-individual-table",
+        "forced-pair-table",
+      ]) {
+        const table = page.locator(`#${id}`);
+        const region = table.locator("..");
+        const first = table.locator("tbody th[scope='row']").first();
+        await region.evaluate((node) => {
+          node.scrollLeft =
+            getComputedStyle(node).direction === "rtl"
+              ? -node.scrollWidth
+              : node.scrollWidth;
+        });
+        const area = await region.boundingBox();
+        const header = await first.boundingBox();
+        expect(
+          Math.abs(
+            direction === "rtl"
+              ? header.x + header.width - area.x - area.width
+              : header.x - area.x,
+          ),
+        ).toBeLessThanOrEqual(2);
+        await expect(first).toHaveCSS("position", "sticky");
+        const button = table.locator(".details-button").first();
+        await button.focus();
+        const control = await button.boundingBox();
+        const pinned = await first.boundingBox();
+        expect(control.x).toBeGreaterThanOrEqual(
+          direction === "rtl" ? area.x - 1 : pinned.x + pinned.width - 1,
+        );
+        expect(control.x + control.width).toBeLessThanOrEqual(
+          direction === "rtl" ? pinned.x + 1 : area.x + area.width + 1,
+        );
+        expect(
+          await table.locator("td[headers]").evaluateAll((cells) =>
+            cells.every((cell) =>
+              cell
+                .getAttribute("headers")
+                .split(" ")
+                .every((id) => document.getElementById(id)?.tagName === "TH"),
+            ),
+          ),
+        ).toBe(true);
+        if (width === 320) {
+          await region.evaluate((node) => {
+            node.scrollLeft = 0;
+          });
+          await region.focus();
+          await page.keyboard.press(
+            direction === "rtl" ? "ArrowLeft" : "ArrowRight",
+          );
+          await expect
+            .poll(() => region.evaluate((node) => Math.abs(node.scrollLeft)))
+            .toBeGreaterThan(0);
+        }
+      }
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth),
+      ).toBeLessThanOrEqual(width);
+    }
+  }
+});
+
+for (const fallback of [false, true]) {
+  test(`shared command dialogs keep headers compact, preserve metadata, and restore focus (${fallback ? "fallback" : "native"})`, async ({
+    page,
+  }) => {
+    if (fallback)
+      await page.addInitScript(() => {
+        delete HTMLButtonElement.prototype.commandForElement;
+      });
+    const normal = fixture("dialog-normal");
+    normal.environment.browser = "Chrome 157.0.8103.39";
+    normal.environment.os = "Windows 11";
+    const forced = structuredClone(normal);
+    forced.id = "dialog-forced";
+    forced.media.forcedColors = true;
+    forced.environment.forcedColorTheme = "Aquatic";
+    await publish(page, [normal, forced]);
+    const buttons = [
+      page.locator("#individual-table .details-button"),
+      page.locator("#pair-table .details-button"),
+      page.locator("#forced-individual-table .details-button"),
+      page.locator("#forced-pair-table .details-button"),
+    ];
+    const target = await buttons[0].getAttribute("commandfor");
+    await expect(page.locator("#capture-dialogs dialog")).toHaveCount(1);
+    for (const button of buttons) {
+      await expect(button).toHaveText("Details");
+      await expect(button).toHaveAccessibleName(
+        "Chrome 157 Windows 11 Details",
+      );
+      await expect(button).toHaveAttribute("commandfor", target);
+      await expect(button).toHaveAttribute("command", "show-modal");
+    }
+    await expect(page.locator("table details")).toHaveCount(0);
+    for (const table of await page.locator("table").all())
+      await expect(table).not.toContainText(/Runs? \d/);
+    const dialog = page.locator(`#${target}`);
+    await buttons[0].focus();
+    const before = await page.locator("#individual-table").boundingBox();
+    await page.keyboard.press("Enter");
+    await expect(dialog).toBeVisible();
+    expect(await dialog.evaluate((node) => node.matches(":modal"))).toBe(true);
+    await expect(dialog.locator("dd")).toContainText([
+      "Chrome 157.0.8103.39",
+      "Windows 11",
+    ]);
+    await expect(dialog.locator(".capture-metadata")).toHaveCount(2);
+    const after = await page.locator("#individual-table").boundingBox();
+    expect(after.width).toBe(before.width);
+    expect(after.height).toBe(before.height);
+    await page.keyboard.press("Escape");
+    await expect(dialog).not.toBeVisible();
+    await expect(buttons[0]).toBeFocused();
+    for (const button of buttons.slice(1)) {
+      await button.click();
+      await expect(dialog).toBeVisible();
+      await dialog
+        .getByRole("button", { name: "Close details", exact: true })
+        .click();
+      await expect(button).toBeFocused();
+    }
+  });
+}
+
+test("forced tables organize theme, browser, and mode without leaking into ordinary tables", async ({
+  page,
+}) => {
+  const normal = fixture("ordinary");
+  const forced = fixture("aquatic");
+  forced.environment.os = "Windows 11";
+  forced.environment.browser = "Firefox 159.0";
+  forced.media.forcedColors = true;
+  forced.environment.forcedColorTheme = "Aquatic";
+  const split = structuredClone(forced);
+  split.id = "desert";
+  split.environment.forcedColorTheme = "Desert";
+  split.schemes.dark = structuredClone(split.schemes.dark);
+  split.schemes.dark.colors.SelectedItem = {
+    supported: true,
+    rgba: [1, 2, 3, 255],
+    hex: "#010203",
+    computed: "rgb(1, 2, 3)",
+    conversion: "rgb-serialization",
+  };
+  await publish(page, [normal, forced, split]);
+  await expect(page.locator("#individual-table .mode-label")).toHaveText([
+    "Light",
+    "Dark",
+  ]);
+  for (const id of ["forced-individual-table", "forced-pair-table"]) {
+    await expect(page.locator(`#${id} .theme-heading`)).toHaveText([
+      "Aquatic",
+      "Desert",
+    ]);
+    await expect(page.locator(`#${id} .capture-browser`)).toHaveText([
+      "Firefox 159",
+      "Firefox 159",
+    ]);
+    await expect(page.locator(`#${id} .mode-label`)).toHaveText([
+      "Light & Dark",
+      "Light",
+      "Dark",
+    ]);
+  }
+  await expect(page.locator("#forced-heading")).toHaveText(
+    "Windows 11 forced colors",
+  );
+  for (const width of [320, 1400]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(width);
+  }
+  expect(
+    await page.locator("td[headers]").evaluateAll((cells) =>
+      cells.every((cell) =>
+        cell
+          .getAttribute("headers")
+          .split(" ")
+          .every((id) => document.getElementById(id)?.tagName === "TH"),
+      ),
+    ),
+  ).toBe(true);
+});
+
+test("row and column hover respects contrast row spans and leaves verdict colors unchanged", async ({
+  page,
+}) => {
+  await publish(page, [fixture("hover")]);
+  const rows = page.locator("#pair-table tbody tr");
+  const verdict = rows.nth(0).locator("td.contrast-result").first();
+  const colors = await verdict.evaluate((node) => [
+    getComputedStyle(node).color,
+    getComputedStyle(node).backgroundColor,
+  ]);
+  await rows.nth(1).locator("td").first().hover();
+  await expect(verdict).toHaveClass(/is-hover-row/);
+  await expect(rows.nth(2).locator("td").first()).toHaveClass(
+    /is-hover-column/,
+  );
+  await expect(rows.nth(2).locator("td").first()).not.toHaveClass(
+    /is-hover-row/,
+  );
+  expect(
+    await verdict.evaluate((node) => [
+      getComputedStyle(node).color,
+      getComputedStyle(node).backgroundColor,
+    ]),
+  ).toEqual(colors);
+  await page
+    .getByRole("heading", { name: "System color study results", exact: true })
+    .hover();
+  await expect(
+    page.locator("table .is-hover-row, table .is-hover-column"),
+  ).toHaveCount(0);
+});
+
 test("comparison tables group environments, show both modes, and retain split forced palettes and repeat provenance", async ({
   page,
 }) => {
@@ -65,17 +311,11 @@ test("comparison tables group environments, show both modes, and retain split fo
     await expect(page.locator(`#${table} .mode-label`)).toHaveText([
       "Light",
       "Dark",
-      "Aquatic",
-      "Desert · Light",
-      "Desert · Dark",
     ]);
-    await expect(page.locator(`#${table} .mode-heading`).nth(2)).toContainText(
-      "Light = dark",
-    );
-    await expect(page.locator(`#${table} .mode-heading`).nth(2)).toContainText(
-      "Runs 2, 3",
-    );
   }
+  await expect(page.locator("#forced-individual-table .mode-label")).toHaveText(
+    ["Light & Dark", "Light", "Dark"],
+  );
   const canvas = page.locator("#individual-table tbody tr").filter({
     has: page.getByRole("rowheader", { name: "Canvas", exact: true }),
   });
@@ -93,12 +333,12 @@ test("comparison tables group environments, show both modes, and retain split fo
     .locator("td.contrast-result");
   await expect(verdicts.nth(0).locator("strong").first()).toHaveText("21.00:1");
   await expect(verdicts.nth(1).locator("strong").first()).toHaveText("1.00:1");
-  const summary = page.locator("#individual-table .capture-heading summary");
+  const summary = page.locator("#individual-table .details-button");
   await summary.focus();
   await page.keyboard.press("Enter");
-  await expect(
-    page.locator("#individual-table .capture-heading details"),
-  ).toContainText("Independent repeated observation");
+  await expect(page.locator("#capture-dialogs dialog[open]")).toContainText(
+    "Independent repeated observation",
+  );
   expect(
     await page.locator("td[headers]").evaluateAll((cells) =>
       cells.every((cell) =>
@@ -244,25 +484,26 @@ test("compact headers keep full provenance in keyboard-accessible details and pr
   await expect(page.locator("#individual-table .mode-label")).toHaveText([
     "Light",
     "Dark",
-    "Aquatic",
-    "Forced colors (unnamed)",
     "Forced colors unknown · Light",
     "Forced colors unknown · Dark",
     "Desert (forced colors inactive) · Light",
     "Desert (forced colors inactive) · Dark",
   ]);
+  await expect(
+    page.locator("#forced-individual-table .theme-heading"),
+  ).toHaveText(["Aquatic", "Unnamed theme"]);
   const first = headings.first();
   await expect(first.locator(":scope > p")).toHaveText([
     "Unit fixture",
     "Fixture",
   ]);
-  const details = first.locator("details");
-  await expect(details.locator("p").first()).toBeHidden();
-  await details.locator("summary").focus();
+  const details = page.locator("#capture-dialogs dialog").first();
+  await expect(details).not.toBeVisible();
+  await first.locator(".details-button").focus();
   await page.keyboard.press("Enter");
   await expect(details).toHaveAttribute("open", "");
   await expect(details).toContainText("2000-01-01T00:00:00.000Z");
-  await expect(details).toContainText("white backdrop");
+  await expect(details.locator("dd")).toContainText(["white"]);
 });
 
 test("an authored OS theme does not overwrite an inactive browser media report", async ({
@@ -582,9 +823,7 @@ test("forced-color emulation is recorded as a distinct environment, not normal m
   );
   expect(data.captures[0].media.prefersColorScheme).toBe("dark");
   expect(data.captures[0].schemes.light.computedColorScheme).toBeTruthy();
-  await expect(page.locator("#individual-table thead")).toContainText(
-    "forced colors: active",
-  );
+  await expect(page.locator("#forced-section")).toBeVisible();
 });
 
 test("a published collection populates comparison tables without uploading local data", async ({
@@ -670,7 +909,9 @@ test("the built homepage renders every actual committed capture", async ({
   await expect(page.locator("#status")).toContainText(
     `Loaded ${data.captures.length} published captures`,
   );
-  const groups = comparisonGroups(data.captures);
+  const groups = comparisonGroups(
+    data.captures.filter((capture) => capture.media.forcedColors !== true),
+  );
   const columns = groups.reduce(
     (count, group) => count + group.columns.length,
     0,
@@ -685,7 +926,7 @@ test("the built homepage renders every actual committed capture", async ({
     columns * 10,
   );
   for (const capture of data.captures) {
-    await expect(page.locator("#individual-table thead")).toContainText(
+    await expect(page.locator("#capture-dialogs")).toContainText(
       capture.environment.browser,
     );
   }

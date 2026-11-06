@@ -138,8 +138,10 @@ code,
   padding: 0.75rem;
 }
 .table-scroll {
+  --keyword-column-width: clamp(8rem, 20vi, 12rem);
   max-inline-size: 100%;
   overflow: auto;
+  scroll-padding-inline-start: var(--keyword-column-width);
   margin-block: 1rem;
 }
 table {
@@ -169,17 +171,97 @@ td p {
 .mode-heading {
   overflow-wrap: anywhere;
 }
+.capture-heading {
+  position: relative;
+}
+.table-scroll tbody th[scope="row"],
+.table-scroll thead tr:first-child > th:first-child {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+  inline-size: var(--keyword-column-width);
+  min-inline-size: var(--keyword-column-width);
+  max-inline-size: var(--keyword-column-width);
+  overflow-wrap: anywhere;
+  background: Canvas;
+}
+.table-scroll thead tr:first-child > th:first-child {
+  z-index: 2;
+}
+/* Collapsed table borders don't move with sticky cells. */
+.table-scroll tbody th[scope="row"]::after,
+.table-scroll thead tr:first-child > th:first-child::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  border-inline-end: 1px solid CanvasText;
+  pointer-events: none;
+}
 .capture-heading > p,
 .mode-heading > p {
   margin-block: 0.25rem;
 }
-.capture-heading details {
-  margin-block-start: 0.75rem;
-  font-size: 0.875rem;
-  font-weight: normal;
+.details-button {
+  margin-block-start: 0.5rem;
 }
-.capture-heading summary {
-  cursor: pointer;
+.visually-hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+dialog {
+  max-inline-size: min(44rem, calc(100% - 2rem));
+  max-block-size: calc(100dvh - 2rem);
+  overflow: auto;
+  color: CanvasText;
+  background: Canvas;
+  padding: 1.5rem;
+  border: 2px solid CanvasText;
+}
+dialog::backdrop {
+  background: rgb(0 0 0 / 0.5);
+}
+dialog h2 {
+  margin-block-start: 0;
+  overflow-wrap: anywhere;
+}
+.capture-metadata dt {
+  font-weight: bold;
+}
+.capture-metadata dd {
+  margin-inline-start: 0;
+  margin-block-end: 0.75rem;
+  overflow-wrap: anywhere;
+}
+th.is-hover-row,
+td.is-hover-row {
+  box-shadow: inset 0 0 0 1px CanvasText;
+}
+th.is-hover-column,
+td.is-hover-column {
+  outline: 2px solid CanvasText;
+  outline-offset: -3px;
+}
+.is-hover-row.is-hover-column {
+  box-shadow: inset 0 0 0 3px CanvasText;
+}
+.is-hover-row:not(.contrast-result),
+.is-hover-column:not(.contrast-result) {
+  background: color-mix(in srgb, Canvas 90%, CanvasText);
+}
+@media (forced-colors: active) {
+  th.is-hover-row,
+  td.is-hover-row {
+    outline: 1px dashed CanvasText;
+    outline-offset: -2px;
+  }
+  .is-hover-row.is-hover-column {
+    outline: 3px solid CanvasText;
+  }
 }
 .contrast-result {
   padding: 0.75rem;
