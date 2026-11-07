@@ -54,7 +54,10 @@ Each pair lists pass, failure, and unavailable counts, the lowest measured
 ratio, and guidance for its intended use. Native disclosures show distinct
 painted foreground/background combinations with all contributing scheme
 observations. Identical examples merge visually, but their observations remain
-in the counts. Forced and more-contrast totals include both requested schemes.
+in the counts. Observation labels use browser and OS major versions, the scheme,
+and active forced-color or contrast settings. Full metadata stays in the
+comparison-table Details dialogs and the source captures.
+Forced and more-contrast totals include both requested schemes.
 The page identifies the systems represented in more-contrast captures.
 Recommendations and examples work without JavaScript; recorded-color previews
 alone opt out of forced-color adjustment, as in the pairing tables.

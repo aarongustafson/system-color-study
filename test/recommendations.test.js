@@ -188,3 +188,46 @@ test("built recommendations precede contributions and retain static accessible e
     0,
   );
 });
+
+test("observation labels show compact versions and relevant settings without metadata noise", async (t) => {
+  const normal = capture("normal");
+  normal.environment.browser = "Chrome 157.0.8103.39";
+  normal.environment.os = "Windows 11";
+  const forced = capture("forced", "forced");
+  forced.environment.browser = "Firefox 160.1.2";
+  forced.environment.os = "macOS 27.0.1";
+  forced.media.prefersContrast = "more";
+  forced.environment.context = "private";
+  const more = capture("more", "more");
+  more.environment.browser = "Safari 27.0.1";
+  more.environment.os = "macOS 27.0.1";
+  const source = await readFile(
+    new URL("../index.html", import.meta.url),
+    "utf8",
+  );
+  const dom = new JSDOM(renderIndex(source, [normal, forced, more]));
+  t.after(() => dom.window.close());
+  const labels = [
+    ...dom.window.document.querySelectorAll(
+      "#recommended-pairs article:first-child figcaption li",
+    ),
+  ].map((node) => node.textContent);
+  assert.deepEqual(labels, [
+    "Chrome 157 / Windows 11, light",
+    "Chrome 157 / Windows 11, dark",
+    "Firefox 160 / macOS 27, light, forced colors, more contrast",
+    "Firefox 160 / macOS 27, dark, forced colors, more contrast",
+    "Safari 27 / macOS 27, light, more contrast",
+    "Safari 27 / macOS 27, dark, more contrast",
+  ]);
+  const unknown = capture("unknown");
+  unknown.media.forcedColors = null;
+  unknown.media.prefersContrast = "less";
+  const other = new JSDOM(renderIndex(source, [unknown]));
+  t.after(() => other.window.close());
+  assert.equal(
+    other.window.document.querySelector("#caution-pairs figcaption li")
+      .textContent,
+    "Unit fixture / Fixture, light, forced colors unknown, less contrast",
+  );
+});

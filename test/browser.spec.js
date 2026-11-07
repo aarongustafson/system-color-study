@@ -63,7 +63,10 @@ for (const javaScriptEnabled of [true, false]) {
         await provenance.locator("summary").focus();
         await provenance.locator("summary").press("Enter");
         await expect(provenance.locator("ul")).toBeVisible();
-        await expect(provenance).toContainText("requested");
+        await expect(provenance.locator("li").first()).toHaveText(
+          /.+ \/ .+, (light|dark)(, .+)?/,
+        );
+        await expect(provenance).not.toContainText("requested");
         await expect(provenance).toContainText("forced colors");
         const geometry = await section.evaluate((node) => {
           const bounds = node.getBoundingClientRect();

@@ -455,13 +455,21 @@ export function createComparisonRenderer(document) {
             ),
           );
           const list = element("ul");
-          for (const { capture, scheme, category } of variant.observations)
+          for (const { capture, scheme } of variant.observations) {
+            const settings = [scheme];
+            if (capture.media.forcedColors === true)
+              settings.push("forced colors");
+            else if (capture.media.forcedColors === null)
+              settings.push("forced colors unknown");
+            if (capture.media.prefersContrast !== "no-preference")
+              settings.push(`${capture.media.prefersContrast} contrast`);
             list.append(
               element(
                 "li",
-                `${capture.environment.browser} / ${capture.environment.os} · ${labels[category]} · ${scheme} requested · forced colors ${forcedLabel(capture.media.forcedColors)} · contrast ${capture.media.prefersContrast}${capture.environment.forcedColorTheme ? ` · ${capture.environment.forcedColorTheme}` : ""} · ${capture.environment.context} · ${capture.capturedAt}`,
+                `${compactEnvironmentLabel(capture.environment.browser)} / ${compactEnvironmentLabel(capture.environment.os)}, ${settings.join(", ")}`,
               ),
             );
+          }
           provenance.append(list);
           caption.append(provenance);
           figure.append(caption);
