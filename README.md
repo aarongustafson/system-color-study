@@ -42,6 +42,23 @@ dated JSON snapshot. Its download is available immediately. Nothing uploads or
 saves automatically, and the page doesn’t import or display comparison datasets.
 Use the published results to explore the colors.
 
+The findings page also generates functional-pair recommendations at build time.
+A current pair qualifies only when every observation meets normal-text AA
+(4.5:1) separately in ordinary light, ordinary dark, forced-color, and
+more-contrast categories, with at least one observation in each. Unsupported
+keywords or requested schemes remain unavailable in the denominator; other or
+unknown settings prevent qualification and are reported separately. There is
+no pooled score. These are observed starting points, not universal guarantees.
+
+Each pair lists pass, failure, and unavailable counts, the lowest measured
+ratio, and guidance for its intended use. Native disclosures show distinct
+painted foreground/background combinations with all contributing scheme
+observations. Identical examples merge visually, but their observations remain
+in the counts. Forced and more-contrast totals include both requested schemes.
+The page identifies the systems represented in more-contrast captures.
+Recommendations and examples work without JavaScript; recorded-color previews
+alone opt out of forced-color adjustment, as in the pairing tables.
+
 Captures use each mode’s resolved `Canvas` as the contrast backdrop. Raw colors,
 alpha, unsupported keywords, and both requested-scheme reports remain in the JSON.
 

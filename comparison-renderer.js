@@ -11,9 +11,20 @@ import {
   composite,
   contrast,
   forcedLabel,
+  recommendationSummary,
 } from "./model.js";
 
 export { forcedLabel } from "./model.js";
+
+function contrastVerdict(result) {
+  return result.ratio === null
+    ? "unavailable"
+    : result.grades.normalAAA
+      ? "pass"
+      : result.nonTextThreshold
+        ? "mixed"
+        : "fail";
+}
 
 export function createComparisonRenderer(document) {
   const byId = (id) => document.getElementById(id);
@@ -193,8 +204,8 @@ export function createComparisonRenderer(document) {
 
   function renderVerdict(target, result) {
     target.classList.add("contrast-result");
+    target.dataset.verdict = contrastVerdict(result);
     if (result.ratio === null) {
-      target.dataset.verdict = "unavailable";
       target.append(element("p", "Not measured: " + result.reason));
       return;
     }
@@ -205,9 +216,6 @@ export function createComparisonRenderer(document) {
       ["Large AAA", result.grades.largeAAA],
       ["Non-text", result.nonTextThreshold],
     ];
-    const passes = thresholds.filter(([, pass]) => pass).length;
-    target.dataset.verdict =
-      passes === thresholds.length ? "pass" : passes === 0 ? "fail" : "mixed";
     const ratio = element("p");
     ratio.append(element("strong", `${result.ratio.toFixed(2)}:1`));
     target.append(ratio);
@@ -256,8 +264,8 @@ export function createComparisonRenderer(document) {
     return [current, deprecated];
   }
 
-  function pairedExample(pair, snapshot, result, verdict) {
-    const cell = element("td");
+  function pairedExample(pair, snapshot, result, verdict, tag = "td") {
+    const cell = element(tag);
     cell.className = "paired-example";
     if (result.ratio === null) {
       cell.textContent = "Preview unavailable: " + result.reason;
@@ -291,6 +299,186 @@ export function createComparisonRenderer(document) {
     face.append(use);
     cell.append(normal, large, face);
     return cell;
+  }
+
+  function renderRecommendations(captures) {
+    const summary = recommendationSummary(captures);
+    const labels = {
+      light: "Light",
+      dark: "Dark",
+      forced: "Forced colors",
+      more: "More contrast",
+      other: "Other or unknown settings",
+    };
+    const guidance = {
+      "Canvas/CanvasText": [
+        "Page content and general reading surfaces.",
+        "Start here for ordinary text, rather than borrowing colors intended for a control or a selected item.",
+      ],
+      "Canvas/LinkText": [
+        "Links in page content.",
+        "Keep an underline or another non-color way to identify links. These observations only test links on Canvas, not on every surface.",
+      ],
+      "Canvas/VisitedText": [
+        "Visited links on the page surface.",
+        "Keep links identifiable without relying on their visited color.",
+      ],
+      "Canvas/ActiveText": [
+        "Links while they are being activated.",
+        "Don’t let a transient color make the link unreadable or use color alone to communicate its state.",
+      ],
+      "ButtonFace/ButtonText": [
+        "Button labels and surfaces.",
+        "Check the button boundary and focus indicator separately. Readable label text doesn’t prove either one is distinguishable.",
+      ],
+      "Field/FieldText": [
+        "Text-entry fields.",
+        "Check field boundaries, focus, and authored placeholder text separately.",
+      ],
+      "Highlight/HighlightText": [
+        "Text in a highlighted selection.",
+        "Evaluate selection behavior in your interface; don’t assume this is a general-purpose highlighted reading surface.",
+      ],
+      "SelectedItem/SelectedItemText": [
+        "Selected items in a control.",
+        "Keep a non-color selection indicator, and check the selected item against its neighbors.",
+      ],
+      "AccentColor/AccentColorText": [
+        "Text on an accent-colored surface.",
+        "Check keyword support as well as contrast. An accent isn’t automatically a suitable background for normal text.",
+      ],
+      "Mark/MarkText": [
+        "Marked passages, such as search matches.",
+        "Use these for marked text, not as substitutes for button, field, or selection colors.",
+      ],
+    };
+    const coverage = byId("recommendation-coverage");
+    coverage.replaceChildren(
+      element(
+        "p",
+        captures.length
+          ? `These ${captures.length} captures each measure two requested schemes. Counts below are scheme observations, not independent setups. Forced-color and more-contrast observations are kept separate from ordinary light and dark observations.`
+          : "No captures are available yet. There isn’t enough evidence to recommend a pair.",
+      ),
+    );
+    if (summary.moreContrastSystems.length)
+      coverage.append(
+        element(
+          "p",
+          `More-contrast coverage comes from: ${summary.moreContrastSystems.join("; ")}. That doesn’t establish how these pairs behave on other systems or settings.`,
+        ),
+      );
+    if (summary.categories.other)
+      coverage.append(
+        element(
+          "p",
+          `${summary.categories.other} observations have other or unknown settings. They’re reported separately and prevent an across-mode recommendation.`,
+        ),
+      );
+    const starting = byId("recommended-pairs");
+    const cautious = byId("caution-pairs");
+    starting.replaceChildren();
+    cautious.replaceChildren();
+    if (!captures.length) return;
+    for (const pair of summary.pairs) {
+      const card = element("article");
+      card.className = "pair-card recommendation-card";
+      card.dataset.recommended = String(pair.recommended);
+      card.append(
+        element("h4", `${pair.foreground} on ${pair.background}`),
+        element("p", guidance[pair.id][0]),
+        element(
+          "p",
+          pair.recommended
+            ? "Meets AA for normal text in every observation in all four categories."
+            : "Not an across-mode starting point in this collection. Check the failures, unavailable measurements, or gaps below.",
+        ),
+      );
+      const counts = element("ul");
+      counts.className = "recommendation-stats";
+      for (const [category, { total, passed, unavailable }] of Object.entries(
+        pair.categories,
+      )) {
+        if (category === "other" && !total) continue;
+        counts.append(
+          element(
+            "li",
+            total
+              ? `${labels[category]}: ${passed}/${total} meet AA; ${total - passed - unavailable} fail; ${unavailable} unavailable.`
+              : `${labels[category]}: no observations.`,
+          ),
+        );
+      }
+      card.append(counts);
+      card.append(
+        element(
+          "p",
+          pair.minimum === null
+            ? "No contrast measurements are available."
+            : `Lowest recorded contrast: ${pair.minimum.toFixed(2)}:1. Qualification uses the unrounded ratios.`,
+        ),
+        element("p", guidance[pair.id][1]),
+      );
+      if (pair.variants.length) {
+        const disclosure = element("details");
+        disclosure.append(
+          element(
+            "summary",
+            `See ${pair.variants.length} distinct painted combination${pair.variants.length === 1 ? "" : "s"}`,
+          ),
+        );
+        const examples = element("div");
+        examples.className = "recommendation-examples";
+        for (const variant of pair.variants) {
+          const figure = element("figure");
+          figure.append(
+            pairedExample(
+              pair,
+              variant.snapshot,
+              variant.result,
+              contrastVerdict(variant.result),
+              "div",
+            ),
+          );
+          const caption = element("figcaption");
+          caption.append(
+            element(
+              "p",
+              `${variant.result.ratio.toFixed(2)}:1 · Normal AA: ${variant.result.grades.normalAA ? "pass" : "fail"} · Normal AAA: ${variant.result.grades.normalAAA ? "pass" : "fail"}`,
+            ),
+          );
+          const provenance = element("details");
+          provenance.append(
+            element(
+              "summary",
+              `Seen in ${variant.observations.length} scheme observation${variant.observations.length === 1 ? "" : "s"}`,
+            ),
+          );
+          const list = element("ul");
+          for (const { capture, scheme, category } of variant.observations)
+            list.append(
+              element(
+                "li",
+                `${capture.environment.browser} / ${capture.environment.os} · ${labels[category]} · ${scheme} requested · forced colors ${forcedLabel(capture.media.forcedColors)} · contrast ${capture.media.prefersContrast}${capture.environment.forcedColorTheme ? ` · ${capture.environment.forcedColorTheme}` : ""} · ${capture.environment.context} · ${capture.capturedAt}`,
+              ),
+            );
+          provenance.append(list);
+          caption.append(provenance);
+          figure.append(caption);
+          examples.append(figure);
+        }
+        disclosure.append(examples);
+        card.append(disclosure);
+      }
+      (pair.recommended ? starting : cautious).append(card);
+    }
+    if (!starting.childElementCount)
+      starting.append(
+        element(
+          "p",
+          "No pair meets the across-mode criterion in this collection yet.",
+        ),
+      );
   }
 
   function renderComparisonTables(sections, dialogs, forced = false) {
@@ -494,6 +682,7 @@ export function createComparisonRenderer(document) {
     renderComparisonTables(comparisonSections(forced), dialogs, true);
     byId("forced-section").hidden = forced.length === 0;
     byId("empty").hidden = captures.length !== 0;
+    renderRecommendations(captures);
   }
 
   return { renderTables, renderVerdict };

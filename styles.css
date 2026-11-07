@@ -168,6 +168,39 @@ code,
   font-size: 24px;
   font-size: max(1.5rem, 24px);
 }
+.recommendation-card {
+  margin-block: 1rem;
+}
+.recommendation-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 2rem;
+  padding-inline-start: 1.25rem;
+}
+.recommendation-examples {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: 1rem;
+  margin-block-start: 1rem;
+}
+.recommendation-examples figure {
+  min-inline-size: 0;
+  margin: 0;
+  border: 1px solid CanvasText;
+}
+.recommendation-examples :is(.paired-example, figcaption) {
+  padding: 0.75rem;
+}
+.recommendation-examples .paired-example p {
+  margin-block: 0.25rem;
+}
+.recommendation-examples figcaption {
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+#recommendations summary {
+  cursor: pointer;
+}
 .table-scroll {
   --keyword-column-width: clamp(8rem, 20vi, 12rem);
   max-inline-size: 100%;

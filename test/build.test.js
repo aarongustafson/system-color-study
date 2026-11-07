@@ -233,7 +233,7 @@ test("paired examples reuse shared SVG faces for the overall measured verdict", 
     3,
   );
   const verdicts = new Set();
-  for (const example of document.querySelectorAll(".paired-example")) {
+  for (const example of document.querySelectorAll("td.paired-example")) {
     const verdict = example.nextElementSibling.dataset.verdict;
     const face = example.querySelector("svg");
     if (verdict === "unavailable") {

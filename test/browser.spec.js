@@ -17,6 +17,90 @@ const indexSource = await readFile(
   "utf8",
 );
 
+for (const javaScriptEnabled of [true, false]) {
+  test(`recommendations expose named recorded examples and keyboard disclosures with JavaScript ${javaScriptEnabled ? "enabled" : "disabled"}`, async ({
+    browser,
+    baseURL,
+  }) => {
+    const context = await browser.newContext({ javaScriptEnabled });
+    try {
+      const page = await context.newPage();
+      await page.goto(baseURL);
+      const section = page.getByRole("region", {
+        name: "Which pairs held up across these captures?",
+      });
+      const forcedAdjustmentSupported = await page.evaluate(() =>
+        CSS.supports("forced-color-adjust", "none"),
+      );
+      await expect(section).toBeVisible();
+      const canvas = section.locator("[data-recommended='true']").filter({
+        has: page.getByRole("heading", {
+          name: "CanvasText on Canvas",
+          exact: true,
+        }),
+      });
+      await expect(canvas).toHaveCount(1);
+      await expect(canvas).toContainText("Meets AA for normal text");
+      for (const width of [320, 1400]) {
+        await page.setViewportSize({ width, height: 900 });
+        const disclosure = canvas.locator(":scope > details > summary");
+        await disclosure.focus();
+        await expect(disclosure).toBeFocused();
+        await disclosure.press("Enter");
+        await expect(canvas.locator(".recommendation-examples")).toBeVisible();
+        const examples = canvas.locator(".paired-example");
+        await expect(
+          examples.first().getByRole("img", {
+            name: "Smiling face: all five contrast thresholds pass",
+          }),
+        ).toBeVisible();
+        if (forcedAdjustmentSupported)
+          await expect(examples.first()).toHaveCSS(
+            "forced-color-adjust",
+            "none",
+          );
+        const provenance = canvas.locator("figcaption details").first();
+        await provenance.locator("summary").focus();
+        await provenance.locator("summary").press("Enter");
+        await expect(provenance.locator("ul")).toBeVisible();
+        await expect(provenance).toContainText("requested");
+        await expect(provenance).toContainText("forced colors");
+        const geometry = await section.evaluate((node) => {
+          const bounds = node.getBoundingClientRect();
+          return [...node.querySelectorAll("article, figure")].every(
+            (child) => {
+              const rect = child.getBoundingClientRect();
+              return (
+                rect.width === 0 ||
+                (rect.left >= bounds.left && rect.right <= bounds.right + 1)
+              );
+            },
+          );
+        });
+        expect(geometry).toBe(true);
+        await provenance.locator("summary").press("Enter");
+        await disclosure.focus();
+        await disclosure.press("Enter");
+        await expect(canvas.locator(".recommendation-examples")).toBeHidden();
+      }
+      await page.emulateMedia({ forcedColors: "active" });
+      await canvas.locator(":scope > details > summary").click();
+      if (forcedAdjustmentSupported) {
+        await expect(canvas.locator(".paired-example").first()).toHaveCSS(
+          "forced-color-adjust",
+          "none",
+        );
+        await expect(canvas.locator("figcaption").first()).toHaveCSS(
+          "forced-color-adjust",
+          "auto",
+        );
+      }
+    } finally {
+      await context.close();
+    }
+  });
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto("./test.html");
 });
