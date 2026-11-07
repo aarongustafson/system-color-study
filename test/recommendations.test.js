@@ -170,6 +170,26 @@ test("built recommendations precede contributions and retain static accessible e
   assert.equal(cards.length, 10);
   assert.match(cards[0].textContent, /Light: 1\/1 meet AA/);
   assert.match(cards[0].textContent, /Forced colors: 2\/2 meet AA/);
+  const title = cards[0].querySelector("h4");
+  const use = title.nextElementSibling;
+  assert.equal(
+    use.textContent,
+    "Use for: Page content and general reading surfaces.",
+  );
+  assert.equal(cards[0].querySelectorAll(":scope > p").length, 1);
+  assert.equal(cards[0].querySelectorAll(".recommendation-stats li").length, 5);
+  assert.equal(
+    cards[0].querySelector(".recommendation-stats li:last-child").textContent,
+    "Lowest recorded contrast: 21.00:1.",
+  );
+  const disclosure = cards[0].querySelector(":scope > details > summary");
+  assert.equal(disclosure.textContent, "View the 1 rendered combination");
+  assert.equal(
+    disclosure.getAttribute("aria-labelledby"),
+    `${title.id} ${disclosure.id}`,
+  );
+  assert.ok(title.id);
+  assert.ok(disclosure.id);
   assert.equal(cards[0].querySelectorAll(".paired-example").length, 1);
   assert.equal(section.querySelectorAll("td").length, 0);
   assert.equal(section.querySelectorAll("img, [onerror]").length, 0);

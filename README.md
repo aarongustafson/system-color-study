@@ -51,7 +51,10 @@ unknown settings prevent qualification and are reported separately. There is
 no pooled score. These are observed starting points, not universal guarantees.
 
 Each pair lists pass, failure, and unavailable counts, the lowest measured
-ratio, and guidance for its intended use. Native disclosures show distinct
+ratio, and its intended use. Its larger, bold name sits directly above the
+“Use for:” line; each measurement occupies a separate bullet.
+“View the rendered combinations” disclosures include the pair name in their
+accessible names. Native disclosures show distinct
 painted foreground/background combinations with all contributing scheme
 observations. Identical examples merge visually, but their observations remain
 in the counts. Observation labels use browser and OS major versions, the scheme,

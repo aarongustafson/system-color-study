@@ -18,6 +18,9 @@ local observations, not synthetic fixtures or installed-browser measurements.
 Source revision and unverified accent/theme-name limitations are in Notes.
 Chromium and WebKit reported a dark native preference; Firefox reported light.
 Keep those reports rather than normalizing them to agree.
+Browser labels use Chrome for the Chromium observations; Notes retain the
+bundled-engine provenance. This doesn’t turn them into installed-browser
+measurements.
 
 Use descriptive filenames, such as `2026-11-05/android-chrome-canvas.json`.
 Keep capture IDs and original measurements unchanged. Verify browser/OS versions,

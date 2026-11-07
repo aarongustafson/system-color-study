@@ -310,47 +310,17 @@ export function createComparisonRenderer(document) {
       more: "More contrast",
       other: "Other or unknown settings",
     };
-    const guidance = {
-      "Canvas/CanvasText": [
-        "Page content and general reading surfaces.",
-        "Start here for ordinary text, rather than borrowing colors intended for a control or a selected item.",
-      ],
-      "Canvas/LinkText": [
-        "Links in page content.",
-        "Keep an underline or another non-color way to identify links. These observations only test links on Canvas, not on every surface.",
-      ],
-      "Canvas/VisitedText": [
-        "Visited links on the page surface.",
-        "Keep links identifiable without relying on their visited color.",
-      ],
-      "Canvas/ActiveText": [
-        "Links while they are being activated.",
-        "Don’t let a transient color make the link unreadable or use color alone to communicate its state.",
-      ],
-      "ButtonFace/ButtonText": [
-        "Button labels and surfaces.",
-        "Check the button boundary and focus indicator separately. Readable label text doesn’t prove either one is distinguishable.",
-      ],
-      "Field/FieldText": [
-        "Text-entry fields.",
-        "Check field boundaries, focus, and authored placeholder text separately.",
-      ],
-      "Highlight/HighlightText": [
-        "Text in a highlighted selection.",
-        "Evaluate selection behavior in your interface; don’t assume this is a general-purpose highlighted reading surface.",
-      ],
-      "SelectedItem/SelectedItemText": [
-        "Selected items in a control.",
-        "Keep a non-color selection indicator, and check the selected item against its neighbors.",
-      ],
-      "AccentColor/AccentColorText": [
-        "Text on an accent-colored surface.",
-        "Check keyword support as well as contrast. An accent isn’t automatically a suitable background for normal text.",
-      ],
-      "Mark/MarkText": [
-        "Marked passages, such as search matches.",
-        "Use these for marked text, not as substitutes for button, field, or selection colors.",
-      ],
+    const uses = {
+      "Canvas/CanvasText": "Page content and general reading surfaces.",
+      "Canvas/LinkText": "Links in page content.",
+      "Canvas/VisitedText": "Visited links on the page surface.",
+      "Canvas/ActiveText": "Links while they are being activated.",
+      "ButtonFace/ButtonText": "Button labels and surfaces.",
+      "Field/FieldText": "Text-entry fields.",
+      "Highlight/HighlightText": "Text in a highlighted selection.",
+      "SelectedItem/SelectedItemText": "Selected items in a control.",
+      "AccentColor/AccentColorText": "Text on an accent-colored surface.",
+      "Mark/MarkText": "Marked passages, such as search matches.",
     };
     const coverage = byId("recommendation-coverage");
     coverage.replaceChildren(
@@ -384,16 +354,11 @@ export function createComparisonRenderer(document) {
       const card = element("article");
       card.className = "pair-card recommendation-card";
       card.dataset.recommended = String(pair.recommended);
-      card.append(
-        element("h4", `${pair.foreground} on ${pair.background}`),
-        element("p", guidance[pair.id][0]),
-        element(
-          "p",
-          pair.recommended
-            ? "Meets AA for normal text in every observation in all four categories."
-            : "Not an across-mode starting point in this collection. Check the failures, unavailable measurements, or gaps below.",
-        ),
-      );
+      const heading = element("h4", `${pair.foreground} on ${pair.background}`);
+      heading.id = `recommendation-${pair.foreground}-${pair.background}`;
+      const use = element("p", `Use for: ${uses[pair.id]}`);
+      use.className = "recommendation-use";
+      card.append(heading, use);
       const counts = element("ul");
       counts.className = "recommendation-stats";
       for (const [category, { total, passed, unavailable }] of Object.entries(
@@ -409,24 +374,24 @@ export function createComparisonRenderer(document) {
           ),
         );
       }
-      card.append(counts);
-      card.append(
+      counts.append(
         element(
-          "p",
+          "li",
           pair.minimum === null
             ? "No contrast measurements are available."
-            : `Lowest recorded contrast: ${pair.minimum.toFixed(2)}:1. Qualification uses the unrounded ratios.`,
+            : `Lowest recorded contrast: ${pair.minimum.toFixed(2)}:1.`,
         ),
-        element("p", guidance[pair.id][1]),
       );
+      card.append(counts);
       if (pair.variants.length) {
         const disclosure = element("details");
-        disclosure.append(
-          element(
-            "summary",
-            `See ${pair.variants.length} distinct painted combination${pair.variants.length === 1 ? "" : "s"}`,
-          ),
+        const control = element(
+          "summary",
+          `View the ${pair.variants.length} rendered combination${pair.variants.length === 1 ? "" : "s"}`,
         );
+        control.id = `${heading.id}-summary`;
+        control.setAttribute("aria-labelledby", `${heading.id} ${control.id}`);
+        disclosure.append(control);
         const examples = element("div");
         examples.className = "recommendation-examples";
         for (const variant of pair.variants) {

@@ -40,10 +40,43 @@ for (const javaScriptEnabled of [true, false]) {
         }),
       });
       await expect(canvas).toHaveCount(1);
-      await expect(canvas).toContainText("Meets AA for normal text");
+      await expect(canvas.locator(".recommendation-use")).toHaveText(
+        "Use for: Page content and general reading surfaces.",
+      );
       for (const width of [320, 1400]) {
         await page.setViewportSize({ width, height: 900 });
         const disclosure = canvas.locator(":scope > details > summary");
+        await expect(disclosure).toHaveText(
+          /View the \d+ rendered combinations?/,
+        );
+        await expect(disclosure).toHaveAccessibleName(
+          /CanvasText on Canvas View the \d+ rendered combinations?/,
+        );
+        await expect(canvas.locator("h4")).toHaveCSS("font-weight", "700");
+        const layout = await canvas.evaluate((node) => {
+          const title = node.querySelector("h4");
+          const use = node.querySelector(".recommendation-use");
+          const bullets = [
+            ...node.querySelectorAll(".recommendation-stats li"),
+          ];
+          return {
+            gap:
+              use.getBoundingClientRect().top -
+              title.getBoundingClientRect().bottom,
+            largerTitle:
+              parseFloat(getComputedStyle(title).fontSize) >
+              parseFloat(getComputedStyle(use).fontSize),
+            stacked: bullets.every(
+              (bullet, index) =>
+                index === 0 ||
+                bullet.getBoundingClientRect().top >=
+                  bullets[index - 1].getBoundingClientRect().bottom,
+            ),
+          };
+        });
+        expect(layout.gap).toBe(0);
+        expect(layout.largerTitle).toBe(true);
+        expect(layout.stacked).toBe(true);
         await disclosure.focus();
         await expect(disclosure).toBeFocused();
         await disclosure.press("Enter");
