@@ -371,6 +371,197 @@ test("single-row paired examples preserve recorded alpha, text sizes, thresholds
   ).toHaveCount(30);
 });
 
+test("scrolling collapses only visual headers and restores Details on keyboard focus", async ({
+  page,
+  browserName,
+}) => {
+  const normal = fixture("collapsed-normal");
+  normal.environment.browser = "Firefox 160.0";
+  normal.environment.os = "macOS 27.0.1";
+  normal.media.prefersContrast = "more";
+  const forced = fixture("collapsed-forced");
+  forced.environment = {
+    ...normal.environment,
+    forcedColorTheme: "Aquatic",
+  };
+  forced.media.forcedColors = true;
+  await publish(page, [normal, forced]);
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  for (const table of await page.locator("table").all()) {
+    const region = table.locator("..");
+    const head = table.locator("thead");
+    const expandedHeight = (await head.boundingBox()).height;
+    const originalHeaders = await table
+      .locator("td[headers]")
+      .evaluateAll((cells) =>
+        cells.map((cell) => cell.getAttribute("headers")),
+      );
+    await region.evaluate((node) => {
+      node.scrollLeft = 40;
+    });
+    await expect(table).toHaveAttribute("data-collapsed-header", "false");
+    await region.focus();
+    await page.keyboard.press("ArrowDown");
+    await expect(table).toHaveAttribute("data-collapsed-header", "true");
+    await expect
+      .poll(async () => (await head.boundingBox()).height)
+      .toBeLessThan(expandedHeight * 0.65);
+    const rollup = table.locator(".header-rollup").first();
+    await expect(rollup).toBeVisible();
+    await expect(rollup).toHaveAttribute("aria-hidden", "true");
+    await expect(rollup).toContainText(
+      (await table.getAttribute("id")).startsWith("forced-")
+        ? "Firefox 160 / macOS 27, Aquatic, forced colors, Light & Dark"
+        : "Firefox 160 / macOS 27, more contrast, Light",
+    );
+    await expect(rollup.locator("button")).toHaveCount(0);
+    await expect(rollup).toHaveCSS("animation-name", "none");
+    expect(
+      await table
+        .locator("td[headers]")
+        .evaluateAll((cells) =>
+          cells.map((cell) => cell.getAttribute("headers")),
+        ),
+    ).toEqual(originalHeaders);
+    expect(
+      await head
+        .locator("th")
+        .evaluateAll((cells) =>
+          cells.every(
+            (cell) =>
+              !cell.closest("[aria-hidden='true']") &&
+              getComputedStyle(cell).display !== "none" &&
+              getComputedStyle(cell).visibility !== "hidden",
+          ),
+        ),
+    ).toBe(true);
+    const button = table.locator(".details-button").first();
+    // macOS WebKit uses Option-Tab to include buttons in sequential focus.
+    await region.press(
+      browserName === "webkit" && process.platform === "darwin"
+        ? "Alt+Tab"
+        : "Tab",
+    );
+    await expect(button).toBeFocused();
+    await expect(table).toHaveAttribute("data-collapsed-header", "false");
+    await expect(button).toBeVisible();
+    await button.press("Enter");
+    await expect(page.locator("dialog[open]")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(button).toBeFocused();
+    await region.evaluate((node) => {
+      node.scrollTop = 40;
+    });
+    await expect(table).toHaveAttribute("data-collapsed-header", "false");
+    await region.focus();
+    await region.press("ArrowDown");
+    await expect(table).toHaveAttribute("data-collapsed-header", "true");
+    await region.evaluate((node) => {
+      node.scrollTop = 0;
+    });
+    await expect(table).toHaveAttribute("data-collapsed-header", "false");
+    await expect(rollup).toBeHidden();
+  }
+});
+
+test("collapsed headers retain column names, responsive containment, and full print headers", async ({
+  page,
+}) => {
+  const normal = fixture("collapsed-responsive");
+  normal.environment.browser = "Firefox 160.0";
+  normal.environment.os = "macOS 27.0.1";
+  normal.media.prefersContrast = "more";
+  await publish(page, [normal]);
+  for (const direction of ["ltr", "rtl"]) {
+    await page.evaluate((value) => {
+      document.documentElement.dir = value;
+    }, direction);
+    for (const width of [320, 1400]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const table of await page.locator("table:not([hidden])").all()) {
+        const region = table.locator("..");
+        await region.evaluate((node) => {
+          node.scrollTop = 60;
+        });
+        await expect(table).toHaveAttribute("data-collapsed-header", "true");
+        await expect(table.locator(".os-heading").first()).toMatchAriaSnapshot(
+          '- columnheader "macOS 27"',
+        );
+        const lastRow = table.locator("thead tr").last();
+        await expect(
+          lastRow.getByRole("columnheader").first(),
+        ).toMatchAriaSnapshot(
+          (await table.getAttribute("id")) === "individual-table"
+            ? '- columnheader "Firefox 160":\n  - paragraph: Firefox 160\n  - paragraph: macOS 27\n  - button "Firefox 160 macOS 27 Details"'
+            : '- columnheader "Paired example"',
+        );
+        const rollup = table.locator(".header-rollup").first();
+        await expect(rollup).toBeVisible();
+        await expect(rollup).toHaveCSS(
+          "animation-name",
+          "header-rollup-appear",
+        );
+        const cells = await lastRow.locator("th").evaluateAll((nodes) =>
+          nodes.map((node) => {
+            const box = node.getBoundingClientRect();
+            return { width: box.width, content: node.scrollWidth };
+          }),
+        );
+        expect(cells.every(({ width, content }) => content <= width + 1)).toBe(
+          true,
+        );
+      }
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth),
+      ).toBeLessThanOrEqual(width);
+    }
+  }
+  await page.emulateMedia({ media: "print" });
+  for (const table of await page.locator("table:not([hidden])").all()) {
+    await expect(table.locator(".header-rollup").first()).toBeHidden();
+    await expect(
+      table.locator(".os-heading .header-content").first(),
+    ).toHaveCSS("position", "static");
+    await expect(table.locator(".details-button").first()).toBeVisible();
+    await expect(table.locator("thead")).toHaveCSS("position", "static");
+  }
+});
+
+test("published rollups save header space without scroll oscillation or repeated DOM writes", async ({
+  page,
+}) => {
+  await page.goto("./");
+  await page.setViewportSize({ width: 1400, height: 900 });
+  for (const table of await page.locator("table").all()) {
+    const head = table.locator("thead");
+    const region = table.locator("..");
+    const expandedHeight = (await head.boundingBox()).height;
+    await region.evaluate((node) => {
+      node.scrollTop = 120;
+    });
+    await expect(table).toHaveAttribute("data-collapsed-header", "true");
+    await expect
+      .poll(async () => (await head.boundingBox()).height)
+      .toBeLessThan(expandedHeight * 0.75);
+    const writes = await table.evaluate(async (node) => {
+      let count = 0;
+      const observer = new MutationObserver((records) => {
+        count += records.length;
+      });
+      observer.observe(node, { attributes: true, subtree: true });
+      for (let index = 0; index < 100; index++)
+        node.parentElement.dispatchEvent(new Event("scroll"));
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      observer.disconnect();
+      return count;
+    });
+    expect(writes).toBe(0);
+    expect(await region.evaluate((node) => node.scrollTop)).toBeGreaterThan(0);
+    await expect(table).toHaveAttribute("data-collapsed-header", "true");
+  }
+});
+
 test("the header hierarchy sticks as a group during vertical scrolling only when body space remains", async ({
   page,
 }) => {
@@ -1161,7 +1352,7 @@ test("compact headers keep full provenance in keyboard-accessible details and pr
     page.locator("#forced-individual-table .theme-heading"),
   ).toHaveText(["Aquatic", "Unnamed theme"]);
   const first = headings.first();
-  await expect(first.locator(":scope > p")).toHaveText([
+  await expect(first.locator(":scope > .header-content > p")).toHaveText([
     "Unit fixture",
     "Fixture",
   ]);
