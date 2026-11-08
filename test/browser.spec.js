@@ -43,6 +43,9 @@ for (const javaScriptEnabled of [true, false]) {
       await expect(canvas.locator(".recommendation-use")).toHaveText(
         "Use for: Page content and general reading surfaces.",
       );
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = "16.1px";
+      });
       for (const width of [320, 1400]) {
         await page.setViewportSize({ width, height: 900 });
         const disclosure = canvas.locator(":scope > details > summary");
@@ -53,6 +56,7 @@ for (const javaScriptEnabled of [true, false]) {
           /CanvasText on Canvas View the \d+ rendered combinations?/,
         );
         await expect(canvas.locator("h4")).toHaveCSS("font-weight", "700");
+        await expect(canvas.locator(".recommendation-stats li")).toHaveCount(5);
         const layout = await canvas.evaluate((node) => {
           const title = node.querySelector("h4");
           const use = node.querySelector(".recommendation-use");
@@ -66,17 +70,20 @@ for (const javaScriptEnabled of [true, false]) {
             largerTitle:
               parseFloat(getComputedStyle(title).fontSize) >
               parseFloat(getComputedStyle(use).fontSize),
-            stacked: bullets.every(
-              (bullet, index) =>
-                index === 0 ||
-                bullet.getBoundingClientRect().top >=
-                  bullets[index - 1].getBoundingClientRect().bottom,
+            minimumBulletGap: Math.min(
+              ...bullets
+                .slice(1)
+                .map(
+                  (bullet, index) =>
+                    bullet.getBoundingClientRect().top -
+                    bullets[index].getBoundingClientRect().bottom,
+                ),
             ),
           };
         });
-        expect(layout.gap).toBe(0);
+        expect(Math.abs(layout.gap)).toBeLessThan(0.01);
         expect(layout.largerTitle).toBe(true);
-        expect(layout.stacked).toBe(true);
+        expect(layout.minimumBulletGap).toBeGreaterThanOrEqual(-0.01);
         await disclosure.focus();
         await expect(disclosure).toBeFocused();
         await disclosure.press("Enter");
