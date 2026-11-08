@@ -27,6 +27,13 @@
           Check the versions against your browser and OS “About” screens.
           Correct any inference that still says “verify.”
         </p>
+        <template id="published-match-template">
+          <span id="published-match" role="status">
+            We may already have a snapshot for this browser and OS major-version
+            combination. Still check both versions against the “About” screens
+            before capturing. Different preferences or palettes are useful too.
+          </span>
+        </template>
         <p id="status" role="status">
           Loading measurement tools. If the button stays disabled, check
           JavaScript and reload.
@@ -64,7 +71,7 @@
             </div>
             <p id="metadata-source" role="status">
               Browser-reported values can be incomplete or frozen. Confirm the
-              versions in the About screens.
+              versions in the browser and OS “About” screens.
             </p>
             <div id="forced-color-fields" hidden>
               <label
@@ -132,8 +139,8 @@
         <h3>Contribute this snapshot</h3>
         <p>
           Copy the JSON, then paste it into the snapshot issue form. GitHub
-          Actions checks the data. After maintainer approval on the issue, it
-          checks again before opening a pull request for review.
+          Actions will check the data format. I’ll review all submissions before
+          accepting them.
         </p>
         <div class="settings">
           <button id="copy-json" type="button">Copy JSON</button
@@ -150,13 +157,14 @@
         </details>
       </section>
       <p id="repeat-capture-help">
-        To add data for another configuration, change one setting—for example,
-        macOS Increase Contrast or a Windows Contrast theme—then capture again.
-        Note what changed. Save each snapshot separately. You can see how these
-        settings affect system colors in the
-        <a href="./">published comparisons</a>.
+        To record another configuration, change one setting—for example, macOS
+        Increase Contrast or a Windows Contrast theme—then capture again. Submit
+        each snapshot separately.
       </p>
     </main>
+    <script type="application/json" id="published-environments">
+      []
+    </script>
     <footer class="site-footer">
       Made by <a href="https://www.aaron-gustafson.com/">Aaron Gustafson</a>.
     </footer>

@@ -1,3 +1,35 @@
+import { compactEnvironmentLabel } from "./model.js";
+
+function publishedEnvironmentKey(browser, os) {
+  const label = (value) => {
+    const compact = compactEnvironmentLabel(
+      value.trim().replace(/\s+\(reported; verify\)$/, ""),
+    );
+    return /^.+ \d+$/.test(compact) ? compact.toLowerCase() : null;
+  };
+  const browserLabel = label(
+    browser
+      .trim()
+      .replace(/^(?:Google Chrome|Chromium)(?=\s)/i, "Chrome")
+      .replace(/^Microsoft Edge(?=\s)/i, "Edge"),
+  );
+  const osLabel = label(os);
+  return browserLabel && osLabel
+    ? JSON.stringify([browserLabel, osLabel])
+    : null;
+}
+
+export function matchesPublishedEnvironment(published, browser, os) {
+  const key = publishedEnvironmentKey(browser, os);
+  return (
+    key !== null &&
+    published.some(
+      (environment) =>
+        publishedEnvironmentKey(environment.browser, environment.os) === key,
+    )
+  );
+}
+
 export function detectEnvironment(userAgent) {
   const browsers = [
     ["Edge", /(?:Edg|EdgA|EdgiOS)\/([\d.]+)/],

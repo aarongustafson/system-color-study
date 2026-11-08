@@ -1,16 +1,38 @@
-import { versions, validateSubmission, forcedLabel } from "./model.js";
+import {
+  versions,
+  validateSubmission,
+  forcedLabel,
+  maxCaptures,
+} from "./model.js";
 import { report, clearError } from "./comparison-ui.js";
 import { measureScheme, mediaSnapshot } from "./sampler.js";
 import {
   detectEnvironment,
   environmentFromHints,
   exportFilename,
+  matchesPublishedEnvironment,
 } from "./environment.js";
 
 const byId = (id) => document.getElementById(id);
 const fields = ["browser", "os", "notes", "forced-color-theme"];
 const metadataSources = { browser: "not-reported", os: "not-reported" };
 let downloadURL;
+let publishedEnvironments;
+let publishedMatch;
+
+function reportPublishedMatch() {
+  if (!publishedEnvironments || !publishedMatch) return;
+  if (
+    matchesPublishedEnvironment(
+      publishedEnvironments,
+      byId("browser").value,
+      byId("os").value,
+    )
+  ) {
+    if (!publishedMatch.isConnected)
+      byId("metadata-help").append(publishedMatch);
+  } else publishedMatch.remove();
+}
 
 function reportMetadataSources() {
   const labels = {
@@ -35,8 +57,9 @@ function reportMetadataSources() {
     );
   if (sources.includes("not-reported"))
     messages.push("Enter any missing values from your About screens.");
-  messages.push("Confirm both versions in the About screens.");
+  messages.push("Confirm both versions in the browser and OS “About” screens.");
   byId("metadata-source").textContent = messages.join(" ");
+  reportPublishedMatch();
 }
 
 function validateField(field) {
@@ -203,6 +226,45 @@ try {
   syncEnvironment();
   byId("capture").disabled = false;
   byId("status").textContent = "";
+} catch (error) {
+  report(error);
+}
+
+try {
+  const data = byId("published-environments");
+  const template = byId("published-match-template");
+  if (
+    !(data instanceof HTMLScriptElement) ||
+    data.type !== "application/json" ||
+    !(template instanceof HTMLTemplateElement)
+  )
+    throw new Error(
+      "The published browser/OS lookup is unavailable. You can still capture a snapshot.",
+    );
+  const environments = JSON.parse(data.textContent);
+  if (
+    !Array.isArray(environments) ||
+    environments.length > maxCaptures ||
+    environments.some(
+      (environment) =>
+        !environment ||
+        typeof environment.browser !== "string" ||
+        typeof environment.os !== "string" ||
+        environment.browser.length > 160 ||
+        environment.os.length > 160,
+    )
+  )
+    throw new Error(
+      "The published browser/OS lookup is invalid. You can still capture a snapshot.",
+    );
+  const message = template.content.querySelector("#published-match");
+  if (!(message instanceof HTMLElement))
+    throw new Error(
+      "The published browser/OS match message is unavailable. You can still capture a snapshot.",
+    );
+  publishedEnvironments = environments;
+  publishedMatch = message.cloneNode(true);
+  reportPublishedMatch();
 } catch (error) {
   report(error);
 }

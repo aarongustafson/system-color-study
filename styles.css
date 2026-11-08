@@ -82,6 +82,10 @@ fieldset {
 #capture {
   margin-block-start: 1rem;
 }
+#published-match {
+  display: block;
+  margin-block-start: 0.5rem;
+}
 legend {
   font-weight: 600;
 }

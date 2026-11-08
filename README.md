@@ -83,6 +83,14 @@ alpha, unsupported keywords, and both requested-scheme reports remain in the JSO
    shortened to reduce fingerprinting; Client Hints may supply fuller versions
    or a different browser brand. If only one field is disclosed, the other
    keeps its value and source. Failed requests leave both unchanged.
+   If the browser and OS major versions appear in the published captures, a
+   cautious match note appears beside the About-screen guidance. It updates
+   after edits or Client Hints and never confirms installed versions or
+   matching preferences. Ambiguous Windows platform/NT reports and missing
+   versions don’t qualify. Chrome/Chromium and Client Hints brand aliases are
+   treated consistently; capture values remain unchanged.
+   The build embeds only unique browser/OS labels in the capture HTML—no
+   measurements, Notes, runtime dataset fetch, or extra entropy request.
    Record relevant device, accent, and experimental settings in Notes.
    When forced colors are active, enter the actual name in **Forced-color theme
    name**. Don’t include personal information.

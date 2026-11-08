@@ -1405,6 +1405,7 @@ test("without JavaScript, instructions remain and measurement controls are disab
     "JavaScript is required",
   );
   await expect(page.locator("#capture-heading")).toBeVisible();
+  await expect(page.locator("#published-match")).toHaveCount(0);
   await expect(page.locator("#scheme, #import")).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Capture light and dark" }),
