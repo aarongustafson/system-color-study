@@ -36,13 +36,13 @@ export function clearError() {
   byId("error").hidden = true;
 }
 
-export function enhanceComparisons() {
+export function enhanceComparisons(deprecated) {
   const toggleDeprecated = () => {
     for (const body of document.querySelectorAll("tbody[data-deprecated]"))
-      body.hidden = !byId("deprecated").checked;
+      body.hidden = !deprecated.checked;
     updateComparisonHeaders();
   };
-  byId("deprecated").addEventListener("change", toggleDeprecated);
+  deprecated.addEventListener("change", toggleDeprecated);
   toggleDeprecated();
 
   const headerObserver =

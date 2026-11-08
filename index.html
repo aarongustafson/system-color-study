@@ -45,68 +45,53 @@
           system colors on Android. A user also
           <a href="https://github.com/aarongustafson/tabbed-interface/issues/8"
             >reported similar issues with forced-color modes on Windows</a
-          >. I’d expected the foreground and background colors to work together.
-          That left me wondering how much their values vary elsewhere, and which
-          pairings we can rely on.
+          >. I’d expected paired foreground and background colors to work
+          together. I was wrong, and that left me wondering how much their
+          values vary elsewhere—and which pairings we can rely on.
         </p>
         <p>
           This study brings together observations from real browsers so we can
-          make more informed decisions about using these colors. A keyword’s
+          make more informed decisions when using system colors. A keyword’s
           name tells us its purpose; it doesn’t guarantee the result will be
           readable in every setting.
         </p>
         <p>
           The <span id="capture-count">0</span> snapshots below are saved
-          observations, not measurements of your current browser. They compare
-          light, dark, forced-color, and high-contrast settings side by side.
+          observations. They compare light, dark, forced-color, and
+          high-contrast settings side by side.
           <a href="./test.html">Add a snapshot from your browser</a> if it’s
           missing—or if you have a different version or set of preferences to
           contribute.
         </p>
       </section>
-      <p id="deprecated-note">
-        Note: By default I’m only showing current-generation system color
-        keywords, but you can turn on the deprecated ones too, if you want:
-      </p>
-      <div class="settings">
-        <label class="check"
-          ><input
-            id="deprecated"
-            type="checkbox"
-            aria-describedby="deprecated-note"
-            disabled
-          />
-          Include deprecated keywords</label
-        >
-      </div>
+      <template id="deprecated-controls-template">
+        <p id="deprecated-note">
+          Note: By default I’m only showing current-generation system color
+          keywords, but you can turn on the deprecated ones too, if you want:
+        </p>
+        <div class="settings">
+          <label class="check"
+            ><input
+              id="deprecated"
+              type="checkbox"
+              aria-describedby="deprecated-note"
+              disabled
+            />
+            Include deprecated keywords</label
+          >
+        </div>
+      </template>
       <p id="status" role="status" class="visually-hidden"></p>
       <p id="error" role="alert" hidden></p>
-      <noscript
-        ><p>
-          The tables show current CSS names without JavaScript. Enable it to
-          include deprecated names. You can also
-          <a href="./published.json">download the complete dataset</a>.
-        </p></noscript
-      >
-      <p id="empty" hidden>
-        No captures have been published yet.
-        <a href="./test.html">Run the test</a>, export your results, and submit
-        the JSON in a pull request.
-      </p>
       <section aria-labelledby="individual-heading">
         <h2 id="individual-heading">Individual system colors</h2>
         <p>
-          Start by comparing the same color across browsers on one operating
-          system, then look at what changes between light and dark. Does a
-          selection color still stand apart from the page? Are colors with
-          different jobs actually different? Select “Details” to check the
-          conditions behind an observation.
-        </p>
-        <p>
-          Each cell shows a color and its hex value. The black or white text
-          over it is chosen for readability here; it isn’t that color’s intended
-          partner. Eight-digit values include transparency, so the surface
-          behind them matters. N/A means the browser didn’t accept the keyword.
+          This table lets you compare the same color across browsers, organized
+          by operating system, color scheme, and browser. Each cell shows a
+          color and its hex value. The black or white text over it is chosen for
+          readability, not as that color’s intended partner. Eight-digit values
+          include transparency, so the surface behind them matters. N/A means
+          the browser doesn’t support the keyword.
         </p>
         <div
           class="table-scroll"
@@ -127,26 +112,19 @@
         <h2 id="pair-heading">Color pairs</h2>
         <p>
           A color that looks useful on its own may not work with the color
-          behind it. These pairings put text and surfaces together:
+          behind it. These pairings put foreground and background together:
           <code>CanvasText</code> on <code>Canvas</code>, for example, or
-          <code>ButtonText</code> on <code>ButtonFace</code>. Compare
-          <code>HighlightText</code> on <code>Highlight</code> with
-          <code>SelectedItemText</code> on <code>SelectedItem</code> before
-          choosing a selection treatment, keeping each pair’s intended role in
-          mind.
+          <code>ButtonText</code> on <code>ButtonFace</code>.
         </p>
         <p>
           The “Normal” and “Large” lines let you compare the same pairing at
-          different reading sizes. Both use the saved colors, not your browser’s
-          palette. The larger example may look readable when the smaller one
-          doesn’t; check the threshold for the text you’re designing.
+          different reading sizes. WCAG’s contrast thresholds depend on text
+          size.
         </p>
         <p>
-          The faces use the same foreground color, giving you an icon to compare
-          too. A smile means all five thresholds pass, a neutral face means some
-          pass, and a frown means none pass. Check the non-text threshold when
-          choosing colors for an icon; the text verdicts are there when the
-          example is hard to see.
+          The SVG faces use the same foreground color so you can evaluate an
+          icon too. A smile means all five thresholds pass, a neutral face means
+          some pass, and a frown means none pass.
         </p>
         <p>
           For ordinary text, WCAG’s
@@ -163,15 +141,19 @@
             href="https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html"
             >non-text contrast requirement</a
           >
-          uses 3:1 where it applies to controls and meaningful graphics. Choose
-          the threshold that fits what you’re designing.
+          uses 3:1 where it applies to controls and meaningful graphics.
         </p>
         <p>
-          Green meets every listed threshold; amber meets some; red meets none.
-          The labels tell you which. Amber isn’t necessarily a problem for your
-          use, and green isn’t a complete accessibility review. Translucent
-          colors are evaluated over the recorded backdrop; try your actual
-          surface and check the result in your interface.
+          I’ve also color-coded the cells to make it a little easier to scan for
+          sufficient contrast. Green meets every listed threshold; amber meets
+          some; red meets none. Amber isn’t necessarily problematic; consider it
+          a “with caution” signal.
+        </p>
+        <p>
+          Note: Semi-transparent colors may look different in a pairing than in
+          an individual swatch because their backgrounds differ. These colors
+          are evaluated over the recorded backdrop; a different backdrop can
+          change the result.
         </p>
         <div
           class="table-scroll"
@@ -207,29 +189,29 @@
           >.
         </p>
         <p>
-          Windows Contrast themes are a familiar example, but forced colors
-          aren’t limited to Windows. Firefox’s own color overrides can also
-          activate them on macOS and Linux. A setting such as macOS Increase
-          Contrast isn’t, by itself, the same thing. Mozilla documents
+          Windows Contrast themes, formerly called High Contrast, are a familiar
+          example, but forced colors aren’t limited to Windows.
           <a
             href="https://firefox-source-docs.mozilla.org/accessible/HCMMediaQueries.html"
-            >Firefox’s forced-color behavior</a
-          >
-          and how it differs from a preference for more contrast.
+            >Firefox’s own color overrides can also activate them on macOS and
+            Linux</a
+          >.
         </p>
         <section id="forced-section" aria-labelledby="forced-heading" hidden>
           <h3 id="forced-heading">Evaluating forced colors</h3>
           <p>
-            Look for the relationships your design depends on: text against its
-            surface, a selected option against its neighbors, and a control
+            Consider the relationships your design depends on: text against its
+            surface, a selected option against its siblings, and a control
             against the page. A limited palette may make colors you treated as
-            distinct look the same. Don’t make color the only way to tell them
-            apart.
+            distinct look the same.
           </p>
           <p>
-            Light and dark can resolve to the same forced palette. “Light &amp;
-            Dark” means we measured both and found no difference, not that one
-            was skipped.
+            Note: Light and dark can resolve to the same forced palette. “Light
+            &amp; Dark” means I measured both and found no difference.
+          </p>
+          <p>
+            Here are the individual colors again, this time in the forced-color
+            captures.
           </p>
           <div
             class="table-scroll"
@@ -245,6 +227,10 @@
               <tbody></tbody>
             </table>
           </div>
+          <p>
+            And here are the pairings in those forced-color captures, with their
+            contrast results.
+          </p>
           <div
             class="table-scroll"
             tabindex="0"
@@ -276,11 +262,9 @@
           light, dark, forced colors, and more contrast.
         </p>
         <p>
-          Start with the pair that fits your interface, then test it in context.
-          These are observations from the setups we’ve collected, not promises
-          about every browser or user’s palette. Text contrast alone doesn’t
-          establish control boundaries, focus visibility, or distinguishable
-          states.
+          These are observations from the setups I’ve collected. Your mileage
+          may vary. Text contrast alone doesn’t establish control boundaries,
+          focus visibility, or distinguishable states.
         </p>
         <div id="recommendation-coverage"></div>
         <h3>Starting points for normal text</h3>
@@ -296,12 +280,6 @@
           <a href="./test.html">Take a snapshot</a> and contribute what your
           browser gives you. The page measures both light and dark; you can
           review the results before choosing to share them.
-        </p>
-        <p>
-          Already see your browser? A different version, operating system,
-          contrast setting, or custom palette is useful too. These are
-          observations from particular setups, not promises about every person
-          using that browser.
         </p>
       </section>
       <div id="capture-dialogs"></div>

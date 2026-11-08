@@ -295,6 +295,11 @@ build before it replaces the previous output.
 
 “Include deprecated keywords” only toggles `hidden` on the existing
 `tbody[data-deprecated]` groups. Headers, cells, and dialogs stay in place.
+Its instructions and checkbox are authored in an inert HTML template, then
+injected together after JavaScript initializes their behavior. Without
+JavaScript, or if loading or initialization fails, neither appears; the
+current-keyword tables remain readable. Initialization failures use the
+page’s error message.
 JavaScript also adds sticky-header safeguards, keyboard scrolling, and a
 fallback for browsers without native dialog commands. Local measurements never
 modify the published collection.

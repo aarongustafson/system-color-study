@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { versions } from "../model.js";
 import { JSDOM } from "jsdom";
-import { buildSite, publicFiles } from "../scripts/build.js";
+import { buildSite, publicFiles, renderIndex } from "../scripts/build.js";
 import { fixture } from "./fixtures.js";
 
 async function setup(t) {
@@ -32,6 +32,36 @@ async function setup(t) {
   );
   return root;
 }
+
+test("deprecated controls are inert authored markup in static output, and removed empty-state markup is not required", async (t) => {
+  const source = await readFile(
+    new URL("../index.html", import.meta.url),
+    "utf8",
+  );
+  const authored = new JSDOM(source);
+  t.after(() => authored.window.close());
+  const template = authored.window.document.getElementById(
+    "deprecated-controls-template",
+  );
+  assert.ok(
+    template,
+    "Deprecated instructions and controls belong in an inert template.",
+  );
+  assert.ok(template.content.querySelector("#deprecated-note"));
+  assert.equal(template.content.querySelector("#deprecated").disabled, true);
+  for (const captures of [[], [fixture("static-controls")]]) {
+    const dom = new JSDOM(renderIndex(source, captures));
+    t.after(() => dom.window.close());
+    const document = dom.window.document;
+    assert.equal(document.getElementById("deprecated"), null);
+    assert.equal(document.getElementById("deprecated-note"), null);
+    assert.equal(document.getElementById("empty"), null);
+    assert.equal(
+      document.querySelectorAll("tbody[data-deprecated][hidden]").length,
+      4,
+    );
+  }
+});
 
 test("build merges every committed JSON collection and publishes only allowed static files", async (t) => {
   const root = await setup(t);

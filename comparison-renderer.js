@@ -258,7 +258,7 @@ export function createComparisonRenderer(document) {
     const current = element("tbody");
     const deprecated = element("tbody");
     deprecated.dataset.deprecated = "";
-    deprecated.hidden = !byId("deprecated").checked;
+    deprecated.hidden = true;
     for (const body of [...table.tBodies]) body.remove();
     table.append(current, deprecated);
     return [current, deprecated];
@@ -654,7 +654,6 @@ export function createComparisonRenderer(document) {
     );
     renderComparisonTables(comparisonSections(forced), dialogs, true);
     byId("forced-section").hidden = forced.length === 0;
-    byId("empty").hidden = captures.length !== 0;
     renderRecommendations(captures);
   }
 
