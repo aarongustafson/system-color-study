@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { versions } from "../model.js";
 import { JSDOM } from "jsdom";
-import { buildSite, publicFiles } from "../scripts/build.js";
+import { buildSite, publicFiles, renderIndex } from "../scripts/build.js";
 import { fixture } from "./fixtures.js";
 
 async function setup(t) {
@@ -22,8 +22,8 @@ async function setup(t) {
   for (const file of publicFiles)
     await writeFile(
       join(root, file),
-      file === "index.html"
-        ? await readFile(new URL("../index.html", import.meta.url))
+      ["index.html", "test.html"].includes(file)
+        ? await readFile(new URL(`../${file}`, import.meta.url))
         : "Public fixture",
     );
   await writeFile(
@@ -32,6 +32,36 @@ async function setup(t) {
   );
   return root;
 }
+
+test("deprecated controls are inert authored markup in static output, and removed empty-state markup is not required", async (t) => {
+  const source = await readFile(
+    new URL("../index.html", import.meta.url),
+    "utf8",
+  );
+  const authored = new JSDOM(source);
+  t.after(() => authored.window.close());
+  const template = authored.window.document.getElementById(
+    "deprecated-controls-template",
+  );
+  assert.ok(
+    template,
+    "Deprecated instructions and controls belong in an inert template.",
+  );
+  assert.ok(template.content.querySelector("#deprecated-note"));
+  assert.equal(template.content.querySelector("#deprecated").disabled, true);
+  for (const captures of [[], [fixture("static-controls")]]) {
+    const dom = new JSDOM(renderIndex(source, captures));
+    t.after(() => dom.window.close());
+    const document = dom.window.document;
+    assert.equal(document.getElementById("deprecated"), null);
+    assert.equal(document.getElementById("deprecated-note"), null);
+    assert.equal(document.getElementById("empty"), null);
+    assert.equal(
+      document.querySelectorAll("tbody[data-deprecated][hidden]").length,
+      4,
+    );
+  }
+});
 
 test("build merges every committed JSON collection and publishes only allowed static files", async (t) => {
   const root = await setup(t);
@@ -119,6 +149,38 @@ test("build writes comparison values and metadata into HTML without a browser-si
   assert.doesNotMatch(html, /src="\.\/app\.js"/);
 });
 
+test("capture HTML embeds only unique published browser/OS labels without allowing script injection", async (t) => {
+  const root = await setup(t);
+  const capture = fixture("lookup");
+  capture.environment.browser =
+    'Browser </script><img src=x onerror="alert(1)"> 160';
+  capture.environment.os = "macOS 27.0.1";
+  capture.environment.notes = "This must not be copied into the lookup.";
+  const repeat = structuredClone(capture);
+  repeat.id = "repeat-lookup";
+  await writeFile(
+    join(root, "data/lookup.json"),
+    JSON.stringify({ ...versions, captures: [capture, repeat] }),
+  );
+  await buildSite(root);
+  const dom = new JSDOM(await readFile(join(root, "dist/test.html"), "utf8"));
+  t.after(() => dom.window.close());
+  const document = dom.window.document;
+  const data = document.getElementById("published-environments");
+  assert.ok(data, "The capture page needs a build-time environment lookup.");
+  assert.equal(data.type, "application/json");
+  assert.deepEqual(JSON.parse(data.textContent), [
+    { browser: capture.environment.browser, os: capture.environment.os },
+  ]);
+  assert.equal(document.querySelectorAll("img, [onerror]").length, 0);
+  assert.equal(document.getElementById("published-match"), null);
+  assert.ok(
+    document
+      .getElementById("published-match-template")
+      .content.querySelector("#published-match"),
+  );
+  assert.ok(!data.textContent.includes(capture.environment.notes));
+});
 test("static comparisons retain both row groups, shared dialogs, safe text, and native header associations", async (t) => {
   const root = await setup(t);
   const normal = fixture("normal");
@@ -233,7 +295,7 @@ test("paired examples reuse shared SVG faces for the overall measured verdict", 
     3,
   );
   const verdicts = new Set();
-  for (const example of document.querySelectorAll(".paired-example")) {
+  for (const example of document.querySelectorAll("td.paired-example")) {
     const verdict = example.nextElementSibling.dataset.verdict;
     const face = example.querySelector("svg");
     if (verdict === "unavailable") {

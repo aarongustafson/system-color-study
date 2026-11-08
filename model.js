@@ -185,6 +185,86 @@ export function pairResult(pair, snapshot) {
   };
 }
 
+export function recommendationSummary(captures) {
+  const observations = captures.flatMap((capture) =>
+    ["light", "dark"].map((scheme) => ({
+      capture,
+      scheme,
+      snapshot: capture.schemes[scheme],
+      category:
+        capture.media.forcedColors === true
+          ? "forced"
+          : capture.media.forcedColors !== false
+            ? "other"
+            : capture.media.prefersContrast === "more"
+              ? "more"
+              : capture.media.prefersContrast === "no-preference"
+                ? scheme
+                : "other",
+    })),
+  );
+  const categories = Object.fromEntries(
+    ["light", "dark", "forced", "more", "other"].map((category) => [
+      category,
+      observations.filter((observation) => observation.category === category)
+        .length,
+    ]),
+  );
+  return {
+    categories,
+    moreContrastSystems: [
+      ...new Set(
+        observations
+          .filter((observation) => observation.category === "more")
+          .map(({ capture }) => capture.environment.os),
+      ),
+    ].sort(),
+    pairs: pairs
+      .filter((pair) => !pair.deprecated)
+      .map((pair) => {
+        const counts = Object.fromEntries(
+          Object.entries(categories).map(([category, total]) => [
+            category,
+            { total, passed: 0, unavailable: 0 },
+          ]),
+        );
+        const variants = new Map();
+        let minimum = null;
+        for (const observation of observations) {
+          const { snapshot, category } = observation;
+          const result = pairResult(pair, snapshot);
+          if (!snapshot.schemeSupported || result.ratio === null) {
+            counts[category].unavailable++;
+            continue;
+          }
+          if (result.grades.normalAA) counts[category].passed++;
+          minimum =
+            minimum === null ? result.ratio : Math.min(minimum, result.ratio);
+          const signature = JSON.stringify([
+            result.paintedForeground,
+            result.paintedBackground,
+          ]);
+          if (!variants.has(signature))
+            variants.set(signature, { snapshot, result, observations: [] });
+          variants.get(signature).observations.push(observation);
+        }
+        return {
+          ...pair,
+          categories: counts,
+          minimum,
+          recommended:
+            categories.other === 0 &&
+            ["light", "dark", "forced", "more"].every(
+              (category) =>
+                counts[category].total > 0 &&
+                counts[category].passed === counts[category].total,
+            ),
+          variants: [...variants.values()],
+        };
+      }),
+  };
+}
+
 function record(value, message) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new TypeError(message);

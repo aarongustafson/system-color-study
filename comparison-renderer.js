@@ -11,9 +11,20 @@ import {
   composite,
   contrast,
   forcedLabel,
+  recommendationSummary,
 } from "./model.js";
 
 export { forcedLabel } from "./model.js";
+
+function contrastVerdict(result) {
+  return result.ratio === null
+    ? "unavailable"
+    : result.grades.normalAAA
+      ? "pass"
+      : result.nonTextThreshold
+        ? "mixed"
+        : "fail";
+}
 
 export function createComparisonRenderer(document) {
   const byId = (id) => document.getElementById(id);
@@ -193,8 +204,8 @@ export function createComparisonRenderer(document) {
 
   function renderVerdict(target, result) {
     target.classList.add("contrast-result");
+    target.dataset.verdict = contrastVerdict(result);
     if (result.ratio === null) {
-      target.dataset.verdict = "unavailable";
       target.append(element("p", "Not measured: " + result.reason));
       return;
     }
@@ -205,9 +216,6 @@ export function createComparisonRenderer(document) {
       ["Large AAA", result.grades.largeAAA],
       ["Non-text", result.nonTextThreshold],
     ];
-    const passes = thresholds.filter(([, pass]) => pass).length;
-    target.dataset.verdict =
-      passes === thresholds.length ? "pass" : passes === 0 ? "fail" : "mixed";
     const ratio = element("p");
     ratio.append(element("strong", `${result.ratio.toFixed(2)}:1`));
     target.append(ratio);
@@ -250,14 +258,14 @@ export function createComparisonRenderer(document) {
     const current = element("tbody");
     const deprecated = element("tbody");
     deprecated.dataset.deprecated = "";
-    deprecated.hidden = !byId("deprecated").checked;
+    deprecated.hidden = true;
     for (const body of [...table.tBodies]) body.remove();
     table.append(current, deprecated);
     return [current, deprecated];
   }
 
-  function pairedExample(pair, snapshot, result, verdict) {
-    const cell = element("td");
+  function pairedExample(pair, snapshot, result, verdict, tag = "td") {
+    const cell = element(tag);
     cell.className = "paired-example";
     if (result.ratio === null) {
       cell.textContent = "Preview unavailable: " + result.reason;
@@ -291,6 +299,159 @@ export function createComparisonRenderer(document) {
     face.append(use);
     cell.append(normal, large, face);
     return cell;
+  }
+
+  function renderRecommendations(captures) {
+    const summary = recommendationSummary(captures);
+    const labels = {
+      light: "Light",
+      dark: "Dark",
+      forced: "Forced colors",
+      more: "More contrast",
+      other: "Other or unknown settings",
+    };
+    const uses = {
+      "Canvas/CanvasText": "Page content and general reading surfaces.",
+      "Canvas/LinkText": "Links in page content.",
+      "Canvas/VisitedText": "Visited links on the page surface.",
+      "Canvas/ActiveText": "Links while they are being activated.",
+      "ButtonFace/ButtonText": "Button labels and surfaces.",
+      "Field/FieldText": "Text-entry fields.",
+      "Highlight/HighlightText": "Text in a highlighted selection.",
+      "SelectedItem/SelectedItemText": "Selected items in a control.",
+      "AccentColor/AccentColorText": "Text on an accent-colored surface.",
+      "Mark/MarkText": "Marked passages, such as search matches.",
+    };
+    const coverage = byId("recommendation-coverage");
+    coverage.replaceChildren(
+      element(
+        "p",
+        captures.length
+          ? `These ${captures.length} captures each measure two requested schemes. Counts below are scheme observations, not independent setups. Forced-color and more-contrast observations are kept separate from ordinary light and dark observations.`
+          : "No captures are available yet. There isn’t enough evidence to recommend a pair.",
+      ),
+    );
+    if (summary.moreContrastSystems.length)
+      coverage.append(
+        element(
+          "p",
+          `More-contrast coverage comes from: ${summary.moreContrastSystems.join("; ")}. That doesn’t establish how these pairs behave on other systems or settings.`,
+        ),
+      );
+    if (summary.categories.other)
+      coverage.append(
+        element(
+          "p",
+          `${summary.categories.other} observations have other or unknown settings. They’re reported separately and prevent an across-mode recommendation.`,
+        ),
+      );
+    const starting = byId("recommended-pairs");
+    const cautious = byId("caution-pairs");
+    starting.replaceChildren();
+    cautious.replaceChildren();
+    if (!captures.length) return;
+    for (const pair of summary.pairs) {
+      const card = element("article");
+      card.className = "pair-card recommendation-card";
+      card.dataset.recommended = String(pair.recommended);
+      const heading = element("h4", `${pair.foreground} on ${pair.background}`);
+      heading.id = `recommendation-${pair.foreground}-${pair.background}`;
+      const use = element("p", `Use for: ${uses[pair.id]}`);
+      use.className = "recommendation-use";
+      card.append(heading, use);
+      const counts = element("ul");
+      counts.className = "recommendation-stats";
+      for (const [category, { total, passed, unavailable }] of Object.entries(
+        pair.categories,
+      )) {
+        if (category === "other" && !total) continue;
+        counts.append(
+          element(
+            "li",
+            total
+              ? `${labels[category]}: ${passed}/${total} meet AA; ${total - passed - unavailable} fail; ${unavailable} unavailable.`
+              : `${labels[category]}: no observations.`,
+          ),
+        );
+      }
+      counts.append(
+        element(
+          "li",
+          pair.minimum === null
+            ? "No contrast measurements are available."
+            : `Lowest recorded contrast: ${pair.minimum.toFixed(2)}:1.`,
+        ),
+      );
+      card.append(counts);
+      if (pair.variants.length) {
+        const disclosure = element("details");
+        const control = element(
+          "summary",
+          `View the ${pair.variants.length} rendered combination${pair.variants.length === 1 ? "" : "s"}`,
+        );
+        control.id = `${heading.id}-summary`;
+        control.setAttribute("aria-labelledby", `${heading.id} ${control.id}`);
+        disclosure.append(control);
+        const examples = element("div");
+        examples.className = "recommendation-examples";
+        for (const variant of pair.variants) {
+          const figure = element("figure");
+          figure.append(
+            pairedExample(
+              pair,
+              variant.snapshot,
+              variant.result,
+              contrastVerdict(variant.result),
+              "div",
+            ),
+          );
+          const caption = element("figcaption");
+          caption.append(
+            element(
+              "p",
+              `${variant.result.ratio.toFixed(2)}:1 · Normal AA: ${variant.result.grades.normalAA ? "pass" : "fail"} · Normal AAA: ${variant.result.grades.normalAAA ? "pass" : "fail"}`,
+            ),
+          );
+          const provenance = element("details");
+          provenance.append(
+            element(
+              "summary",
+              `Seen in ${variant.observations.length} scheme observation${variant.observations.length === 1 ? "" : "s"}`,
+            ),
+          );
+          const list = element("ul");
+          for (const { capture, scheme } of variant.observations) {
+            const settings = [scheme];
+            if (capture.media.forcedColors === true)
+              settings.push("forced colors");
+            else if (capture.media.forcedColors === null)
+              settings.push("forced colors unknown");
+            if (capture.media.prefersContrast !== "no-preference")
+              settings.push(`${capture.media.prefersContrast} contrast`);
+            list.append(
+              element(
+                "li",
+                `${compactEnvironmentLabel(capture.environment.browser)} / ${compactEnvironmentLabel(capture.environment.os)}, ${settings.join(", ")}`,
+              ),
+            );
+          }
+          provenance.append(list);
+          caption.append(provenance);
+          figure.append(caption);
+          examples.append(figure);
+        }
+        disclosure.append(examples);
+        card.append(disclosure);
+      }
+      (pair.recommended ? starting : cautious).append(card);
+    }
+    if (!starting.childElementCount)
+      starting.append(
+        element(
+          "p",
+          "No pair meets the across-mode criterion in this collection yet.",
+        ),
+      );
   }
 
   function renderComparisonTables(sections, dialogs, forced = false) {
@@ -493,7 +654,7 @@ export function createComparisonRenderer(document) {
     );
     renderComparisonTables(comparisonSections(forced), dialogs, true);
     byId("forced-section").hidden = forced.length === 0;
-    byId("empty").hidden = captures.length !== 0;
+    renderRecommendations(captures);
   }
 
   return { renderTables, renderVerdict };

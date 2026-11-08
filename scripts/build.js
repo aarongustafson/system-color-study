@@ -34,6 +34,31 @@ export function renderIndex(source, captures) {
   }
 }
 
+export function renderCapturePage(source, captures) {
+  const dom = new JSDOM(source);
+  try {
+    const data = dom.window.document.getElementById("published-environments");
+    if (data?.tagName !== "SCRIPT" || data.type !== "application/json")
+      throw new Error(
+        "The capture page is missing its published environment lookup.",
+      );
+    const environments = [
+      ...new Map(
+        captures.map(({ environment: { browser, os } }) => [
+          JSON.stringify([browser, os]),
+          { browser, os },
+        ]),
+      ).values(),
+    ].sort(
+      (a, b) => a.browser.localeCompare(b.browser) || a.os.localeCompare(b.os),
+    );
+    data.textContent = JSON.stringify(environments).replaceAll("<", "\\u003c");
+    return dom.serialize();
+  } finally {
+    dom.window.close();
+  }
+}
+
 async function collections(directory) {
   const found = [];
   for (const entry of (await readdir(directory, { withFileTypes: true })).sort(
@@ -86,7 +111,11 @@ export async function buildSite(root = resolve(import.meta.dirname, "..")) {
       const source = await readFile(join(root, file), "utf8");
       return [
         file,
-        file === "index.html" ? renderIndex(source, captures) : source,
+        file === "index.html"
+          ? renderIndex(source, captures)
+          : file === "test.html"
+            ? renderCapturePage(source, captures)
+            : source,
       ];
     }),
   );

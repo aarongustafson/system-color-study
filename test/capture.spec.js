@@ -1,5 +1,139 @@
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
+import { JSDOM } from "jsdom";
+import { renderCapturePage } from "../scripts/build.js";
+import { fixture } from "./fixtures.js";
+
+const captureSource = await readFile(
+  new URL("../test.html", import.meta.url),
+  "utf8",
+);
+async function knownEnvironmentPage(page) {
+  const capture = fixture("published-match");
+  capture.environment.browser = "Chrome 157.0.8103.39";
+  capture.environment.os = "macOS 27.0.1 arm64";
+  await page.route("**/system-color-study/test.html", (route) =>
+    route.fulfill({
+      contentType: "text/html",
+      body: renderCapturePage(captureSource, [capture]),
+    }),
+  );
+  await page.goto("./test.html");
+}
+
+test("a cautious published-combination hint follows inferred and edited values without fetching measurements", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "userAgent", {
+      configurable: true,
+      value:
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 27_0_1) Chrome/157.0.0.0 Safari/537.36",
+    });
+  });
+  let datasetRequests = 0;
+  await page.route("**/published.json", (route) => {
+    datasetRequests++;
+    return route.abort();
+  });
+  await knownEnvironmentPage(page);
+  await expect(page.locator("#metadata-help > #published-match")).toBeVisible();
+  await expect(page.locator("#published-match")).toContainText("may already");
+  await expect(page.locator("#published-match")).toContainText("major-version");
+  await expect(page.locator("#published-match")).toContainText(
+    "Different preferences",
+  );
+  await expect(
+    page.getByLabel("Browser and version"),
+  ).toHaveAccessibleDescription(/major-version combination.*About/);
+  await expect(page.getByLabel("OS and version")).toHaveValue(
+    "macOS 27.0.1 (reported; verify)",
+  );
+  for (const width of [320, 1400]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(
+      await page.locator("#published-match").evaluate((node) => {
+        const rect = node.getBoundingClientRect();
+        return rect.left >= 0 && rect.right <= innerWidth;
+      }),
+    ).toBe(true);
+  }
+  await page.getByLabel("Browser and version").fill("Firefox 160");
+  await expect(page.locator("#published-match")).toHaveCount(0);
+  await page.getByLabel("Browser and version").fill("Chromium 157.2");
+  await expect(page.locator("#published-match")).toHaveCount(1);
+  await expect(page.getByLabel("Browser and version")).toHaveValue(
+    "Chromium 157.2",
+  );
+  await page
+    .getByLabel("OS and version")
+    .fill("Windows (NT 10.0; verify release)");
+  await expect(page.locator("#published-match")).toHaveCount(0);
+  expect(datasetRequests).toBe(0);
+});
+
+test("Client Hints can reveal a published match but are still requested only on demand", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    window.hintRequests = 0;
+    Object.defineProperty(navigator, "userAgent", {
+      configurable: true,
+      value:
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/157.0.0.0 Safari/537.36",
+    });
+    Object.defineProperty(navigator, "userAgentData", {
+      configurable: true,
+      value: {
+        async getHighEntropyValues() {
+          window.hintRequests++;
+          return {
+            fullVersionList: [{ brand: "Chromium", version: "157.1.2.3" }],
+            platform: "macOS",
+            platformVersion: "27.0.1",
+          };
+        },
+      },
+    });
+  });
+  await knownEnvironmentPage(page);
+  await expect(page.locator("#published-match")).toHaveCount(0);
+  expect(await page.evaluate(() => window.hintRequests)).toBe(0);
+  await page
+    .getByRole("button", { name: "Populate from Client Hints" })
+    .click();
+  await expect(page.locator("#published-match")).toBeVisible();
+  await expect(page.getByLabel("Browser and version")).toHaveValue(
+    "Chromium 157.1.2.3",
+  );
+  await expect(page.getByLabel("OS and version")).toHaveValue(
+    "macOS 27.0.1 (reported; verify)",
+  );
+  expect(await page.evaluate(() => window.hintRequests)).toBe(1);
+});
+
+test("an invalid published lookup reports an error without blocking capture", async ({
+  page,
+}) => {
+  const dom = new JSDOM(captureSource);
+  dom.window.document.getElementById("published-environments").textContent =
+    "null";
+  const body = dom.serialize();
+  dom.window.close();
+  await page.route("**/system-color-study/test.html", (route) =>
+    route.fulfill({ contentType: "text/html", body }),
+  );
+  await page.goto("./test.html");
+  await expect(page.locator("#error")).toContainText("lookup is invalid");
+  await expect(page.locator("#published-match")).toHaveCount(0);
+  await expect(page.locator("#capture")).toBeEnabled();
+  await page.getByLabel("Browser and version").fill("Chrome 157");
+  await page.getByLabel("OS and version").fill("macOS 27");
+  await page.locator("#capture").click();
+  await expect(
+    page.getByRole("link", { name: "Download JSON", exact: true }),
+  ).toBeVisible();
+});
 
 test.beforeEach(async ({ page }) => {
   await page.goto("./test.html");
@@ -33,7 +167,7 @@ test("capture guidance stays with its controls without a redundant ready message
     "macOS Increase Contrast",
   );
   await expect(page.locator("#repeat-capture-help")).toContainText(
-    "Save each snapshot separately",
+    "Submit each snapshot separately",
   );
   await page.getByLabel("OS and version").press("Enter");
   await expect(

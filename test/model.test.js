@@ -71,6 +71,17 @@ test("confirmed device batch uses Windows 11, one Chrome identifier, and unprefi
       ),
     )
   ).flat();
+  assert.ok(
+    captures.every(
+      (capture) => !/^Chromium(?:\s|$)/.test(capture.environment.browser),
+    ),
+    "Stored browser labels should use Chrome rather than Chromium.",
+  );
+  const chromiumEngine = captures.find(
+    (capture) => capture.id === "mw45lv5z-oef6a7xgvq",
+  );
+  assert.equal(chromiumEngine.environment.browser, "Chrome 158.0.8127.18");
+  assert.match(chromiumEngine.environment.notes, /headed bundled Chromium/);
   const windows = captures.filter(
     (c) =>
       c.capturedAt >= "2026-11-06T00:50:00.000Z" &&

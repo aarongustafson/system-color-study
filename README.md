@@ -42,6 +42,29 @@ dated JSON snapshot. Its download is available immediately. Nothing uploads or
 saves automatically, and the page doesn’t import or display comparison datasets.
 Use the published results to explore the colors.
 
+The findings page also generates functional-pair recommendations at build time.
+A current pair qualifies only when every observation meets normal-text AA
+(4.5:1) separately in ordinary light, ordinary dark, forced-color, and
+more-contrast categories, with at least one observation in each. Unsupported
+keywords or requested schemes remain unavailable in the denominator; other or
+unknown settings prevent qualification and are reported separately. There is
+no pooled score. These are observed starting points, not universal guarantees.
+
+Each pair lists pass, failure, and unavailable counts, the lowest measured
+ratio, and its intended use. Its larger, bold name sits directly above the
+“Use for:” line; each measurement occupies a separate bullet.
+“View the rendered combinations” disclosures include the pair name in their
+accessible names. Native disclosures show distinct
+painted foreground/background combinations with all contributing scheme
+observations. Identical examples merge visually, but their observations remain
+in the counts. Observation labels use browser and OS major versions, the scheme,
+and active forced-color or contrast settings. Full metadata stays in the
+comparison-table Details dialogs and the source captures.
+Forced and more-contrast totals include both requested schemes.
+The page identifies the systems represented in more-contrast captures.
+Recommendations and examples work without JavaScript; recorded-color previews
+alone opt out of forced-color adjustment, as in the pairing tables.
+
 Captures use each mode’s resolved `Canvas` as the contrast backdrop. Raw colors,
 alpha, unsupported keywords, and both requested-scheme reports remain in the JSON.
 
@@ -60,6 +83,14 @@ alpha, unsupported keywords, and both requested-scheme reports remain in the JSO
    shortened to reduce fingerprinting; Client Hints may supply fuller versions
    or a different browser brand. If only one field is disclosed, the other
    keeps its value and source. Failed requests leave both unchanged.
+   If the browser and OS major versions appear in the published captures, a
+   cautious match note appears beside the About-screen guidance. It updates
+   after edits or Client Hints and never confirms installed versions or
+   matching preferences. Ambiguous Windows platform/NT reports and missing
+   versions don’t qualify. Chrome/Chromium and Client Hints brand aliases are
+   treated consistently; capture values remain unchanged.
+   The build embeds only unique browser/OS labels in the capture HTML—no
+   measurements, Notes, runtime dataset fetch, or extra entropy request.
    Record relevant device, accent, and experimental settings in Notes.
    When forced colors are active, enter the actual name in **Forced-color theme
    name**. Don’t include personal information.
@@ -272,6 +303,11 @@ build before it replaces the previous output.
 
 “Include deprecated keywords” only toggles `hidden` on the existing
 `tbody[data-deprecated]` groups. Headers, cells, and dialogs stay in place.
+Its instructions and checkbox are authored in an inert HTML template, then
+injected together after JavaScript initializes their behavior. Without
+JavaScript, or if loading or initialization fails, neither appears; the
+current-keyword tables remain readable. Initialization failures use the
+page’s error message.
 JavaScript also adds sticky-header safeguards, keyboard scrolling, and a
 fallback for browsers without native dialog commands. Local measurements never
 modify the published collection.

@@ -5,6 +5,52 @@ import {
   environmentFromHints,
   exportFilename,
 } from "../environment.js";
+import * as environment from "../environment.js";
+
+test("published environment matches use browser and OS major versions without guessing ambiguous releases", () => {
+  const published = [
+    { browser: "Chrome 157.0.8103.39", os: "macOS 27.0.1 arm64" },
+    { browser: "Edge 155.0.4283.62", os: "Windows 11" },
+  ];
+  for (const browser of [
+    "Chrome 157.0.0.0",
+    " Google Chrome 157.1 ",
+    "Chromium 157.2",
+  ])
+    assert.equal(
+      environment.matchesPublishedEnvironment(
+        published,
+        browser,
+        "macOS 27.1 (reported; verify)",
+      ),
+      true,
+    );
+  assert.equal(
+    environment.matchesPublishedEnvironment(
+      published,
+      "Microsoft Edge 155.1",
+      "Windows 11",
+    ),
+    true,
+  );
+  for (const [browser, os] of [
+    ["Chrome 156.0.0.0", "macOS 27.0.1"],
+    ["Firefox 157", "macOS 27.0.1"],
+    ["Chrome 157", "macOS 26.5"],
+    ["Edge 155", "Windows (NT 10.0; verify release)"],
+    ["Edge 155", "Windows (platform 19.0.0; verify release)"],
+    ["", "macOS 27"],
+    ["Chrome 157", "Linux (verify distribution/version)"],
+  ])
+    assert.equal(
+      environment.matchesPublishedEnvironment(published, browser, os),
+      false,
+    );
+  assert.equal(
+    environment.matchesPublishedEnvironment([], "Chrome 157", "macOS 27"),
+    false,
+  );
+});
 
 test("UA prefills distinguish browsers and label reported OS versions honestly", () => {
   const chrome = detectEnvironment(

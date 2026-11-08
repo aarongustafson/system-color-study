@@ -17,6 +17,133 @@ const indexSource = await readFile(
   "utf8",
 );
 
+for (const javaScriptEnabled of [true, false]) {
+  test(`recommendations expose named recorded examples and keyboard disclosures with JavaScript ${javaScriptEnabled ? "enabled" : "disabled"}`, async ({
+    browser,
+    baseURL,
+  }) => {
+    const context = await browser.newContext({ javaScriptEnabled });
+    try {
+      const page = await context.newPage();
+      await page.goto(baseURL);
+      const section = page.getByRole("region", {
+        name: "Which pairs held up across these captures?",
+      });
+      const forcedAdjustmentSupported = await page.evaluate(() =>
+        CSS.supports("forced-color-adjust", "none"),
+      );
+      await expect(section).toBeVisible();
+      const canvas = section.locator("[data-recommended='true']").filter({
+        has: page.getByRole("heading", {
+          name: "CanvasText on Canvas",
+          exact: true,
+        }),
+      });
+      await expect(canvas).toHaveCount(1);
+      await expect(canvas.locator(".recommendation-use")).toHaveText(
+        "Use for: Page content and general reading surfaces.",
+      );
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = "16.1px";
+      });
+      for (const width of [320, 1400]) {
+        await page.setViewportSize({ width, height: 900 });
+        const disclosure = canvas.locator(":scope > details > summary");
+        await expect(disclosure).toHaveText(
+          /View the \d+ rendered combinations?/,
+        );
+        await expect(disclosure).toHaveAccessibleName(
+          /CanvasText on Canvas View the \d+ rendered combinations?/,
+        );
+        await expect(canvas.locator("h4")).toHaveCSS("font-weight", "700");
+        await expect(canvas.locator(".recommendation-stats li")).toHaveCount(5);
+        const layout = await canvas.evaluate((node) => {
+          const title = node.querySelector("h4");
+          const use = node.querySelector(".recommendation-use");
+          const bullets = [
+            ...node.querySelectorAll(".recommendation-stats li"),
+          ];
+          return {
+            gap:
+              use.getBoundingClientRect().top -
+              title.getBoundingClientRect().bottom,
+            largerTitle:
+              parseFloat(getComputedStyle(title).fontSize) >
+              parseFloat(getComputedStyle(use).fontSize),
+            minimumBulletGap: Math.min(
+              ...bullets
+                .slice(1)
+                .map(
+                  (bullet, index) =>
+                    bullet.getBoundingClientRect().top -
+                    bullets[index].getBoundingClientRect().bottom,
+                ),
+            ),
+          };
+        });
+        expect(Math.abs(layout.gap)).toBeLessThan(0.01);
+        expect(layout.largerTitle).toBe(true);
+        expect(layout.minimumBulletGap).toBeGreaterThanOrEqual(-0.01);
+        await disclosure.focus();
+        await expect(disclosure).toBeFocused();
+        await disclosure.press("Enter");
+        await expect(canvas.locator(".recommendation-examples")).toBeVisible();
+        const examples = canvas.locator(".paired-example");
+        await expect(
+          examples.first().getByRole("img", {
+            name: "Smiling face: all five contrast thresholds pass",
+          }),
+        ).toBeVisible();
+        if (forcedAdjustmentSupported)
+          await expect(examples.first()).toHaveCSS(
+            "forced-color-adjust",
+            "none",
+          );
+        const provenance = canvas.locator("figcaption details").first();
+        await provenance.locator("summary").focus();
+        await provenance.locator("summary").press("Enter");
+        await expect(provenance.locator("ul")).toBeVisible();
+        await expect(provenance.locator("li").first()).toHaveText(
+          /.+ \/ .+, (light|dark)(, .+)?/,
+        );
+        await expect(provenance).not.toContainText("requested");
+        await expect(provenance).toContainText("forced colors");
+        const geometry = await section.evaluate((node) => {
+          const bounds = node.getBoundingClientRect();
+          return [...node.querySelectorAll("article, figure")].every(
+            (child) => {
+              const rect = child.getBoundingClientRect();
+              return (
+                rect.width === 0 ||
+                (rect.left >= bounds.left && rect.right <= bounds.right + 1)
+              );
+            },
+          );
+        });
+        expect(geometry).toBe(true);
+        await provenance.locator("summary").press("Enter");
+        await disclosure.focus();
+        await disclosure.press("Enter");
+        await expect(canvas.locator(".recommendation-examples")).toBeHidden();
+      }
+      await page.emulateMedia({ forcedColors: "active" });
+      await canvas.locator(":scope > details > summary").click();
+      if (forcedAdjustmentSupported) {
+        await expect(canvas.locator(".paired-example").first()).toHaveCSS(
+          "forced-color-adjust",
+          "none",
+        );
+        await expect(canvas.locator("figcaption").first()).toHaveCSS(
+          "forced-color-adjust",
+          "auto",
+        );
+      }
+    } finally {
+      await context.close();
+    }
+  });
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto("./test.html");
 });
@@ -1278,6 +1405,7 @@ test("without JavaScript, instructions remain and measurement controls are disab
     "JavaScript is required",
   );
   await expect(page.locator("#capture-heading")).toBeVisible();
+  await expect(page.locator("#published-match")).toHaveCount(0);
   await expect(page.locator("#scheme, #import")).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Capture light and dark" }),
@@ -1298,7 +1426,8 @@ test("without JavaScript, instructions remain and measurement controls are disab
   ).toHaveText(/^#[\da-f]{6}(?:[\da-f]{2})?$/);
   await expect(page.locator("#forced-section")).toBeVisible();
   await expect(page.locator("tbody[data-deprecated][hidden]")).toHaveCount(4);
-  await expect(page.getByLabel("Include deprecated keywords")).toBeDisabled();
+  await expect(page.getByLabel("Include deprecated keywords")).toHaveCount(0);
+  await expect(page.locator("#deprecated-note")).toHaveCount(0);
   await expect(
     page
       .getByRole("navigation")
@@ -1319,6 +1448,24 @@ test("deprecated controls only toggle the prebuilt row groups without replacing 
     ];
   });
   const toggle = page.getByLabel("Include deprecated keywords");
+  await expect(toggle).toBeEnabled();
+  await expect(toggle).toHaveAccessibleDescription(
+    /current-generation system color keywords/,
+  );
+  await expect(page.locator("#deprecated-controls-template")).toHaveCount(0);
+  await expect(page.locator("#deprecated, #deprecated-note")).toHaveCount(2);
+  for (const width of [320, 1400]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(
+      await page.locator("#deprecated-note").evaluate((note) => {
+        const controls = note.nextElementSibling;
+        return [note, controls].every((node) => {
+          const rect = node.getBoundingClientRect();
+          return rect.left >= 0 && rect.right <= innerWidth;
+        });
+      }),
+    ).toBe(true);
+  }
   await toggle.focus();
   for (const checked of [true, false, true]) {
     await toggle.press("Space");
@@ -1344,6 +1491,35 @@ test("deprecated controls only toggle the prebuilt row groups without replacing 
       ),
     ).toBe(true);
   }
+});
+
+test("deprecated instructions and controls remain absent if their module cannot load", async ({
+  page,
+}) => {
+  await page.route("**/comparison-ui.js", (route) => route.abort());
+  await page.goto("./");
+  await expect(page.locator("#individual-table")).toBeVisible();
+  await expect(page.locator("#deprecated, #deprecated-note")).toHaveCount(0);
+  await expect(page.locator("tbody[data-deprecated][hidden]")).toHaveCount(4);
+});
+
+test("deprecated controls are not injected when enhancement initialization fails", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    window.ResizeObserver = class {
+      constructor() {
+        throw new Error("Header observation failed");
+      }
+    };
+  });
+  await page.goto("./");
+  await expect(page.locator("#error")).toContainText(
+    "Header observation failed",
+  );
+  await expect(page.locator("#deprecated, #deprecated-note")).toHaveCount(0);
+  await expect(page.locator("#individual-table")).toBeVisible();
+  await expect(page.locator("tbody[data-deprecated][hidden]")).toHaveCount(4);
 });
 
 test("study pages explain color preferences and invite designers to contribute snapshots", async ({
@@ -1421,7 +1597,7 @@ test("study pages explain color preferences and invite designers to contribute s
   await expect(page.locator("#forced-colors-guide")).toBeVisible();
   await expect(
     page.locator("#forced-colors-guide").getByRole("link", {
-      name: "Firefox’s forced-color behavior",
+      name: "Firefox’s own color overrides can also activate them on macOS and Linux",
       exact: true,
     }),
   ).toHaveAttribute(
@@ -1518,7 +1694,7 @@ test("the built homepage needs no runtime dataset or rendering modules", async (
   await expect(page.locator("#error")).toBeHidden();
   await expect(page.locator("#capture-count")).toHaveText(/^\d+$/);
   await expect(page.locator("#individual-table")).toBeVisible();
-  await expect(page.locator("#empty")).toBeHidden();
+  await expect(page.locator("#empty")).toHaveCount(0);
   await expect(page.getByLabel("Include deprecated keywords")).toBeEnabled();
   expect(forbidden).toEqual([]);
 });
