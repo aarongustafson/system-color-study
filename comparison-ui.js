@@ -24,6 +24,15 @@ export function updateComparisonHeaders() {
   updateHeaders(tableIds.map(byId));
 }
 
+function updateCollapsedHeader(table, focused = document.activeElement) {
+  const state = String(
+    table.parentElement.scrollTop > 0 && !table.tHead.contains(focused),
+  );
+  if (table.dataset.collapsedHeader === state) return;
+  table.dataset.collapsedHeader = state;
+  updateHeaders([table]);
+}
+
 export function report(error) {
   console.error("System color study:", error);
   byId("status").textContent = "The operation failed. See the error message.";
@@ -60,10 +69,22 @@ export function enhanceComparisons(deprecated) {
       : null;
   for (const id of tableIds) {
     const table = byId(id);
+    updateCollapsedHeader(table);
+    table.parentElement.addEventListener(
+      "scroll",
+      () => {
+        updateCollapsedHeader(table);
+      },
+      { passive: true },
+    );
+    table.tHead.addEventListener("focusout", (event) => {
+      updateCollapsedHeader(table, event.relatedTarget);
+    });
     headerObserver?.observe(table.tHead);
     headerObserver?.observe(table.parentElement);
     table.addEventListener("focusin", (event) => {
       if (!(event.target instanceof HTMLElement)) return;
+      updateCollapsedHeader(table);
       const region = table.parentElement;
       const area = region.getBoundingClientRect();
       const pinned = table.tHead.rows[0].cells[0].getBoundingClientRect();

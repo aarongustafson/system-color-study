@@ -188,6 +188,18 @@ tracks table and region geometry. It is enabled only when at least 128 CSS pixel
 headers scroll normally so they don’t cover the data. Printing removes that height
 limit and pinning.
 
+Once you scroll vertically within a table, its visible header rolls the browser,
+OS, preferences, and scheme into the last row. The paired tables also keep their
+“Paired example” and “Contrast thresholds” labels visible. A brief fade introduces
+the rollup; reduced-motion preferences disable it. Scrolling back to the top
+restores the full header. Horizontal scrolling alone doesn’t collapse it.
+
+The rollup is an `aria-hidden` visual duplicate, with no Details button. The full
+header content stays available to assistive technology; it isn’t removed or
+hidden with `display: none`. Focusing an original Details button expands the header
+before positioning the control, and leaving the header restores its scrolled
+presentation. Without JavaScript, and when printing, the full header remains.
+
 These are the original table cells, not duplicated headers. Native `th`, `scope`,
 and explicit `headers` associations remain in place. Each focusable scroll region
 is named by its section heading or table caption. Focus a scroll region and

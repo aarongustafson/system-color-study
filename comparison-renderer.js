@@ -16,6 +16,17 @@ import {
 
 export { forcedLabel } from "./model.js";
 
+function hasVisibleContext(group) {
+  return (
+    group.context !== "normal" &&
+    !(
+      group.context === "webview" &&
+      /^Chrome(?:\s|$)/i.test(group.browser) &&
+      /^(?:iOS|iPadOS)(?:\s|$)/i.test(group.os)
+    )
+  );
+}
+
 function contrastVerdict(result) {
   return result.ratio === null
     ? "unavailable"
@@ -139,13 +150,7 @@ export function createComparisonRenderer(document) {
       line.className = `capture-${type}${forced && type === "os" ? " visually-hidden" : ""}`;
       heading.append(line);
     }
-    const showContext =
-      group.context !== "normal" &&
-      !(
-        group.context === "webview" &&
-        /^Chrome(?:\s|$)/i.test(group.browser) &&
-        /^(?:iOS|iPadOS)(?:\s|$)/i.test(group.os)
-      );
+    const showContext = hasVisibleContext(group);
     if (showContext) {
       const context = element("p", group.context);
       context.id = `${id}-context`;
@@ -464,6 +469,49 @@ export function createComparisonRenderer(document) {
     const columns = groups.flatMap((group, groupIndex) =>
       group.columns.map((column) => ({ ...column, groupIndex })),
     );
+    const rollupLabel = (column) => {
+      const group = groups[column.groupIndex];
+      const capture = column.runs[0].capture;
+      const settings = [];
+      if (hasVisibleContext(group)) settings.push(group.context);
+      const name = capture.environment.forcedColorTheme?.trim();
+      if (name) settings.push(name);
+      if (capture.media.forcedColors === true) settings.push("forced colors");
+      else if (capture.media.forcedColors === null)
+        settings.push("forced colors unknown");
+      else if (name) settings.push("forced colors inactive");
+      if (capture.media.prefersContrast !== "no-preference")
+        settings.push(`${capture.media.prefersContrast} contrast`);
+      settings.push(
+        column.schemes.length === 2
+          ? "Light & Dark"
+          : column.schemes[0] === "light"
+            ? "Light"
+            : "Dark",
+      );
+      if (!column.snapshot.schemeSupported)
+        settings.push("Requested scheme unsupported");
+      return `${compactEnvironmentLabel(group.browser)} / ${compactEnvironmentLabel(group.os)}, ${settings.join(", ")}`;
+    };
+    const prepareHeaders = (table, labels) => {
+      const lastRow = table.tHead.rows[table.tHead.rows.length - 1];
+      for (const row of table.tHead.rows) {
+        for (const cell of row.cells) {
+          if (cell.rowSpan > 1) continue;
+          const content = element("div");
+          content.className = "header-content";
+          content.append(...cell.childNodes);
+          cell.append(content);
+          if (row !== lastRow) cell.classList.add("hierarchy-heading");
+        }
+      }
+      [...lastRow.cells].forEach((cell, index) => {
+        const rollup = element("span", labels[index]);
+        rollup.className = "header-rollup";
+        rollup.setAttribute("aria-hidden", "true");
+        cell.append(rollup);
+      });
+    };
     const themeIds = new Map();
     const osHeadings = (multiplier, tableId) => {
       const row = element("tr");
@@ -544,6 +592,20 @@ export function createComparisonRenderer(document) {
       heading,
       ...(forced ? [modes] : []),
     );
+    prepareHeaders(
+      individual,
+      forced
+        ? columns.map(rollupLabel)
+        : groups.map((group, groupIndex) =>
+            [
+              ...new Set(
+                group.columns.map((column) =>
+                  rollupLabel({ ...column, groupIndex }),
+                ),
+              ),
+            ].join("; "),
+          ),
+    );
     const [rows, deprecatedRows] = rowGroups(individual);
     keywords.forEach(({ name, deprecated }, rowIndex) => {
       const row = element("tr");
@@ -606,6 +668,13 @@ export function createComparisonRenderer(document) {
       firstHeader,
       ...(forced ? [secondHeader] : []),
       thirdHeader,
+    );
+    prepareHeaders(
+      table,
+      columns.flatMap((column) => {
+        const label = rollupLabel(column);
+        return [label, label];
+      }),
     );
     const [pairRows, deprecatedPairRows] = rowGroups(table);
     pairs.forEach((pair, rowIndex) => {

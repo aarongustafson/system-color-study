@@ -216,6 +216,7 @@ code,
   max-block-size: min(75vh, 48rem);
   max-block-size: min(75dvh, 48rem);
   overflow: auto;
+  overflow-anchor: none;
   scroll-padding-inline-start: var(--keyword-column-width);
   margin-block: 1rem;
 }
@@ -276,9 +277,53 @@ td p {
 .table-scroll thead tr:first-child > th:first-child {
   z-index: 2;
 }
-.capture-heading > p,
-.mode-heading > p {
+.capture-heading .header-content > p,
+.mode-heading .header-content > p {
   margin-block: 0.25rem;
+}
+.header-rollup {
+  display: none;
+}
+@media screen {
+  table[data-collapsed-header="true"] .hierarchy-heading {
+    padding-block: 0;
+    border-block-width: 0;
+  }
+  table[data-collapsed-header="true"] .hierarchy-heading .header-content,
+  table[data-collapsed-header="true"]#individual-table
+    thead
+    tr:last-child
+    .header-content,
+  table[data-collapsed-header="true"]#forced-individual-table
+    thead
+    tr:last-child
+    .header-content {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  table[data-collapsed-header="true"] .header-rollup {
+    display: block;
+    font-size: 0.875rem;
+    overflow-wrap: anywhere;
+    animation: header-rollup-appear 160ms ease-out;
+  }
+}
+@keyframes header-rollup-appear {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  table[data-collapsed-header="true"] .header-rollup {
+    animation: none;
+  }
 }
 .details-button {
   margin-block-start: 0.5rem;
