@@ -308,6 +308,7 @@ td p {
   table[data-collapsed-header="true"] .header-rollup {
     display: block;
     font-size: 0.875rem;
+    overflow-wrap: anywhere;
     animation: header-rollup-appear 160ms ease-out;
   }
 }
