@@ -31,7 +31,7 @@
           <span id="published-match" role="status">
             We may already have a snapshot for this browser and OS major-version
             combination. Still check both versions against the “About” screens
-            before capturing. Different preferences or palettes are useful too.
+            before capturing. Different built-in themes are useful too.
           </span>
         </template>
         <p id="status" role="status">
@@ -46,6 +46,14 @@
           </p></noscript
         >
         <form id="capture-form" novalidate>
+          <p>
+            Please capture only default color schemes supplied by your browser
+            and OS, including built-in light, dark, and contrast themes, with
+            their colors unchanged. Custom user-defined palettes are outside
+            this study’s scope. Your own functional colors are your choice,
+            along with their consequences; there’s no judgment about what works
+            for you.
+          </p>
           <fieldset>
             <legend>Browser and operating system</legend>
             <div class="settings">
@@ -83,8 +91,8 @@
                   disabled
               /></label>
               <p id="forced-color-help">
-                Forced colors are active. Enter the name of your Contrast theme
-                or custom browser palette.
+                Forced colors are active. Enter the name of the built-in
+                Contrast theme or browser palette, with its colors unchanged.
               </p>
             </div>
             <details>
@@ -100,7 +108,7 @@
                 </select></label
               >
               <label
-                >Notes: device, accent, or other changed settings
+                >Notes: device, built-in theme, or other relevant settings
                 <textarea
                   id="notes"
                   rows="2"

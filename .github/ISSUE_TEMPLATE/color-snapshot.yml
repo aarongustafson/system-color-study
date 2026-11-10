@@ -7,6 +7,9 @@ body:
     attributes:
       value: |
         Capture your browser at https://aarongustafson.github.io/system-color-study/test.html.
+        Submit only default browser and OS color schemes, including built-in light, dark, and contrast themes with their colors unchanged. Custom user-defined palettes are outside this study's scope.
+        Your functional colors are your choice, along with their consequences; this study makes no judgment about what works for you.
+        We support using system colors, especially in @media (forced-colors: active) queries. The study examines how browsers apply named colors in different contexts and where some pairings fall short, not whether people should use them.
         Download the JSON for your own copy, then use Copy JSON on the current test page and paste it below.
         Copy JSON provides compact issue data with both schemes and all 42 keywords; the downloaded file includes additional recalculable reports and is too large to paste here.
         The workflow validates one snapshot. After the owner comments /approve-snapshot, it revalidates the data and opens a data-only pull request for review.

@@ -4,6 +4,16 @@ A standalone, client-side study of CSS system colors across browsers, operating
 systems, requested light/dark color schemes, and user settings. It records
 keyword acceptance, resolved values, and alpha-aware contrast for defined pairs.
 
+The scope is default browser and OS color schemes, including built-in light,
+dark, and contrast themes with their colors unchanged, not custom user-defined
+palettes. People own their functional color choices and their consequences;
+this study makes no judgment about what works for them.
+
+This study supports using system colors, especially within
+`@media (forced-colors: active)` queries. It examines how browsers apply named
+colors in different contexts and where some pairings fall short, not whether
+people should use system colors.
+
 This is a research page, not a web component or an npm package for publication.
 Move the whole directory wherever you want. The measurement page has no runtime
 dependencies, external scripts, uploads, telemetry, or automatic local storage.
@@ -236,12 +246,13 @@ individual colors because they have no universal two-color text pair.
 Yes: run the page in the actual Windows browser you want to measure.
 
 1. In Windows 11, open **Settings > Accessibility > Contrast themes**, choose
-   a theme, and apply it. Windows 10 calls this High contrast under Ease of Access.
+   a built-in theme with its colors unchanged, and apply it. Windows 10 calls
+   this High contrast under Ease of Access.
 2. Return to the page, or reload.
    Open **Optional context and notes** and confirm the preference readout reports
    **forced colors: active**.
-3. Enter the theme’s name in **Forced-color theme name** and any customized
-   palette settings in Notes.
+3. Enter the theme’s name in **Forced-color theme name**. Custom user-defined
+   palettes are outside the study’s scope.
 4. Capture both modes and export. Repeat for each theme, then capture with
    Contrast themes off for a baseline.
 
@@ -276,9 +287,10 @@ activate a forced palette on macOS and Linux too. Mozilla explains
 [which settings activate `forced-colors` and `prefers-contrast`](https://firefox-source-docs.mozilla.org/accessible/HCMMediaQueries.html).
 For example, macOS Increase Contrast alone isn’t a forced-color mode.
 
-Collect a normal baseline, then change one OS or browser preference and capture
-again. Name a custom forced palette in **Forced-color theme name**, and describe
-other changes in Notes. Keep the browser’s reported media state rather than
+Collect a normal baseline, then select another built-in OS or browser setting
+and capture again without customizing its colors. Name a built-in forced palette
+in **Forced-color theme name**, and describe other settings in Notes. Keep the
+browser’s reported media state rather than
 assuming every contrast setting enables forced colors. Observations from
 macOS, Linux, and mobile accessibility preferences are useful even when
 `forced-colors` remains inactive.
