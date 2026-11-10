@@ -53,7 +53,12 @@ export function composite(rgba, background) {
   const alpha = rgba[3] / 255;
   return rgba
     .slice(0, 3)
-    .map((channel, index) => channel * alpha + background[index] * (1 - alpha));
+    .map((channel, index) =>
+      Math.max(
+        0,
+        Math.min(255, channel * alpha + background[index] * (1 - alpha)),
+      ),
+    );
 }
 
 function luminance(rgb) {

@@ -12,6 +12,7 @@ import {
 import {
   analysisMethod,
   pairs,
+  composite,
   contrast,
   pairResult,
   recommendationSummary,
@@ -108,6 +109,26 @@ test("almost-opaque Canvas is not silently made opaque by byte rounding", () => 
   snapshot.colors.Canvas.rgbaFloat[3] = 0.99999 * 255;
   validateCollection({ ...versions, captures: [capture] });
   assert.equal(pairResult(pairs[0], snapshot).ratio, null);
+});
+
+test("compositing clamps boundary overshoot without rounding fractional channels", () => {
+  const white = rgbFromCSS("rgba(255, 255, 255, 0.0003)");
+  assert.deepEqual(composite(white, [255, 255, 255]), [255, 255, 255]);
+  assert.deepEqual(composite([0, 0, 0, white[3]], [0, 0, 0]), [0, 0, 0]);
+  const rgba = rgbFromCSS("rgba(12.345, 67.89, 123.456, 0.1234)");
+  const background = [20.1, 80.2, 140.3];
+  const painted = composite(rgba, background);
+  assert.deepEqual(
+    painted,
+    rgba
+      .slice(0, 3)
+      .map(
+        (channel, index) =>
+          channel * (rgba[3] / 255) + background[index] * (1 - rgba[3] / 255),
+      ),
+  );
+  assert.ok(painted.every((channel) => !Number.isInteger(channel)));
+  assert.throws(() => composite([256, 0, 0, 255], background), /Invalid sRGB/);
 });
 
 test("changing criteria recalculates assessments without changing any observations", () => {

@@ -501,7 +501,8 @@ page remain disabled.
   premultiplication/8-bit rounding. The original CSS value remains authoritative.
 - Composite the pair’s background over the chosen opaque backdrop, then its
   foreground over that painted background. Use encoded-sRGB source-over
-  compositing before calculating WCAG relative luminance.
+  compositing before calculating WCAG relative luminance. Clamp floating-point
+  overshoot to the 0–255 channel bounds without rounding fractional channels.
 - At build time, calculate from `rgbaFloat` when recorded, otherwise from legacy
   `rgba` bytes. Do not silently reinterpret older measurements at new precision.
   Apply WCAG 2.2 thresholds to the **unrounded calculated ratio**:

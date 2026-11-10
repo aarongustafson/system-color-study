@@ -10,7 +10,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { versions } from "../model.js";
+import { versions, rgbFromCSS } from "../model.js";
 import { analysisMethod } from "../analysis.js";
 import { JSDOM } from "jsdom";
 import { buildSite, publicFiles, renderIndex } from "../scripts/build.js";
@@ -149,6 +149,39 @@ test("invalid or conflicting submissions fail the build instead of disappearing"
     JSON.stringify({ ...versions, captures: [changed] }),
   );
   await assert.rejects(buildSite(root), /conflict/i);
+});
+
+test("fractional-alpha boundary colors survive validation, compositing, and site generation", async (t) => {
+  const root = await setup(t);
+  const capture = fixture("fractional-alpha-boundary");
+  const computed = "rgba(255, 255, 255, 0.0003)";
+  const rgbaFloat = rgbFromCSS(computed);
+  for (const snapshot of Object.values(capture.schemes))
+    for (const name of ["Canvas", "CanvasText"])
+      snapshot.colors[name] = {
+        supported: true,
+        computed,
+        rgba: rgbaFloat.map(Math.round),
+        rgbaFloat,
+        hex: "#ffffff00",
+        conversion: "rgb-serialization",
+      };
+  await writeFile(
+    join(root, "data/fractional-alpha.json"),
+    JSON.stringify({ ...versions, captures: [capture] }),
+  );
+  await buildSite(root);
+  const result = JSON.parse(
+    await readFile(join(root, "dist/published.json"), "utf8"),
+  );
+  assert.deepEqual(result.captures, [capture]);
+  const dom = new JSDOM(await readFile(join(root, "dist/index.html"), "utf8"));
+  t.after(() => dom.window.close());
+  const verdict = dom.window.document.querySelector(
+    "#pair-table .contrast-result",
+  );
+  assert.match(verdict.textContent, /1\.00:1/);
+  assert.equal(verdict.dataset.verdict, "fail");
 });
 
 test("build writes comparison values and metadata into HTML without a browser-side collection load", async (t) => {
