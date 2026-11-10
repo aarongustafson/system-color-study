@@ -3,18 +3,14 @@ import assert from "node:assert/strict";
 import { readdir, readFile } from "node:fs/promises";
 import {
   keywords,
-  pairs,
   hex,
-  composite,
-  contrast,
-  grades,
-  pairResult,
   validateCollection,
   mergeCaptures,
   versions,
   comparisonGroups,
   comparisonSections,
 } from "../model.js";
+import { pairs, composite, contrast, grades, pairResult } from "../analysis.js";
 import { fixture } from "./fixtures.js";
 
 test("comparison sections group OS major releases, then themes, then browser identities without changing captures", () => {

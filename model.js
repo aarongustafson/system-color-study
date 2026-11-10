@@ -58,30 +58,7 @@ export const keywords = [...modern, ...legacy].map((name) => ({
   name,
   deprecated: legacy.includes(name),
 }));
-export const pairs = [
-  ["Canvas", "CanvasText"],
-  ["Canvas", "LinkText"],
-  ["Canvas", "VisitedText"],
-  ["Canvas", "ActiveText"],
-  ["ButtonFace", "ButtonText"],
-  ["Field", "FieldText"],
-  ["Highlight", "HighlightText"],
-  ["SelectedItem", "SelectedItemText"],
-  ["AccentColor", "AccentColorText"],
-  ["Mark", "MarkText"],
-  ["ActiveCaption", "CaptionText"],
-  ["InactiveCaption", "InactiveCaptionText"],
-  ["InfoBackground", "InfoText"],
-  ["Menu", "MenuText"],
-  ["Window", "WindowText"],
-].map(([background, foreground]) => ({
-  id: `${background}/${foreground}`,
-  background,
-  foreground,
-  deprecated: legacy.includes(background),
-}));
-
-function channels(value, count, bytes = false) {
+export function channels(value, count, bytes = false) {
   if (
     !Array.isArray(value) ||
     value.length !== count ||
@@ -108,162 +85,36 @@ export function hex(rgba) {
   );
 }
 
-export function composite(rgba, background) {
-  channels(rgba, 4, true);
-  channels(background, 3);
-  const alpha = rgba[3] / 255;
-  return rgba
-    .slice(0, 3)
-    .map((channel, index) => channel * alpha + background[index] * (1 - alpha));
-}
-
-function luminance(rgb) {
-  channels(rgb, 3);
-  return rgb
-    .map((channel) => channel / 255)
-    .map((channel) =>
-      channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4,
+export function rgbFromCSS(computed) {
+  const rgb = computed.match(/^rgba?\(([^)]+)\)$/i);
+  if (!rgb) return null;
+  const parts = rgb[1]
+    .replaceAll(",", " ")
+    .replace("/", " ")
+    .trim()
+    .split(/\s+/);
+  if (
+    ![3, 4].includes(parts.length) ||
+    parts.some(
+      (part) => !/^[-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?%?$/i.test(part),
     )
-    .reduce(
-      (total, channel, index) =>
-        total + channel * [0.2126, 0.7152, 0.0722][index],
-      0,
+  )
+    throw new TypeError("Invalid computed RGB serialization.");
+  const values = parts
+    .slice(0, 3)
+    .map((part) =>
+      part.endsWith("%") ? (parseFloat(part) / 100) * 255 : Number(part),
     );
-}
-
-export function contrast(first, second) {
-  const a = luminance(first),
-    b = luminance(second);
-  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
-}
-
-export function grades(ratio) {
-  if (!Number.isFinite(ratio) || ratio < 1 || ratio > 21) {
-    throw new TypeError("Invalid contrast ratio.");
-  }
-  return {
-    normalAA: ratio >= 4.5,
-    normalAAA: ratio >= 7,
-    largeAA: ratio >= 3,
-    largeAAA: ratio >= 4.5,
-  };
-}
-
-export function backdropRGB(snapshot) {
-  if (snapshot.backdrop === "white") return [255, 255, 255];
-  if (snapshot.backdrop === "black") return [0, 0, 0];
-  const canvas = snapshot.colors.Canvas;
-  return canvas?.supported && canvas.rgba[3] === 255
-    ? canvas.rgba.slice(0, 3)
-    : null;
-}
-
-export function pairResult(pair, snapshot) {
-  const background = snapshot.colors[pair.background];
-  const foreground = snapshot.colors[pair.foreground];
-  if (!background?.supported || !foreground?.supported) {
-    return { id: pair.id, ratio: null, reason: "A keyword is unsupported." };
-  }
-  const backdrop = backdropRGB(snapshot);
-  if (!backdrop) {
-    return {
-      id: pair.id,
-      ratio: null,
-      reason:
-        "Canvas is unsupported or translucent; choose an opaque backdrop.",
-    };
-  }
-  const paintedBackground = composite(background.rgba, backdrop);
-  const paintedForeground = composite(foreground.rgba, paintedBackground);
-  const ratio = contrast(paintedForeground, paintedBackground);
-  return {
-    id: pair.id,
-    ratio,
-    grades: grades(ratio),
-    nonTextThreshold: ratio >= 3,
-    paintedBackground,
-    paintedForeground,
-  };
-}
-
-export function recommendationSummary(captures) {
-  const observations = captures.flatMap((capture) =>
-    ["light", "dark"].map((scheme) => ({
-      capture,
-      scheme,
-      snapshot: capture.schemes[scheme],
-      category:
-        capture.media.forcedColors === true
-          ? "forced"
-          : capture.media.forcedColors !== false
-            ? "other"
-            : capture.media.prefersContrast === "more"
-              ? "more"
-              : capture.media.prefersContrast === "no-preference"
-                ? scheme
-                : "other",
-    })),
-  );
-  const categories = Object.fromEntries(
-    ["light", "dark", "forced", "more", "other"].map((category) => [
-      category,
-      observations.filter((observation) => observation.category === category)
-        .length,
-    ]),
-  );
-  return {
-    categories,
-    moreContrastSystems: [
-      ...new Set(
-        observations
-          .filter((observation) => observation.category === "more")
-          .map(({ capture }) => capture.environment.os),
-      ),
-    ].sort(),
-    pairs: pairs
-      .filter((pair) => !pair.deprecated)
-      .map((pair) => {
-        const counts = Object.fromEntries(
-          Object.entries(categories).map(([category, total]) => [
-            category,
-            { total, passed: 0, unavailable: 0 },
-          ]),
-        );
-        const variants = new Map();
-        let minimum = null;
-        for (const observation of observations) {
-          const { snapshot, category } = observation;
-          const result = pairResult(pair, snapshot);
-          if (!snapshot.schemeSupported || result.ratio === null) {
-            counts[category].unavailable++;
-            continue;
-          }
-          if (result.grades.normalAA) counts[category].passed++;
-          minimum =
-            minimum === null ? result.ratio : Math.min(minimum, result.ratio);
-          const signature = JSON.stringify([
-            result.paintedForeground,
-            result.paintedBackground,
-          ]);
-          if (!variants.has(signature))
-            variants.set(signature, { snapshot, result, observations: [] });
-          variants.get(signature).observations.push(observation);
-        }
-        return {
-          ...pair,
-          categories: counts,
-          minimum,
-          recommended:
-            categories.other === 0 &&
-            ["light", "dark", "forced", "more"].every(
-              (category) =>
-                counts[category].total > 0 &&
-                counts[category].passed === counts[category].total,
-            ),
-          variants: [...variants.values()],
-        };
-      }),
-  };
+  const alpha =
+    parts[3] === undefined
+      ? 1
+      : parseFloat(parts[3]) / (parts[3].endsWith("%") ? 100 : 1);
+  if (![...values, alpha].every(Number.isFinite))
+    throw new TypeError("Invalid computed RGB serialization.");
+  return [
+    ...values.map((value) => Math.max(0, Math.min(255, value))),
+    Math.max(0, Math.min(1, alpha)) * 255,
+  ];
 }
 
 function record(value, message) {
@@ -378,7 +229,8 @@ export function validateCollection(data) {
           if (
             color.rgba !== null ||
             color.hex !== null ||
-            color.computed !== null
+            color.computed !== null ||
+            color.rgbaFloat !== undefined
           ) {
             throw new TypeError(
               `Unsupported keyword ${name} must have null values.`,
@@ -392,6 +244,22 @@ export function validateCollection(data) {
             !["rgb-serialization", "canvas-srgb-8"].includes(color.conversion)
           ) {
             throw new TypeError(`Inconsistent capture value for ${name}.`);
+          }
+          if (color.rgbaFloat !== undefined) {
+            channels(color.rgbaFloat, 4);
+            const parsed = rgbFromCSS(color.computed);
+            if (
+              color.conversion !== "rgb-serialization" ||
+              !parsed ||
+              color.rgbaFloat.some(
+                (value, index) =>
+                  value !== parsed[index] ||
+                  Math.round(value) !== color.rgba[index],
+              )
+            )
+              throw new TypeError(
+                `Inconsistent precise capture value for ${name}.`,
+              );
           }
         }
       }
@@ -427,21 +295,26 @@ export function validateSubmission(data) {
   return captures;
 }
 
+export function observationCapture(capture) {
+  if (!capture.schemes) return capture;
+  return {
+    ...capture,
+    schemes: Object.fromEntries(
+      Object.entries(capture.schemes).map(([scheme, snapshot]) => {
+        const { pairs, ...measurements } = snapshot;
+        return [scheme, measurements];
+      }),
+    ),
+  };
+}
+
 export function issueSubmissionJSON(data) {
   const captures = validateSubmission(data);
   if (captures.length !== 1)
     throw new TypeError("Submit one snapshot per issue.");
   const text = JSON.stringify({
     ...data,
-    captures: captures.map((capture) => ({
-      ...capture,
-      schemes: Object.fromEntries(
-        Object.entries(capture.schemes).map(([scheme, snapshot]) => {
-          const { pairs, ...measurements } = snapshot;
-          return [scheme, measurements];
-        }),
-      ),
-    })),
+    captures: captures.map(observationCapture),
   });
   if (text.length > maxIssueJSONLength)
     throw new RangeError(
@@ -471,7 +344,7 @@ export function mergeCaptures(existing, incoming) {
       }
 
       function canonicalJSON(value) {
-        return JSON.stringify(value, (_key, item) =>
+        return JSON.stringify(observationCapture(value), (_key, item) =>
           item && typeof item === "object" && !Array.isArray(item)
             ? Object.fromEntries(
                 Object.entries(item).sort(([a], [b]) => a.localeCompare(b)),
@@ -494,7 +367,13 @@ function snapshotKey(snapshot, includeScheme = false) {
     ...(includeScheme ? [snapshot.computedColorScheme] : []),
     keywords.map(({ name }) => {
       const color = snapshot.colors[name];
-      return [color.supported, color.rgba, color.computed, color.conversion];
+      return [
+        color.supported,
+        color.rgba,
+        color.rgbaFloat,
+        color.computed,
+        color.conversion,
+      ];
     }),
   ]);
 }

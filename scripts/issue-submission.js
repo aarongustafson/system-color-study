@@ -2,7 +2,12 @@ import { readFile, mkdir, writeFile } from "node:fs/promises";
 import { resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isDeepStrictEqual } from "node:util";
-import { versions, validateSubmission, mergeCaptures } from "../model.js";
+import {
+  versions,
+  validateSubmission,
+  mergeCaptures,
+  observationCapture,
+} from "../model.js";
 import { buildSite } from "./build.js";
 import { githubAPI, formatSubmission } from "./submit.js";
 
@@ -33,7 +38,7 @@ export function parseIssueSubmission(body) {
   }
   const captures = validateSubmission(data);
   if (captures.length !== 1) throw new Error("Submit one snapshot per issue.");
-  return captures;
+  return captures.map(observationCapture);
 }
 
 function issueNumber(issue) {
@@ -83,6 +88,7 @@ export async function verifyApproval(event, api = githubAPI) {
 }
 
 export async function publishIssueSubmission(issue, captures, api = githubAPI) {
+  captures = captures.map(observationCapture);
   const number = issueNumber(issue);
   const current = await api(`${endpoint}/issues/${number}`, "GET");
   if (

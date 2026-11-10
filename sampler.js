@@ -1,32 +1,13 @@
-import { keywords, hex, pairs, pairResult } from "./model.js";
+import { keywords, hex, rgbFromCSS } from "./model.js";
 
 function bytesFromCSS(computed, context) {
-  const rgb = computed.match(/^rgba?\(([^)]+)\)$/i);
-  if (rgb) {
-    const parts = rgb[1]
-      .replaceAll(",", " ")
-      .replace("/", " ")
-      .trim()
-      .split(/\s+/);
-    const values = parts
-      .slice(0, 3)
-      .map((part) => parseFloat(part) * (part.endsWith("%") ? 2.55 : 1));
-    const alpha =
-      parts[3] === undefined
-        ? 1
-        : parseFloat(parts[3]) / (parts[3].endsWith("%") ? 100 : 1);
-    if (values.length === 3 && [...values, alpha].every(Number.isFinite)) {
-      return {
-        rgba: [
-          ...values.map((value) =>
-            Math.round(Math.max(0, Math.min(255, value))),
-          ),
-          Math.round(Math.max(0, Math.min(1, alpha)) * 255),
-        ],
-        conversion: "rgb-serialization",
-      };
-    }
-  }
+  const rgbaFloat = rgbFromCSS(computed);
+  if (rgbaFloat)
+    return {
+      rgba: rgbaFloat.map(Math.round),
+      rgbaFloat,
+      conversion: "rgb-serialization",
+    };
   context.fillStyle = "#010203";
   context.fillStyle = computed;
   const first = context.fillStyle;
@@ -83,7 +64,6 @@ export function measureScheme(scheme, backdrop) {
       backdrop,
       colors,
     };
-    snapshot.pairs = pairs.map((pair) => pairResult(pair, snapshot));
     return snapshot;
   } finally {
     stage.remove();

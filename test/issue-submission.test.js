@@ -16,9 +16,9 @@ import {
   versions,
   issueSubmissionJSON,
   maxIssueJSONLength,
-  pairs,
-  pairResult,
+  rgbFromCSS,
 } from "../model.js";
+import { pairs, pairResult } from "../analysis.js";
 import { fixture } from "./fixtures.js";
 import {
   parseIssueSubmission,
@@ -180,7 +180,7 @@ test("compact issue JSON preserves all source data without mutating the full exp
   assert.ok(capture.schemes.dark.pairs.length > 0);
 });
 
-test("archived snapshots fit the issue field even with maximum-length plain-text metadata", async (t) => {
+test("archived snapshots with new precision fit the issue field even with maximum-length plain-text metadata", async (t) => {
   const directory = new URL("../data/", import.meta.url);
   let tested = 0;
   let largest = 0;
@@ -188,6 +188,15 @@ test("archived snapshots fit the issue field even with maximum-length plain-text
     if (!name.endsWith(".json")) continue;
     const data = JSON.parse(await readFile(new URL(name, directory), "utf8"));
     for (const capture of data.captures) {
+      for (const snapshot of Object.values(capture.schemes))
+        for (const color of Object.values(snapshot.colors)) {
+          if (!color.supported) continue;
+          const parsed = rgbFromCSS(color.computed);
+          if (parsed) {
+            assert.deepEqual(parsed.map(Math.round), color.rgba);
+            color.rgbaFloat = parsed;
+          }
+        }
       Object.assign(capture.environment, {
         browser: "B".repeat(160),
         os: "O".repeat(160),

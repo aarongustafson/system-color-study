@@ -23,6 +23,8 @@ const files = new Map([
     "comparison-renderer.js",
     "comparison-ui.js",
     "model.js",
+    "analysis.js",
+    "analysis.json",
     "sampler.js",
     "environment.js",
     "styles.css",

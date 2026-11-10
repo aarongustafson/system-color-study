@@ -11,7 +11,8 @@ body:
         Your functional colors are your choice, along with their consequences; this study makes no judgment about what works for you.
         We support using system colors, especially in @media (forced-colors: active) queries. The study examines how browsers apply named colors in different contexts and where some pairings fall short, not whether people should use them.
         Download the JSON for your own copy, then use Copy JSON on the current test page and paste it below.
-        Copy JSON provides compact issue data with both schemes and all 42 keywords; the downloaded file includes additional recalculable reports and is too large to paste here.
+        Copy JSON provides the same observations as the download, without formatting, to fit the field limit. Both contain both schemes and all 42 keywords, not calculated contrast reports or grades.
+        Validation checks the data format, not whether the observed colors pass contrast thresholds.
         The workflow validates one snapshot. After the owner comments /approve-snapshot, it revalidates the data and opens a data-only pull request for review.
         Do not include personal information or credentials.
   - type: textarea

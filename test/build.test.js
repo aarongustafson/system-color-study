@@ -10,7 +10,8 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { versions } from "../model.js";
+import { versions, rgbFromCSS } from "../model.js";
+import { analysisMethod } from "../analysis.js";
 import { JSDOM } from "jsdom";
 import { buildSite, publicFiles, renderIndex } from "../scripts/build.js";
 import { fixture } from "./fixtures.js";
@@ -66,6 +67,8 @@ test("deprecated controls are inert authored markup in static output, and remove
 test("build merges every committed JSON collection and publishes only allowed static files", async (t) => {
   const root = await setup(t);
   const capture = fixture("one");
+  for (const snapshot of Object.values(capture.schemes))
+    snapshot.pairs = [{ ratio: 21, grades: { normalAA: true } }];
   const seed = fixture("seed");
   seed.capturedAt = "1999-01-01T00:00:00.000Z";
   await writeFile(
@@ -91,6 +94,23 @@ test("build merges every committed JSON collection and publishes only allowed st
     result.captures.map((item) => item.id),
     ["seed", "one", "two"],
   );
+  assert.ok(
+    result.captures.every((item) =>
+      Object.values(item.schemes).every(
+        (snapshot) => snapshot.pairs === undefined,
+      ),
+    ),
+  );
+  assert.ok(
+    JSON.parse(await readFile(join(root, "data/a.json"))).captures[0].schemes
+      .light.pairs,
+  );
+  assert.deepEqual(
+    JSON.parse(await readFile(join(root, "dist/analysis.json"))),
+    { ...analysisMethod, sourceRevision: process.env.GITHUB_SHA ?? null },
+  );
+  const html = await readFile(join(root, "dist/index.html"), "utf8");
+  assert.match(html, /Analysis v1:.*WCAG 2\.2 thresholds/);
   assert.deepEqual(
     (await readdir(join(root, "dist"))).sort(),
     [
@@ -102,6 +122,8 @@ test("build merges every committed JSON collection and publishes only allowed st
       "comparison-renderer.js",
       "comparison-ui.js",
       "model.js",
+      "analysis.js",
+      "analysis.json",
       "sampler.js",
       "environment.js",
       "styles.css",
@@ -127,6 +149,39 @@ test("invalid or conflicting submissions fail the build instead of disappearing"
     JSON.stringify({ ...versions, captures: [changed] }),
   );
   await assert.rejects(buildSite(root), /conflict/i);
+});
+
+test("fractional-alpha boundary colors survive validation, compositing, and site generation", async (t) => {
+  const root = await setup(t);
+  const capture = fixture("fractional-alpha-boundary");
+  const computed = "rgba(255, 255, 255, 0.0003)";
+  const rgbaFloat = rgbFromCSS(computed);
+  for (const snapshot of Object.values(capture.schemes))
+    for (const name of ["Canvas", "CanvasText"])
+      snapshot.colors[name] = {
+        supported: true,
+        computed,
+        rgba: rgbaFloat.map(Math.round),
+        rgbaFloat,
+        hex: "#ffffff00",
+        conversion: "rgb-serialization",
+      };
+  await writeFile(
+    join(root, "data/fractional-alpha.json"),
+    JSON.stringify({ ...versions, captures: [capture] }),
+  );
+  await buildSite(root);
+  const result = JSON.parse(
+    await readFile(join(root, "dist/published.json"), "utf8"),
+  );
+  assert.deepEqual(result.captures, [capture]);
+  const dom = new JSDOM(await readFile(join(root, "dist/index.html"), "utf8"));
+  t.after(() => dom.window.close());
+  const verdict = dom.window.document.querySelector(
+    "#pair-table .contrast-result",
+  );
+  assert.match(verdict.textContent, /1\.00:1/);
+  assert.equal(verdict.dataset.verdict, "fail");
 });
 
 test("build writes comparison values and metadata into HTML without a browser-side collection load", async (t) => {

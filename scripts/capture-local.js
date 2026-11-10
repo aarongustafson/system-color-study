@@ -121,15 +121,20 @@ export async function captureLocal({
           );
         if (forcedColorTheme) await theme.fill(forcedColorTheme);
         await page
+          .getByText("Optional context and notes", { exact: true })
+          .click();
+        await page
           .getByLabel("Notes:")
           .fill(
-            `Automated local observation using Playwright ${version}, ${headless ? "headless" : "headed"} bundled ${name}; media emulation disabled. Source ${revision}${dirty ? " (working tree modified)" : ""}. Not an installed Chrome/Firefox/Safari release; verify separately in shipping browsers. OS version obtained from ${process.platform === "darwin" ? "sw_vers" : "the host kernel"}, architecture from Node. OS accent was not independently verified; any supplied contrast-theme name is author-reported.`,
+            `Automated local observation using Playwright ${version}, ${headless ? "headless" : "headed"} bundled ${name}; media emulation disabled. Source ${revision}${dirty ? " (working tree modified)" : ""}. Not an installed Chrome/Firefox/Safari release; confirm separately in shipping browsers. OS version obtained from ${process.platform === "darwin" ? "sw_vers" : "the host kernel"}, architecture from Node. OS accent was not independently checked; any supplied contrast-theme name is author-reported.`,
           );
         await page
           .getByRole("button", { name: "Capture light and dark" })
           .click();
         const waiting = page.waitForEvent("download");
-        await page.getByRole("button", { name: "Export JSON" }).click();
+        await page
+          .getByRole("link", { name: "Download JSON", exact: true })
+          .click();
         const download = await waiting;
         const path = join(output, download.suggestedFilename());
         await download.saveAs(path);
