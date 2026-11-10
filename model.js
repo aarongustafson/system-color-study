@@ -4,6 +4,7 @@ export const versions = {
   catalogVersion: 1,
 };
 export const maxCaptures = 100;
+export const maxIssueJSONLength = 20_000;
 export const forcedLabel = (value) =>
   value === null ? "unknown" : value ? "active" : "inactive";
 
@@ -424,6 +425,29 @@ export function validateSubmission(data) {
       );
   }
   return captures;
+}
+
+export function issueSubmissionJSON(data) {
+  const captures = validateSubmission(data);
+  if (captures.length !== 1)
+    throw new TypeError("Submit one snapshot per issue.");
+  const text = JSON.stringify({
+    ...data,
+    captures: captures.map((capture) => ({
+      ...capture,
+      schemes: Object.fromEntries(
+        Object.entries(capture.schemes).map(([scheme, snapshot]) => {
+          const { pairs, ...measurements } = snapshot;
+          return [scheme, measurements];
+        }),
+      ),
+    })),
+  });
+  if (text.length > maxIssueJSONLength)
+    throw new RangeError(
+      "This snapshot exceeds GitHub's 20,000-character field limit. Download the complete JSON and ask a maintainer to submit the file.",
+    );
+  return text;
 }
 
 export function comparisonThemeName(capture) {

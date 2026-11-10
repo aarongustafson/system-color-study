@@ -112,14 +112,20 @@ alpha, unsupported keywords, and both requested-scheme reports remain in the JSO
 4. Select **Capture light and dark**. One capture contains both requested CSS
    modes and all 42 keywords, each from a fresh, independent scheme probe.
 5. Select **Download JSON**. Save the download; **Copy JSON** prepares the same
-   data for the GitHub issue form. A text area is available for manual copying.
+   measurements and metadata as compact JSON for the GitHub issue form. It omits
+   only recalculable contrast-pair reports; the download retains those reports.
+   A text area is available for manually copying the compact issue JSON.
    Filenames include browser/OS labels, versions, and the export timestamp.
    Mixed collections identify the first environment and the number of others;
    that count uses full browser/OS pairs before shortening filename labels.
    The complete metadata remains in the JSON.
 6. Change OS settings, browser, device, or context and repeat.
-7. Use **Submit this snapshot on GitHub**, paste the complete JSON into the
-   dedicated issue form, and confirm that you reviewed the metadata.
+7. Use **Submit this snapshot on GitHub**, paste the complete compact JSON from
+   **Copy JSON** into the dedicated issue form, and confirm that you reviewed the
+   metadata. Don’t paste the downloaded file: GitHub cuts off fields at 20,000
+   characters. Copying is disabled with an explicit error if even the compact
+   JSON exceeds this limit; keep the download and ask a maintainer to submit it
+   using the local submission command.
 
 Only the latest snapshot stays in the tab. Capturing again replaces its download;
 editing metadata hides the stale download until you recapture. Closing or reloading
@@ -345,6 +351,11 @@ to the [snapshot issue form](https://github.com/aarongustafson/system-color-stud
 The issue workflow runs after an issue is opened or edited. It accepts one
 complete snapshot, rejects unconfirmed metadata, duplicate/conflicting IDs,
 incompatible data, and collection limits, then validates the complete site build.
+The issue copy preserves both schemes and all 42 keywords without the redundant
+contrast-pair reports, which the site recalculates from the recorded colors.
+Existing full-format submissions remain supported. A truncated snapshot cannot
+be recovered from the issue: its contributor must replace it with a complete
+compact copy or provide the original download to a maintainer.
 Successful validation leaves a comment asking for owner approval. Aaron can
 post a new comment containing exactly `/approve-snapshot` on the issue.
 This reruns validation before a separate publishing job rechecks the data,

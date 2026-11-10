@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { JSDOM } from "jsdom";
 import { renderCapturePage } from "../scripts/build.js";
 import { fixture } from "./fixtures.js";
+import { issueSubmissionJSON, maxIssueJSONLength } from "../model.js";
 
 const captureSource = await readFile(
   new URL("../test.html", import.meta.url),
@@ -211,9 +212,12 @@ test("capture probes both schemes independently and downloads exactly the record
   expect(download.suggestedFilename()).toMatch(
     /chrome-156\.1\.2\.3-macos-27\.0\.1/,
   );
-  expect(JSON.parse(await readFile(await download.path(), "utf8"))).toEqual(
-    data,
-  );
+  const full = JSON.parse(await readFile(await download.path(), "utf8"));
+  for (const scheme of ["light", "dark"]) {
+    expect(full.captures[0].schemes[scheme].pairs.length).toBeGreaterThan(0);
+    expect(data.captures[0].schemes[scheme]).not.toHaveProperty("pairs");
+  }
+  expect(JSON.parse(issueSubmissionJSON(full))).toEqual(data);
   await expect(page.locator(".probe-zone")).toHaveCount(0);
 });
 
@@ -328,6 +332,71 @@ test("clipboard failure exposes a manual copy option and reports the error", asy
   await expect(page.locator("#error")).toContainText("Clipboard denied");
   await expect(page.locator("#export-text")).toHaveAttribute("open", "");
   await expect(page.getByLabel("Exported JSON")).toBeFocused();
+});
+
+test("clipboard and manual issue JSON are identical and fit the GitHub field", async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async (text) => {
+          window.copiedJSON = text;
+        },
+      },
+    });
+  });
+  await page.getByText("Optional context and notes", { exact: true }).click();
+  await page
+    .locator("#notes")
+    .fill('Quotes, slashes, and Unicode: "\\ 😀'.repeat(40));
+  await page.getByRole("button", { name: "Capture light and dark" }).click();
+  await page.getByRole("button", { name: "Copy JSON" }).click();
+  const text = await page.evaluate(() => window.copiedJSON);
+  expect(text).toBe(await page.getByLabel("Exported JSON").inputValue());
+  expect(text.length).toBeLessThanOrEqual(maxIssueJSONLength);
+  expect(text).toBe(JSON.stringify(JSON.parse(text)));
+  await expect(page.locator("#status")).toContainText("JSON copied");
+});
+
+test("oversized issue copies report an error but keep the full download available", async ({
+  page,
+}) => {
+  await page.route("**/sampler.js", async (route) => {
+    const response = await route.fetch();
+    const source = await response.text();
+    await route.fulfill({
+      response,
+      body: source.replace(
+        "const computed = getComputedStyle(probe).color;",
+        'const computed = "rgb(" + " ".repeat(170) + "0, 0, 0)";',
+      ),
+    });
+  });
+  await page.reload();
+  await page.getByLabel("Browser and version").fill("Test browser");
+  await page.getByLabel("OS and version").fill("Test OS");
+  const capture = page.getByRole("button", { name: "Capture light and dark" });
+  await capture.click();
+  await expect(page.locator("#error")).toContainText("20,000-character");
+  await expect(page.getByRole("button", { name: "Copy JSON" })).toBeDisabled();
+  await expect(page.locator("#export-text")).toBeHidden();
+  const waiting = page.waitForEvent("download");
+  await page.getByRole("link", { name: "Download JSON", exact: true }).click();
+  const download = await waiting;
+  const full = JSON.parse(await readFile(await download.path(), "utf8"));
+  expect(full.captures[0].schemes.dark.colors.Canvas.computed).toContain(
+    " ".repeat(170),
+  );
+  await page.unroute("**/sampler.js");
+  await page.reload();
+  await page.getByLabel("Browser and version").fill("Test browser");
+  await page.getByLabel("OS and version").fill("Test OS");
+  await capture.click();
+  await expect(page.locator("#error")).toBeHidden();
+  await expect(page.getByRole("button", { name: "Copy JSON" })).toBeEnabled();
+  await expect(page.locator("#export-text")).toBeVisible();
 });
 
 test("unsupported colors remain explicitly unsupported in the snapshot", async ({

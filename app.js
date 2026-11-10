@@ -3,6 +3,7 @@ import {
   validateSubmission,
   forcedLabel,
   maxCaptures,
+  issueSubmissionJSON,
 } from "./model.js";
 import { report, clearError } from "./comparison-ui.js";
 import { measureScheme, mediaSnapshot } from "./sampler.js";
@@ -179,7 +180,9 @@ byId("capture-form").addEventListener("submit", (event) => {
     );
     if (downloadURL) URL.revokeObjectURL(downloadURL);
     downloadURL = url;
-    byId("json").value = text;
+    byId("json").value = "";
+    byId("copy-json").disabled = true;
+    byId("export-text").hidden = true;
     byId("download").href = url;
     byId("download").download = exportFilename([capture], capturedAt);
     byId("capture-summary").textContent =
@@ -188,6 +191,9 @@ byId("capture-form").addEventListener("submit", (event) => {
     byId("status").textContent =
       "Captured both schemes and all 42 keywords. Your download is ready.";
     byId("download").focus();
+    byId("json").value = issueSubmissionJSON(collection);
+    byId("copy-json").disabled = false;
+    byId("export-text").hidden = false;
   } catch (error) {
     report(error);
   }

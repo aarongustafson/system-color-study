@@ -21,7 +21,17 @@ export function parseIssueSubmission(body) {
     throw new Error(
       "Use the snapshot issue form and paste JSON into Snapshot data.",
     );
-  const captures = validateSubmission(JSON.parse(blocks[0][1]));
+  let data;
+  try {
+    data = JSON.parse(blocks[0][1]);
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) throw error;
+    throw new Error(
+      "Snapshot JSON is incomplete or invalid. GitHub cuts off pasted fields at 20,000 characters. Use Copy JSON on the current test page, not the downloaded file, and replace Snapshot data with the complete compact JSON.",
+      { cause: error },
+    );
+  }
+  const captures = validateSubmission(data);
   if (captures.length !== 1) throw new Error("Submit one snapshot per issue.");
   return captures;
 }

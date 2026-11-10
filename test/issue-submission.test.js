@@ -1,11 +1,24 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readFile, writeFile, rm } from "node:fs/promises";
+import {
+  mkdtemp,
+  mkdir,
+  readFile,
+  writeFile,
+  rm,
+  readdir,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { check, format } from "prettier";
 import { publicFiles } from "../scripts/build.js";
-import { versions } from "../model.js";
+import {
+  versions,
+  issueSubmissionJSON,
+  maxIssueJSONLength,
+  pairs,
+  pairResult,
+} from "../model.js";
 import { fixture } from "./fixtures.js";
 import {
   parseIssueSubmission,
@@ -140,6 +153,92 @@ test("issue submissions accept one complete snapshot and reject malformed or unc
   assert.throws(
     () => parseIssueSubmission(body({ ...versions, captures: [capture] })),
     /verify/i,
+  );
+});
+
+test("compact issue JSON preserves all source data without mutating the full export", () => {
+  const capture = fixture("compact");
+  for (const snapshot of Object.values(capture.schemes))
+    snapshot.pairs = pairs.map((pair) => pairResult(pair, snapshot));
+  const data = { ...versions, captures: [capture] };
+  const original = structuredClone(data);
+  const text = issueSubmissionJSON(data);
+  assert.equal(text, JSON.stringify(JSON.parse(text)));
+  const [submitted] = parseIssueSubmission(
+    `${body(JSON.parse(text))}\n### Confirmation\n\n- [x] Reviewed\n`,
+  );
+  for (const scheme of ["light", "dark"]) {
+    assert.equal(submitted.schemes[scheme].pairs, undefined);
+    assert.deepEqual(
+      pairs.map((pair) => pairResult(pair, submitted.schemes[scheme])),
+      capture.schemes[scheme].pairs,
+    );
+    delete original.captures[0].schemes[scheme].pairs;
+  }
+  assert.deepEqual(submitted, original.captures[0]);
+  assert.ok(capture.schemes.light.pairs.length > 0);
+  assert.ok(capture.schemes.dark.pairs.length > 0);
+});
+
+test("archived snapshots fit the issue field even with maximum-length plain-text metadata", async (t) => {
+  const directory = new URL("../data/", import.meta.url);
+  let tested = 0;
+  let largest = 0;
+  for (const name of await readdir(directory)) {
+    if (!name.endsWith(".json")) continue;
+    const data = JSON.parse(await readFile(new URL(name, directory), "utf8"));
+    for (const capture of data.captures) {
+      Object.assign(capture.environment, {
+        browser: "B".repeat(160),
+        os: "O".repeat(160),
+        notes: "N".repeat(2000),
+        userAgent: "U".repeat(2000),
+        forcedColorTheme: "T".repeat(160),
+      });
+      const text = issueSubmissionJSON({ ...data, captures: [capture] });
+      assert.ok(text.length <= 20_000, name);
+      assert.equal(parseIssueSubmission(body(JSON.parse(text))).length, 1);
+      largest = Math.max(largest, text.length);
+      tested++;
+    }
+  }
+  assert.ok(tested >= 25);
+  t.diagnostic(
+    `${tested} archived captures; largest issue copy: ${largest} characters`,
+  );
+});
+
+test("issue JSON accepts the exact field limit and rejects overflow without truncation", () => {
+  const data = { ...versions, captures: [fixture("boundary")], padding: "" };
+  const base = issueSubmissionJSON(data).length;
+  data.padding = "x".repeat(maxIssueJSONLength - base);
+  const exact = issueSubmissionJSON(data);
+  assert.equal(exact.length, 20_000);
+  assert.deepEqual(
+    parseIssueSubmission(body(JSON.parse(exact))),
+    data.captures,
+  );
+  data.padding += "x";
+  assert.throws(() => issueSubmissionJSON(data), /20,000-character.*Download/);
+  assert.throws(
+    () =>
+      issueSubmissionJSON({
+        ...versions,
+        captures: [fixture("a"), fixture("b")],
+      }),
+    /one snapshot/,
+  );
+});
+
+test("truncated issue JSON explains how to replace it rather than accepting partial data", () => {
+  const capture = fixture("truncated");
+  const text = JSON.stringify({ ...versions, captures: [capture] }, null, 2);
+  assert.throws(
+    () =>
+      parseIssueSubmission(
+        `### Snapshot data\n\n\`\`\`json\n${text.slice(0, 1000)}\n\`\`\`\n`,
+      ),
+    /incomplete or invalid.*20,000.*Copy JSON/,
   );
 });
 
