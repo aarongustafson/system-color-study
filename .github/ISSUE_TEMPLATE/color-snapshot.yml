@@ -7,14 +7,15 @@ body:
     attributes:
       value: |
         Capture your browser at https://aarongustafson.github.io/system-color-study/test.html.
-        Download the JSON for your own copy, then use Copy JSON and paste it below.
+        Download the JSON for your own copy, then use Copy JSON on the current test page and paste it below.
+        Copy JSON provides compact issue data with both schemes and all 42 keywords; the downloaded file includes additional recalculable reports and is too large to paste here.
         The workflow validates one snapshot. After the owner comments /approve-snapshot, it revalidates the data and opens a data-only pull request for review.
         Do not include personal information or credentials.
   - type: textarea
     id: snapshot
     attributes:
       label: Snapshot data
-      description: Paste the complete JSON from one capture. Do not add Markdown fences yourself.
+      description: Paste the complete compact JSON from Copy JSON, not the downloaded file (20,000-character limit). Do not add Markdown fences yourself.
       render: json
     validations:
       required: true
