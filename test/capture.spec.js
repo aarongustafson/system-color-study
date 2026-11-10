@@ -41,7 +41,7 @@ test("a cautious published-combination hint follows inferred and edited values w
   await expect(page.locator("#published-match")).toContainText("may already");
   await expect(page.locator("#published-match")).toContainText("major-version");
   await expect(page.locator("#published-match")).toContainText(
-    "Different preferences",
+    "Different built-in themes",
   );
   await expect(
     page.getByLabel("Browser and version"),

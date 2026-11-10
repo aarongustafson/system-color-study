@@ -27,6 +27,19 @@
       <section aria-labelledby="questions-heading">
         <h2 id="questions-heading">What we’re trying to learn</h2>
         <p>
+          We evaluate the default color schemes supplied by browsers and
+          operating systems, including built-in light, dark, and contrast
+          themes. Custom user-defined palettes are out of scope. People own
+          their choices about functional colors and the consequences of those
+          choices; we’re not judging what works for them.
+        </p>
+        <p>
+          The aim is to inform, not discourage, the use of system colors. Use
+          them, especially within <code>@media (forced-colors: active)</code>
+          queries. We want to understand how browsers apply these names in
+          different contexts and where particular pairings produce poor results.
+        </p>
+        <p>
           A system color’s name tells us its job, but not the color a particular
           browser will give us. Before we choose these colors for a component,
           it helps to know:
@@ -83,8 +96,9 @@
             experimental settings. Don’t include personal information.
           </li>
           <li>
-            If forced colors are active, enter the name of the Contrast theme or
-            custom browser palette. Note any changes you made to its colors.
+            If forced colors are active, use a built-in Contrast theme or
+            browser palette with its colors unchanged, and enter its name. Don’t
+            submit a custom user-defined palette.
           </li>
           <li>
             Select “Capture light and dark system colors.” Each snapshot records
@@ -145,14 +159,15 @@
         <p>
           Collect an ordinary baseline first, then change one setting at a time.
           Useful comparisons include the OS’s light and dark preferences, a
-          different accent color, an increased-contrast preference, private
+          built-in contrast theme, an increased-contrast preference, private
           browsing, or an installed or embedded context. Each snapshot still
           records both requested CSS schemes.
         </p>
         <p>
-          Keep browser defaults separate from experimental flags and
-          accessibility overrides. Describe what changed rather than relabeling
-          an earlier snapshot.
+          Use browser and OS defaults, including built-in accessibility themes,
+          without customizing their colors. Custom palettes and experimental
+          color overrides are outside the study’s scope. Describe the selected
+          settings rather than relabeling an earlier snapshot.
         </p>
         <p>
           Chrome’s mobile emulation isn’t an Android observation. A bundled
