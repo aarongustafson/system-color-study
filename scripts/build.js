@@ -1,7 +1,13 @@
 import { readdir, readFile, mkdir, writeFile, rm } from "node:fs/promises";
 import { resolve, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import { versions, validateCollection, mergeCaptures } from "../model.js";
+import {
+  versions,
+  validateCollection,
+  mergeCaptures,
+  observationCapture,
+} from "../model.js";
+import { analysisMethod } from "../analysis.js";
 import { JSDOM } from "jsdom";
 import { createComparisonRenderer } from "../comparison-renderer.js";
 
@@ -13,6 +19,7 @@ export const publicFiles = [
   "comparison-renderer.js",
   "comparison-ui.js",
   "model.js",
+  "analysis.js",
   "sampler.js",
   "environment.js",
   "styles.css",
@@ -102,7 +109,12 @@ export async function buildSite(root = resolve(import.meta.dirname, "..")) {
     (a, b) =>
       a.capturedAt.localeCompare(b.capturedAt) || a.id.localeCompare(b.id),
   );
-  const collection = JSON.stringify({ ...versions, captures }, null, 2) + "\n";
+  const collection =
+    JSON.stringify(
+      { ...versions, captures: captures.map(observationCapture) },
+      null,
+      2,
+    ) + "\n";
   if (Buffer.byteLength(collection) > 5_000_000) {
     throw new Error("Generated collection exceeds the 5 MB import limit.");
   }
@@ -126,6 +138,14 @@ export async function buildSite(root = resolve(import.meta.dirname, "..")) {
     sources.map(([file, source]) => writeFile(join(output, file), source)),
   );
   await writeFile(join(output, "published.json"), collection);
+  await writeFile(
+    join(output, "analysis.json"),
+    JSON.stringify(
+      { ...analysisMethod, sourceRevision: process.env.GITHUB_SHA ?? null },
+      null,
+      2,
+    ) + "\n",
+  );
   await writeFile(join(output, ".nojekyll"), "");
   console.log(
     `Built ${captures.length} captures from ${paths.length} collections into dist/.`,

@@ -5,7 +5,11 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { format, resolveConfig } from "prettier";
-import { validateSubmission, mergeCaptures } from "../model.js";
+import {
+  validateSubmission,
+  mergeCaptures,
+  observationCapture,
+} from "../model.js";
 import { exportFilename } from "../environment.js";
 
 const repository = "aarongustafson/system-color-study";
@@ -38,10 +42,10 @@ export async function submitCapture(
     throw new Error("Submit at most 5 MB.");
   const source = await readFile(file);
   if (source.length > 5_000_000) throw new Error("Submit at most 5 MB.");
-  const captures = mergeCaptures(
-    [],
-    validateSubmission(JSON.parse(source.toString("utf8"))),
-  ).captures;
+  const data = JSON.parse(source.toString("utf8"));
+  const captures = mergeCaptures([], validateSubmission(data)).captures.map(
+    observationCapture,
+  );
   if (!captures.length) throw new Error("The submission contains no captures.");
   const timestamp = captures
     .map((capture) => capture.capturedAt)
@@ -53,7 +57,10 @@ export async function submitCapture(
     `-${hash}.json`,
   );
   const path = `data/submissions/${filename}`;
-  const formatted = await formatSubmission(source.toString("utf8"), path);
+  const formatted = await formatSubmission(
+    JSON.stringify({ ...data, captures }),
+    path,
+  );
   if (Buffer.byteLength(formatted) > 5_000_000)
     throw new Error("Formatted submissions must stay within 5 MB.");
   if (dryRun)

@@ -1,18 +1,22 @@
 import {
   keywords,
-  pairs,
-  hex,
-  backdropRGB,
-  pairResult,
   comparisonGroups,
   comparisonSections,
   comparisonThemeName,
   compactEnvironmentLabel,
+  forcedLabel,
+} from "./model.js";
+import {
+  analysisMethod,
+  pairs,
+  colorRGBA,
+  colorCSS,
+  backdropRGB,
+  pairResult,
   composite,
   contrast,
-  forcedLabel,
   recommendationSummary,
-} from "./model.js";
+} from "./analysis.js";
 
 export { forcedLabel } from "./model.js";
 
@@ -239,14 +243,12 @@ export function createComparisonRenderer(document) {
       cell.append(element("code", color.hex));
       cell.title = color.computed;
       const backdrop = backdropRGB(snapshot);
-      if (color.rgba[3] === 255 || backdrop) {
-        const rgb = (
-          color.rgba[3] === 255
-            ? color.rgba.slice(0, 3)
-            : composite(color.rgba, backdrop)
-        ).map(Math.round);
+      const rgba = colorRGBA(color);
+      if (rgba[3] === 255 || backdrop) {
+        const rgb =
+          rgba[3] === 255 ? rgba.slice(0, 3) : composite(rgba, backdrop);
         cell.className = "color-value";
-        cell.style.backgroundColor = hex([...rgb, 255]);
+        cell.style.backgroundColor = `rgb(${rgb.join(", ")})`;
         cell.style.color =
           contrast([0, 0, 0], rgb) >= contrast([255, 255, 255], rgb)
             ? "#000000"
@@ -276,10 +278,10 @@ export function createComparisonRenderer(document) {
       cell.textContent = "Preview unavailable: " + result.reason;
       return cell;
     }
-    const background = snapshot.colors[pair.background].hex;
-    cell.style.backgroundColor = hex([...backdropRGB(snapshot), 255]);
+    const background = colorCSS(snapshot.colors[pair.background]);
+    cell.style.backgroundColor = `rgb(${backdropRGB(snapshot).join(", ")})`;
     cell.style.backgroundImage = `linear-gradient(${background}, ${background})`;
-    cell.style.color = snapshot.colors[pair.foreground].hex;
+    cell.style.color = colorCSS(snapshot.colors[pair.foreground]);
     const normal = element("p", "Normal");
     normal.className = "sample-normal";
     const large = element("p", "Large");
@@ -710,6 +712,13 @@ export function createComparisonRenderer(document) {
   }
 
   function renderTables(captures) {
+    const method = byId("analysis-method");
+    if (method) {
+      method.textContent = `Analysis v${analysisMethod.version}: ${analysisMethod.metric}; ${analysisMethod.criteria} thresholds. Results are recalculated from observations, not captured grades.`;
+      const link = element("a", "Analysis details (JSON)");
+      link.href = "./analysis.json";
+      method.append(" ", link);
+    }
     ensureFaceSymbols();
     const dialogs = renderDialogs(comparisonGroups(captures));
     renderComparisonTables(

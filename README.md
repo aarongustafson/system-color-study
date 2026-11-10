@@ -112,8 +112,9 @@ alpha, unsupported keywords, and both requested-scheme reports remain in the JSO
 4. Select **Capture light and dark**. One capture contains both requested CSS
    modes and all 42 keywords, each from a fresh, independent scheme probe.
 5. Select **Download JSON**. Save the download; **Copy JSON** prepares the same
-   measurements and metadata as compact JSON for the GitHub issue form. It omits
-   only recalculable contrast-pair reports; the download retains those reports.
+   measurements and metadata as compact JSON for the GitHub issue form. Neither
+   export contains calculated contrast-pair reports or grades; only formatting
+   differs.
    A text area is available for manually copying the compact issue JSON.
    Filenames include browser/OS labels, versions, and the export timestamp.
    Mixed collections identify the first environment and the number of others;
@@ -351,9 +352,13 @@ to the [snapshot issue form](https://github.com/aarongustafson/system-color-stud
 The issue workflow runs after an issue is opened or edited. It accepts one
 complete snapshot, rejects unconfirmed metadata, duplicate/conflicting IDs,
 incompatible data, and collection limits, then validates the complete site build.
-The issue copy preserves both schemes and all 42 keywords without the redundant
-contrast-pair reports, which the site recalculates from the recorded colors.
-Existing full-format submissions remain supported. A truncated snapshot cannot
+Downloads and issue copies preserve both schemes and all 42 keywords without
+contrast-pair reports, which the site calculates from the recorded colors.
+Existing full-format submissions remain supported; intake and the published
+dataset omit their stored pair reports without changing archived source files.
+Validation checks observation structure and consistency, not contrast scores:
+low contrast is useful research data, not a reason to reject a submission.
+A truncated snapshot cannot
 be recovered from the issue: its contributor must replace it with a complete
 compact copy or provide the original download to a maintainer.
 Successful validation leaves a comment asking for owner approval. Aaron can
@@ -486,15 +491,20 @@ page remain disabled.
 ## Color and contrast method
 
 - Save the browser’s original computed CSS serialization.
-- Convert resolved `rgb()`/`rgba()` channels directly to sRGB bytes. Preserve
-  alpha as the fourth byte; opaque values use `#rrggbb`, others `#rrggbbaa`.
+- For resolved `rgb()`/`rgba()` serializations, save unrounded sRGB channels as
+  `rgbaFloat`, with all four channels (including alpha) on a 0–255 scale.
+  Preserve fractional channels and alpha using JavaScript number precision,
+  without adding decimal places that the browser did not report.
+  Keep rounded `rgba` bytes and `hex` for version-1 compatibility and display.
 - If serialization isn’t RGB, use a 1-pixel sRGB 2D canvas and record that
   conversion method. That path can clip out-of-gamut values and introduce
   premultiplication/8-bit rounding. The original CSS value remains authoritative.
 - Composite the pair’s background over the chosen opaque backdrop, then its
   foreground over that painted background. Use encoded-sRGB source-over
   compositing before calculating WCAG relative luminance.
-- Apply thresholds to the **unrounded ratio calculated from the stored bytes**:
+- At build time, calculate from `rgbaFloat` when recorded, otherwise from legacy
+  `rgba` bytes. Do not silently reinterpret older measurements at new precision.
+  Apply WCAG 2.2 thresholds to the **unrounded calculated ratio**:
   normal AA 4.5, normal AAA 7, large AA 3, large AAA 4.5, and the non-text
   contrast threshold 3.
 - If a keyword is unsupported or a requested Canvas backdrop is unavailable or
@@ -505,6 +515,25 @@ Displayed ratios are rounded to two decimal places. A value displayed as 4.50
 can still fail if its underlying ratio is below 4.5. Results near a boundary
 deserve inspection of the original CSS channels and conversion precision.
 Imported verdicts aren’t trusted: tables recalculate from the raw samples.
+
+The sampler records observations only. Intake validates and formats those
+observations; it does not persist analysis or require passing contrast.
+The shared [analysis module](./analysis.js) separates the sRGB metric from
+criteria and is used by the renderer for build-time comparisons.
+The site publishes `analysis.json` with the analysis version, metric, WCAG
+criteria, thresholds, precision, compositing assumptions, and the CI source
+revision (`null` for local builds without `GITHUB_SHA`). The result tables also
+identify the method. Archive the source revision to reproduce a local build.
+Changing grading or compositing changes the analysis version, not the capture
+protocol. A future WCAG 3 method must be separately named and implemented, not
+silently substituted under WCAG 2 AA/AAA labels.
+
+The original computed CSS string is retained even for non-sRGB colors. It can
+support future wider-gamut analysis if the browser exposes sufficient coordinates;
+converting the canvas result back to a wider gamut cannot recover clipped data.
+The canvas fallback does not claim higher precision than its 8-bit readback.
+This study remains limited to variation in named system colors and the relative
+contrast of defined pairs, not physical display calibration or authored surfaces.
 
 These are threshold comparisons, **not WCAG conformance certifications**.
 Font size, control semantics, adjacent colors, imagery, focus geometry,
@@ -531,16 +560,24 @@ Each capture has:
   detected display mode. Unsupported/unmatched media features are `unknown`
   (or `null` for forced colors), not guessed preferences.
 - `schemes.light` and `schemes.dark`: requested-scheme support, computed
-  color-scheme serialization, backdrop selection, 42 keyword measurements,
-  and derived pair results.
+  color-scheme serialization, backdrop selection, and 42 keyword measurements.
+  New captures do not contain derived pair results.
 - Per keyword: `supported`, `computed`, `rgba`, `hex`, and, for supported
-  colors, `conversion`.
+  colors, `conversion`. New RGB-serialization captures additionally include
+  optional `rgbaFloat`; it must agree with the original CSS serialization and
+  round to the recorded bytes. Unsupported and canvas-fallback colors omit it.
+  Hex remains redundant but required for compatibility; removing it would need
+  a separately versioned schema and adapters, not an implicit format change.
 
 Archive the source revision with the exports. Version 1 fixes the catalog and
-measurement method. Change protocol versions when changing measurement,
-compositing, or grading; change schema/catalog versions when their contracts
-change. The current validator rejects incompatible versions rather than
-quietly mixing studies. Future changes should include explicit migrations.
+measurement method. Optional `rgbaFloat` records precision already present in
+the original CSS string while preserving version-1 byte fields and compatibility.
+Change protocol versions when changing the probes or measurement conditions;
+change schema/catalog versions when their contracts change. Analysis versions
+are independent. The validator rejects incompatible collection versions rather
+than quietly mixing studies. Future breaking changes need explicit migrations.
+Duplicate detection ignores stored pair reports but still rejects conflicting
+measurements, precision, or metadata under the same capture ID.
 
 Builds are atomic and bounded: at most 5 MB of collections and 100 unique captures
 in the comparison view. Archive runs separately and choose a comparison subset.

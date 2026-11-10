@@ -11,6 +11,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { versions } from "../model.js";
+import { analysisMethod } from "../analysis.js";
 import { JSDOM } from "jsdom";
 import { buildSite, publicFiles, renderIndex } from "../scripts/build.js";
 import { fixture } from "./fixtures.js";
@@ -66,6 +67,8 @@ test("deprecated controls are inert authored markup in static output, and remove
 test("build merges every committed JSON collection and publishes only allowed static files", async (t) => {
   const root = await setup(t);
   const capture = fixture("one");
+  for (const snapshot of Object.values(capture.schemes))
+    snapshot.pairs = [{ ratio: 21, grades: { normalAA: true } }];
   const seed = fixture("seed");
   seed.capturedAt = "1999-01-01T00:00:00.000Z";
   await writeFile(
@@ -91,6 +94,23 @@ test("build merges every committed JSON collection and publishes only allowed st
     result.captures.map((item) => item.id),
     ["seed", "one", "two"],
   );
+  assert.ok(
+    result.captures.every((item) =>
+      Object.values(item.schemes).every(
+        (snapshot) => snapshot.pairs === undefined,
+      ),
+    ),
+  );
+  assert.ok(
+    JSON.parse(await readFile(join(root, "data/a.json"))).captures[0].schemes
+      .light.pairs,
+  );
+  assert.deepEqual(
+    JSON.parse(await readFile(join(root, "dist/analysis.json"))),
+    { ...analysisMethod, sourceRevision: process.env.GITHUB_SHA ?? null },
+  );
+  const html = await readFile(join(root, "dist/index.html"), "utf8");
+  assert.match(html, /Analysis v1:.*WCAG 2\.2 thresholds/);
   assert.deepEqual(
     (await readdir(join(root, "dist"))).sort(),
     [
@@ -102,6 +122,8 @@ test("build merges every committed JSON collection and publishes only allowed st
       "comparison-renderer.js",
       "comparison-ui.js",
       "model.js",
+      "analysis.js",
+      "analysis.json",
       "sampler.js",
       "environment.js",
       "styles.css",

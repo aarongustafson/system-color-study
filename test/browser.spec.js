@@ -2,15 +2,8 @@ import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { renderIndex } from "../scripts/build.js";
 import { fixture } from "./fixtures.js";
-import {
-  versions,
-  hex,
-  contrast,
-  comparisonSections,
-  composite,
-  pairResult,
-  pairs,
-} from "../model.js";
+import { versions, hex, comparisonSections } from "../model.js";
+import { pairs, contrast, composite, pairResult } from "../analysis.js";
 
 const indexSource = await readFile(
   new URL("../index.html", import.meta.url),
@@ -448,7 +441,21 @@ test("scrolling collapses only visual headers and restores Details on keyboard f
     await expect(button).toBeVisible();
     await button.press("Enter");
     await expect(page.locator("dialog[open]")).toBeVisible();
+    await page.evaluate(() => {
+      window.dialogCloseHandled = false;
+      document.addEventListener(
+        "close",
+        () => {
+          window.dialogCloseHandled = true;
+        },
+        { capture: true, once: true },
+      );
+    });
     await page.keyboard.press("Escape");
+    // The queued close handler restores focus before this test moves it again.
+    await expect
+      .poll(() => page.evaluate(() => window.dialogCloseHandled))
+      .toBe(true);
     await expect(button).toBeFocused();
     await region.evaluate((node) => {
       node.scrollTop = 40;

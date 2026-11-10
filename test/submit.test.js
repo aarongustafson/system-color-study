@@ -4,7 +4,7 @@ import { mkdtemp, writeFile, readFile, rm } from "node:fs/promises";
 import { check } from "prettier";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { versions } from "../model.js";
+import { versions, observationCapture } from "../model.js";
 import { fixture } from "./fixtures.js";
 import { submitCapture } from "../scripts/submit.js";
 
@@ -34,6 +34,10 @@ test("dry-run validates and names a submission without any GitHub requests", asy
 
 test("submission creates only a data branch, file commit, and PR with authenticated gh API calls", async (t) => {
   const path = await setup(t);
+  const legacy = JSON.parse(await readFile(path, "utf8"));
+  for (const snapshot of Object.values(legacy.captures[0].schemes))
+    snapshot.pairs = [{ ratio: 21, grades: { normalAA: true } }];
+  await writeFile(path, JSON.stringify(legacy));
   const requests = [];
   const api = async (path, method, input) => {
     requests.push({ path, method, input });
@@ -65,7 +69,11 @@ test("submission creates only a data branch, file commit, and PR with authentica
     true,
     "Committed snapshots must pass CI formatting.",
   );
-  assert.deepEqual(JSON.parse(text), JSON.parse(await readFile(path, "utf8")));
+  assert.deepEqual(JSON.parse(text), {
+    ...legacy,
+    captures: legacy.captures.map(observationCapture),
+  });
+  assert.deepEqual(JSON.parse(await readFile(path, "utf8")), legacy);
   const pr = requests.at(-1).input;
   assert.equal(pr.base, "main");
   assert.equal(pr.head, commit.branch);

@@ -262,15 +262,35 @@
           fill a gap.
         </p>
         <p>
-          We keep the original CSS strings alongside the converted sRGB bytes,
-          hex values, and alpha. For contrast, we paint the background over the
-          recorded opaque backdrop, then the foreground over that background.
+          We keep the original CSS strings and, for RGB serializations,
+          unrounded sRGB channels including alpha. Rounded bytes and hex remain
+          for compatibility. Other serializations retain their original strings
+          alongside an explicitly labeled 8-bit sRGB canvas conversion, which
+          may lose gamut and precision. No extra precision is inferred.
+        </p>
+        <p>
+          Captures contain observations, not contrast scores or grades. Intake
+          validates the data format, not whether a pairing passes a threshold.
+          At site build time, the shared analysis calculates WCAG 2.2 contrast
+          from the unrounded channels when available, otherwise from the legacy
+          bytes. It paints the background over the recorded opaque backdrop,
+          then the foreground over that background. Analysis is versioned
+          separately from collection; the results link to its method and
+          thresholds. Changing the analysis does not rewrite the observations.
           The
           <a
             href="https://github.com/aarongustafson/system-color-study#color-and-contrast-method"
             >README’s color and contrast method</a
           >
           describes the conversion and calculation.
+        </p>
+        <p>
+          This study compares variation in named system colors and the relative
+          accessibility of the defined pairs. It does not attempt to model every
+          authored surface, physical display, or viewing condition. Preserving
+          original CSS values can support later wider-gamut analysis when they
+          expose the necessary coordinates; it cannot recover information that
+          the browser did not report.
         </p>
         <p>
           The capture page fixes the backdrop to resolved <code>Canvas</code>.

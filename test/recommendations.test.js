@@ -2,7 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { JSDOM } from "jsdom";
-import * as model from "../model.js";
+import { pairs } from "../analysis.js";
+import * as model from "../analysis.js";
 import { renderIndex } from "../scripts/build.js";
 import { fixture } from "./fixtures.js";
 
@@ -15,7 +16,7 @@ function capture(id, category = "ordinary") {
   if (category === "more") value.media.prefersContrast = "more";
   for (const snapshot of Object.values(value.schemes)) {
     snapshot.colors = structuredClone(snapshot.colors);
-    for (const pair of model.pairs.filter((pair) => !pair.deprecated)) {
+    for (const pair of pairs.filter((pair) => !pair.deprecated)) {
       snapshot.colors[pair.background] = {
         ...snapshot.colors[pair.background],
         rgba: [255, 255, 255, 255],
@@ -49,7 +50,7 @@ test("recommendations require normal-text AA in every category rather than a poo
   assert.equal(canvas.variants.length, 2);
   assert.equal(
     canvas.minimum,
-    model.pairResult(model.pairs[0], ordinary.schemes.light).ratio,
+    model.pairResult(pairs[0], ordinary.schemes.light).ratio,
   );
   assert.equal(summary.pairs.length, 10);
   assert.ok(summary.pairs.every((pair) => !pair.deprecated));

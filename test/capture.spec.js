@@ -214,10 +214,11 @@ test("capture probes both schemes independently and downloads exactly the record
   );
   const full = JSON.parse(await readFile(await download.path(), "utf8"));
   for (const scheme of ["light", "dark"]) {
-    expect(full.captures[0].schemes[scheme].pairs.length).toBeGreaterThan(0);
+    expect(full.captures[0].schemes[scheme]).not.toHaveProperty("pairs");
     expect(data.captures[0].schemes[scheme]).not.toHaveProperty("pairs");
   }
   expect(JSON.parse(issueSubmissionJSON(full))).toEqual(data);
+  expect(full).toEqual(data);
   await expect(page.locator(".probe-zone")).toHaveCount(0);
 });
 
@@ -235,6 +236,55 @@ test("theme controls are absent when forced colors are inactive", async ({
   expect(data.captures[0].media.forcedColors).toBe(false);
   expect(data.captures[0].environment).not.toHaveProperty("forcedColorTheme");
 });
+
+for (const [computed, conversion] of [
+  ["rgba(12.345, 67.89, 123.456, 0.1234)", "rgb-serialization"],
+  ["color(display-p3 1 0 0)", "canvas-srgb-8"],
+]) {
+  test(`capture preserves ${computed} without inventing conversion precision`, async ({
+    page,
+  }) => {
+    let analysisRequests = 0;
+    await page.route("**/analysis.js", (route) => {
+      analysisRequests++;
+      return route.abort();
+    });
+    await page.route("**/sampler.js", async (route) => {
+      const response = await route.fetch();
+      await route.fulfill({
+        response,
+        body: (await response.text()).replace(
+          "const computed = getComputedStyle(probe).color;",
+          `const computed = ${JSON.stringify(computed)};`,
+        ),
+      });
+    });
+    await page.reload();
+    await page.getByLabel("Browser and version").fill("Test browser");
+    await page.getByLabel("OS and version").fill("Test OS");
+    await page.getByRole("button", { name: "Capture light and dark" }).click();
+    const waiting = page.waitForEvent("download");
+    await page
+      .getByRole("link", { name: "Download JSON", exact: true })
+      .click();
+    const download = await waiting;
+    const data = JSON.parse(await readFile(await download.path(), "utf8"));
+    for (const scheme of ["light", "dark"]) {
+      expect(data.captures[0].schemes[scheme]).not.toHaveProperty("pairs");
+      const color = data.captures[0].schemes[scheme].colors.Canvas;
+      expect(color.computed).toBe(computed);
+      expect(color.conversion).toBe(conversion);
+      expect(color.rgba.every(Number.isInteger)).toBe(true);
+      if (conversion === "rgb-serialization")
+        expect(color.rgbaFloat).toEqual([12.345, 67.89, 123.456, 0.1234 * 255]);
+      else expect(color).not.toHaveProperty("rgbaFloat");
+    }
+    expect(analysisRequests).toBe(0);
+    expect(JSON.stringify(data)).not.toMatch(
+      /"(ratio|grades|paintedBackground|nonTextThreshold)":/,
+    );
+  });
+}
 
 test("active forced colors require a confirmed theme and hide the field again when disabled", async ({
   page,

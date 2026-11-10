@@ -11,6 +11,17 @@ a data-only review PR under `data/submissions/issue-<number>.json`. Issue edits
 need a new owner approval to update the same submission; maintainers still
 review before merging.
 
+New exports and submission PRs contain observations, not contrast scores or
+grades. Intake accepts older exports but omits their stored pair reports;
+historical source files remain unchanged. The build recalculates contrast using
+the separately versioned analysis method and publishes its metadata in
+`analysis.json`. Low contrast is a finding, not invalid input.
+
+RGB-serialization captures preserve optional unrounded `rgbaFloat` channels,
+including alpha, on a 0–255 scale alongside compatibility bytes and hex.
+The original computed CSS string and conversion method remain essential:
+canvas-fallback captures are still explicitly 8-bit sRGB and may lose gamut.
+
 The first observations are under `automated-local/2026-11-05/`: three headed
 Playwright bundled engines on macOS 27.0.1 arm64, with media emulation disabled.
 Each file records both requested schemes and all 42 keywords. These are actual
