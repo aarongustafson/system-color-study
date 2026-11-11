@@ -1409,12 +1409,23 @@ test("capture metadata containing verify is rejected until corrected", async ({
         .click();
     await page.getByRole("button", { name: "Capture light and dark" }).click();
     await expect(page.locator("#capture-result")).toBeHidden();
+    await expect(page.locator(`#${field}`)).toBeFocused();
+    await expect(page.locator(`#${field}`)).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
+    await expect(page.locator(`#${field}-error`)).toBeVisible();
+    await expect(page.locator(`#${field}`)).toHaveAccessibleDescription(
+      /Confirm this value and remove “verify” before capturing/,
+    );
     expect(
       await page.locator(`#${field}`).evaluate((n) => n.validity.customError),
     ).toBe(true);
     await page
       .locator(`#${field}`)
       .fill(field === "notes" ? "" : "Confirmed 1");
+    await expect(page.locator(`#${field}-error`)).toBeHidden();
+    await expect(page.locator(`#${field}`)).not.toHaveAttribute("aria-invalid");
   }
   await page.getByRole("button", { name: "Capture light and dark" }).click();
   await expect(page.locator("#capture-result")).toBeVisible();

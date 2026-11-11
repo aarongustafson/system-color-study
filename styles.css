@@ -96,8 +96,10 @@ legend {
   align-items: end;
   margin-block: 1rem;
 }
-.settings > label {
+.settings > label,
+.settings > .metadata-field {
   flex: 1 1 15rem;
+  min-inline-size: 0;
 }
 .settings .check {
   display: flex;
@@ -432,6 +434,11 @@ td small {
 #error {
   padding: 1rem;
   border: 3px solid currentColor;
+  font-weight: 600;
+}
+.field-error {
+  border-inline-start: 3px solid currentColor;
+  padding-inline-start: 0.5rem;
   font-weight: 600;
 }
 #captures li {

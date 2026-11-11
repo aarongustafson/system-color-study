@@ -52,6 +52,10 @@ dated JSON snapshot. Its download is available immediately. Nothing uploads or
 saves automatically, and the page doesn’t import or display comparison datasets.
 Use the published results to explore the colors.
 
+Invalid capture metadata is explained in persistent, field-associated error
+messages, with focus moved to the first invalid field. This does not depend on
+the browser displaying a native validation tooltip.
+
 The findings page also generates functional-pair recommendations at build time.
 A current pair qualifies only when every observation meets normal-text AA
 (4.5:1) separately in ordinary light, ordinary dark, forced-color, and
