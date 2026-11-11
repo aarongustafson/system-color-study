@@ -57,22 +57,28 @@
           <fieldset>
             <legend>Browser and operating system</legend>
             <div class="settings">
-              <label
-                >Browser and version
-                <input
-                  id="browser"
-                  aria-describedby="metadata-help metadata-source"
-                  required
-                  maxlength="160"
-              /></label>
-              <label
-                >OS and version
-                <input
-                  id="os"
-                  aria-describedby="metadata-help metadata-source"
-                  required
-                  maxlength="160"
-              /></label>
+              <div class="metadata-field">
+                <label
+                  >Browser and version
+                  <input
+                    id="browser"
+                    aria-describedby="metadata-help metadata-source browser-error"
+                    required
+                    maxlength="160"
+                /></label>
+                <p id="browser-error" class="field-error" hidden></p>
+              </div>
+              <div class="metadata-field">
+                <label
+                  >OS and version
+                  <input
+                    id="os"
+                    aria-describedby="metadata-help metadata-source os-error"
+                    required
+                    maxlength="160"
+                /></label>
+                <p id="os-error" class="field-error" hidden></p>
+              </div>
               <button id="detect-versions" type="button" hidden>
                 Populate from Client Hints
               </button>
@@ -87,9 +93,10 @@
                 <input
                   id="forced-color-theme"
                   maxlength="160"
-                  aria-describedby="forced-color-help"
+                  aria-describedby="forced-color-help forced-color-theme-error"
                   disabled
               /></label>
+              <p id="forced-color-theme-error" class="field-error" hidden></p>
               <p id="forced-color-help">
                 Forced colors are active. Enter the name of the built-in
                 Contrast theme or browser palette, with its colors unchanged.
@@ -113,9 +120,10 @@
                   id="notes"
                   rows="2"
                   maxlength="2000"
-                  aria-describedby="notes-help"
+                  aria-describedby="notes-help notes-error"
                 ></textarea>
               </label>
+              <p id="notes-error" class="field-error" hidden></p>
               <p id="notes-help">
                 Don’t include personal information in Notes.
               </p>

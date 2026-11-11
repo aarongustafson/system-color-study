@@ -176,6 +176,42 @@ test("capture guidance stays with its controls without a redundant ready message
   ).toBeFocused();
 });
 
+test("required metadata errors persist without native validation tooltips", async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    HTMLFormElement.prototype.reportValidity = () => {
+      throw new Error("Native validation tooltips must not be required.");
+    };
+  });
+  await page.getByLabel("Browser and version").fill("");
+  await page.getByLabel("OS and version").fill("   ");
+  await page.getByRole("button", { name: "Capture light and dark" }).click();
+  await expect(page.getByLabel("Browser and version")).toBeFocused();
+  await expect(page.locator("#status")).toContainText(
+    "No snapshot was generated",
+  );
+  for (const id of ["browser", "os"]) {
+    await expect(page.locator(`#${id}-error`)).toHaveText(
+      "Enter a confirmed value.",
+    );
+    await expect(page.locator(`#${id}-error`)).toBeVisible();
+    await expect(page.locator(`#${id}`)).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
+  }
+  await page.getByLabel("Browser and version").fill("Confirmed browser");
+  await expect(page.locator("#browser-error")).toBeHidden();
+  await expect(page.locator("#os-error")).toBeVisible();
+  await page.getByRole("button", { name: "Capture light and dark" }).click();
+  await expect(page.getByLabel("OS and version")).toBeFocused();
+  await page.getByLabel("OS and version").fill("Confirmed OS");
+  await page.getByRole("button", { name: "Capture light and dark" }).click();
+  await expect(page.locator("#capture-result")).toBeVisible();
+  await expect(page.locator("#error")).toBeHidden();
+});
+
 test("capture probes both schemes independently and downloads exactly the recorded values", async ({
   page,
 }) => {
@@ -302,6 +338,9 @@ test("active forced colors require a confirmed theme and hide the field again wh
     await theme.fill(value);
     await page.getByRole("button", { name: "Capture light and dark" }).click();
     await expect(page.locator("#capture-result")).toBeHidden();
+    await expect(theme).toBeFocused();
+    await expect(theme).toHaveAttribute("aria-invalid", "true");
+    await expect(page.locator("#forced-color-theme-error")).toBeVisible();
   }
   await theme.fill("Emulated palette");
   await page.getByRole("button", { name: "Capture light and dark" }).click();
@@ -313,6 +352,7 @@ test("active forced colors require a confirmed theme and hide the field again wh
   await page.emulateMedia({ forcedColors: "none" });
   await expect(theme).toBeHidden();
   await expect(theme).toBeDisabled();
+  await expect(page.locator("#forced-color-theme-error")).toBeHidden();
 });
 
 test("editing metadata hides the stale download until another capture", async ({

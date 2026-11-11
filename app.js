@@ -63,7 +63,7 @@ function reportMetadataSources() {
   reportPublishedMatch();
 }
 
-function validateField(field) {
+function validateField(field, showError = false) {
   field.setCustomValidity(
     /verify/i.test(field.value)
       ? "Confirm this value and remove “verify” before capturing."
@@ -71,6 +71,14 @@ function validateField(field) {
         ? "Enter a confirmed value."
         : "",
   );
+  const error = byId(`${field.id}-error`);
+  if (showError || !error.hidden) {
+    const invalid = !field.disabled && !field.validity.valid;
+    error.textContent = invalid ? field.validationMessage : "";
+    error.hidden = !invalid;
+    if (invalid) field.setAttribute("aria-invalid", "true");
+    else field.removeAttribute("aria-invalid");
+  }
 }
 
 function syncEnvironment() {
@@ -141,11 +149,17 @@ byId("capture-form").addEventListener("submit", (event) => {
   clearError();
   try {
     syncEnvironment();
+    for (const id of fields) validateField(byId(id), true);
     const invalid = fields
       .map(byId)
-      .find((field) => !field.disabled && !field.checkValidity());
-    if (invalid?.closest("details")) invalid.closest("details").open = true;
-    if (!byId("capture-form").reportValidity()) return;
+      .find((field) => !field.disabled && !field.validity.valid);
+    if (invalid) {
+      if (invalid.closest("details")) invalid.closest("details").open = true;
+      byId("status").textContent =
+        "Correct the marked fields before capturing. No snapshot was generated.";
+      invalid.focus();
+      return;
+    }
     const capturedAt = new Date().toISOString();
     const capture = {
       id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
